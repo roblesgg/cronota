@@ -266,6 +266,7 @@ let dockBarRect = null;          // rectángulo de la barrita, para saber si el 
 let dockBarNear = null;
 let dockHitTimer = null;
 let dockIgnoring = null;
+let saliendo = false;            // la app se está cerrando (salir, o instalar una actualización)
 let pendingUpdateState = null;   // último estado enviado a la ventana de actualización
 let updateInfo = null;           // { version } si hay una actualización disponible (para el botón del panel)
 let syncStatus = { loggedIn: false, email: null };
@@ -2201,6 +2202,10 @@ function createDock() {
     try { dockWin.setIgnoreMouseEvents(true); } catch {}
   });
   dockWin.webContents.on('render-process-gone', () => {
+    // Si la app se está cerrando (o el instalador la está cerrando a la fuerza para actualizar),
+    // el proceso de la barra muere antes que el principal: eso no es un fallo, y no hay que
+    // quitar el modo barra ni guardarlo así.
+    if (saliendo) return;
     destroyDock();
     settings.dockMode = false; saveSettings(); updateTrayTitle();
     openMain();
@@ -3533,6 +3538,7 @@ app.whenReady().then(() => {
 // también, porque es lo último que mantiene la app en pie.
 function installUpdateNow() {
   if (!autoUpdater) return;
+  saliendo = true;
   pauseActive(); saveData(); saveSettings();
   try { if (dockHitTimer) { clearInterval(dockHitTimer); dockHitTimer = null; } } catch {}
   try { if (tray) { tray.destroy(); tray = null; } } catch {}
@@ -3548,7 +3554,7 @@ function installUpdateNow() {
     // en marcha: enseña "no se puede cerrar imputa.me", y si ahí se cancela, ya ha
     // borrado los ficheros viejos y la instalación se queda inservible. Es justo lo que
     // pasó: la carpeta acabó con un icono suelto y sin ejecutable.
-    setTimeout(() => { try { app.exit(0); } catch {} }, 4000);
+    setTimeout(() => { try { app.exit(0); } catch {} }, 2500);   // 2.8.5: antes 4 s; el instalador espera 6 antes de forzar
   });
 }
 
@@ -3556,6 +3562,7 @@ app.on('window-all-closed', e => e.preventDefault());
 // saveSettings() explícito: saveSettingsSoon puede tener un guardado pendiente (p. ej.
 // la última vista abierta) que se perdería si la app se cierra antes de que salte.
 app.on('before-quit', () => {
+  saliendo = true;
   pauseActive(); saveData(); saveSettings();
   // La bandeja se va con la app: si se queda, el instalador que se lanza al salir
   // (autoInstallOnAppQuit) puede seguir viendo el proceso vivo y pedir que la cierres.
