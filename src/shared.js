@@ -717,3 +717,173 @@ window.addEventListener('keydown', (e) => {
     clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 1600);
   });
 })();
+
+// ── Desplegable propio (2.8.5) ───────────────────────────────────────────────────
+// Sustituye a la lista nativa de los <select> (la de Windows, que no pega con la app) por un
+// botón y un menú animado. El <select> sigue ahí, escondido, y sigue siendo la fuente de
+// verdad: el código de cada página lo lee y lo escribe igual que antes (value, options,
+// onchange). Para dejar uno con la lista nativa: <select data-nativo>.
+const DD_FLECHA = '<svg class="dd-flecha" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>';
+const DD_CHECK = '<svg class="dd-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+let ddAbierto = null;   // { cerrar } del menú abierto (solo uno a la vez)
+
+function mejorarSelect(sel) {
+  if (!sel || sel.__dd || sel.multiple || sel.dataset.nativo != null) return;
+  sel.__dd = true;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'dd-btn';
+  btn.setAttribute('aria-haspopup', 'listbox');
+  btn.setAttribute('aria-expanded', 'false');
+  if (sel.id) btn.dataset.para = sel.id;
+  if (sel.title) btn.title = sel.title;
+  btn.style.cssText = sel.style.cssText;   // p. ej. flex:1, que la página puso en el select
+  btn.innerHTML = '<span class="dd-texto"></span>' + DD_FLECHA;
+  const texto = btn.firstChild;
+  sel.classList.add('dd-nativo');
+  sel.insertAdjacentElement('afterend', btn);
+
+  const pintar = () => {
+    const o = sel.options[sel.selectedIndex];
+    texto.textContent = o ? o.textContent : '';
+    btn.disabled = sel.disabled;
+    // Si la página esconde o enseña el select, el botón va con él.
+    const oculto = sel.style.display === 'none';
+    if (oculto) btn.style.display = 'none';
+    else if (btn.style.display === 'none') btn.style.display = '';
+  };
+  // Lo que la página escriba en el select (value, selectedIndex, opciones) se refleja solo.
+  ['value', 'selectedIndex'].forEach(prop => {
+    const d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop);
+    Object.defineProperty(sel, prop, {
+      configurable: true,
+      get() { return d.get.call(sel); },
+      set(v) { d.set.call(sel, v); pintar(); },
+    });
+  });
+  new MutationObserver(pintar).observe(sel, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['disabled', 'style', 'selected'] });
+  sel.addEventListener('change', pintar);
+  pintar();
+
+  let menu = null, foco = -1, ops = [];
+  const marcarFoco = (i, mover) => {
+    foco = i;
+    ops.forEach((o, k) => o.classList.toggle('foco', k === i));
+    if (mover && ops[i]) ops[i].scrollIntoView({ block: 'nearest' });
+  };
+  const cerrar = (devolverFoco) => {
+    if (!menu) return;
+    const m = menu; menu = null; ops = [];
+    if (ddAbierto && ddAbierto.cerrar === cerrar) ddAbierto = null;
+    btn.classList.remove('abierto');
+    btn.setAttribute('aria-expanded', 'false');
+    m.classList.remove('abierto');
+    setTimeout(() => m.remove(), 180);
+    document.removeEventListener('pointerdown', fuera, true);
+    window.removeEventListener('resize', cerrarYa);
+    window.removeEventListener('blur', cerrarYa);
+    document.removeEventListener('scroll', alDesplazar, true);
+    if (devolverFoco) btn.focus();
+  };
+  const cerrarYa = () => cerrar(false);
+  const fuera = (e) => { if (menu && !menu.contains(e.target) && !btn.contains(e.target)) cerrar(false); };
+  const alDesplazar = (e) => { if (menu && !menu.contains(e.target)) cerrar(false); };
+  const elegir = (i) => {
+    const cambia = sel.selectedIndex !== i;
+    sel.selectedIndex = i;
+    cerrar(true);
+    if (cambia) {
+      sel.dispatchEvent(new Event('input', { bubbles: true }));
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  };
+  const abrir = () => {
+    if (menu || sel.disabled) return;
+    if (ddAbierto) ddAbierto.cerrar(false);
+    menu = document.createElement('div');
+    menu.className = 'dd-menu';
+    menu.setAttribute('role', 'listbox');
+    ops = [];
+    let grupo = null;
+    [...sel.options].forEach((o, i) => {
+      if (o.hidden) return;
+      const g = o.parentElement && o.parentElement.tagName === 'OPTGROUP' ? o.parentElement : null;
+      if (g !== grupo) {
+        grupo = g;
+        if (g) { const h = document.createElement('div'); h.className = 'dd-grupo'; h.textContent = g.label; menu.appendChild(h); }
+      }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dd-op' + (i === sel.selectedIndex ? ' elegida' : '');
+      b.setAttribute('role', 'option');
+      b.setAttribute('aria-selected', i === sel.selectedIndex ? 'true' : 'false');
+      b.disabled = o.disabled;
+      b.tabIndex = -1;
+      const t = document.createElement('span'); t.className = 'dd-op-texto'; t.textContent = o.textContent;
+      b.appendChild(t);
+      if (i === sel.selectedIndex) b.insertAdjacentHTML('beforeend', DD_CHECK);
+      b.addEventListener('click', (e) => { e.stopPropagation(); elegir(i); });
+      b.addEventListener('pointermove', () => { const k = ops.indexOf(b); if (k !== foco) marcarFoco(k, false); });
+      b.__i = i;
+      ops.push(b);
+      menu.appendChild(b);
+    });
+    document.body.appendChild(menu);
+    // Debajo del botón; si no cabe, encima. Nunca más alto que el hueco que hay.
+    const r = btn.getBoundingClientRect(), M = 8;
+    const abajo = window.innerHeight - r.bottom - M, arriba = r.top - M;
+    const alto = Math.min(menu.scrollHeight + 2, 320);
+    const vaArriba = abajo < Math.min(alto, 160) && arriba > abajo;
+    const ancho = Math.max(r.width, 160);
+    menu.style.width = ancho + 'px';
+    menu.style.left = Math.max(M, Math.min(r.left, window.innerWidth - ancho - M)) + 'px';
+    menu.style.maxHeight = Math.max(90, Math.min(alto, (vaArriba ? arriba : abajo) - 4)) + 'px';
+    if (vaArriba) { menu.classList.add('arriba'); menu.style.bottom = (window.innerHeight - r.top + 6) + 'px'; }
+    else menu.style.top = (r.bottom + 6) + 'px';
+    btn.classList.add('abierto');
+    btn.setAttribute('aria-expanded', 'true');
+    ddAbierto = { cerrar };
+    const actual = ops.findIndex(o => o.__i === sel.selectedIndex);
+    marcarFoco(actual >= 0 ? actual : 0, true);
+    requestAnimationFrame(() => { if (menu) menu.classList.add('abierto'); });
+    document.addEventListener('pointerdown', fuera, true);
+    window.addEventListener('resize', cerrarYa);
+    window.addEventListener('blur', cerrarYa);
+    document.addEventListener('scroll', alDesplazar, true);
+  };
+
+  btn.addEventListener('click', (e) => { e.stopPropagation(); if (menu) cerrar(true); else abrir(); });
+  btn.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (!menu) {
+      if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'Enter' || k === ' ') { e.preventDefault(); e.stopPropagation(); abrir(); }
+      return;
+    }
+    // Con el menú abierto las teclas son suyas: no llegan a los atajos de la página (Esc
+    // cerraría el diálogo de debajo; Intro lo aceptaría).
+    const mover = (d) => {
+      if (!ops.length) return;
+      let i = foco;
+      for (let n = 0; n < ops.length; n++) { i = (i + d + ops.length) % ops.length; if (!ops[i].disabled) break; }
+      marcarFoco(i, true);
+    };
+    if (k === 'ArrowDown') mover(1);
+    else if (k === 'ArrowUp') mover(-1);
+    else if (k === 'Home') marcarFoco(0, true);
+    else if (k === 'End') marcarFoco(ops.length - 1, true);
+    else if (k === 'Enter' || k === ' ') { if (ops[foco] && !ops[foco].disabled) elegir(ops[foco].__i); }
+    else if (k === 'Escape') cerrar(true);
+    else if (k === 'Tab') { cerrar(false); return; }
+    else if (k.length === 1) {   // una letra: salta a la primera opción que empieza por ella
+      const c = k.toLowerCase();
+      const i = ops.findIndex(o => !o.disabled && o.textContent.trim().toLowerCase().startsWith(c));
+      if (i >= 0) marcarFoco(i, true);
+    } else return;
+    e.preventDefault(); e.stopPropagation();
+  });
+}
+function mejorarSelects(raiz) { (raiz || document).querySelectorAll('select').forEach(mejorarSelect); }
+if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => mejorarSelects());
+  else mejorarSelects();
+}

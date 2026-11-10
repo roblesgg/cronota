@@ -50,8 +50,8 @@
   .group-header:hover { background:var(--bg3); }
   .group-name { flex:1;font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
   .group-count { font-size:11.5px;color:var(--text2); }
-  .group-chevron { color:var(--text2);transition:transform .15s;flex-shrink:0; }
-  .group-card.collapsed .group-chevron { transform:rotate(-90deg); }
+  .group-chevron { color:var(--text2);transition:transform .15s;flex-shrink:0;transform:rotate(90deg); }   /* desplegada: hacia abajo */
+  .group-card.collapsed .group-chevron { transform:none; }
   .group-del {
     background:transparent;border:none;color:var(--text2);width:24px;height:24px;border-radius:6px;
     display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0;transition:all .12s;-webkit-app-region:no-drag;
@@ -213,7 +213,7 @@
   .trash-title { flex:1;font-size:13.5px;font-weight:600;color:var(--danger); }
   .trash-tasks { display:flex;flex-direction:column;padding:2px 8px 8px;gap:2px; }
   .trash-card.collapsed .trash-tasks { display:none; }
-  .trash-card.collapsed .group-chevron { transform:rotate(-90deg); }
+  .trash-card.collapsed .group-chevron { transform:none; }
   .trash-row { display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;-webkit-app-region:no-drag; }
   .trash-row:hover { background:color-mix(in srgb, var(--text) 7%, transparent); }
   .trash-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0;opacity:.6; }
@@ -231,7 +231,7 @@
   .archiver-header:hover { background:rgba(245,158,11,.10); }
   .archiver-header .trash-title { color:#f59e0b; }
   .archiver-card.collapsed .trash-tasks { display:none; }
-  .archiver-card.collapsed .group-chevron { transform:rotate(-90deg); }
+  .archiver-card.collapsed .group-chevron { transform:none; }
   .archiver-actions { display:flex;gap:6px;padding:0 8px 6px;flex-wrap:wrap; }
   .archiver-row .archiver-check { flex-shrink:0;accent-color:#f59e0b;cursor:pointer; }
 
@@ -326,45 +326,48 @@
 
   <!-- Popup crear tarea / empezar tarea guardada -->
   <div class="popup-backdrop" id="startPopupBackdrop" style="display:none" onclick="closeStartPopup()"></div>
-  <div class="entry-popup" id="startPopup" style="display:none">
+  <div class="entry-popup form-pop" id="startPopup" style="display:none">
     <div class="entry-popup-title" id="startPopupTitle">Nueva tarea</div>
-    <div id="startPopupNameFields" style="display:flex;flex-direction:column;gap:8px">
-      <input type="text" id="startPopupName" placeholder="Nombre de la tarea..." maxlength="120">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="back-label" style="flex-shrink:0">Sección</span>
-        <select id="startPopupGroup" style="flex:1"></select>
+    <div id="startPopupNameFields" class="fp-grupo">
+      <input type="text" id="startPopupName" placeholder="Nombre de la tarea" maxlength="120" aria-label="Nombre de la tarea">
+      <div class="fp-campo">
+        <label class="fp-label" for="startPopupGroup">Sección</label>
+        <select id="startPopupGroup"></select>
       </div>
     </div>
-    
-    <div class="kind-row" id="startPopupKindRow">
-      <div class="note-field-label">Tipo de tarea</div>
+    <div class="kind-row fp-campo" id="startPopupKindRow">
+      <div class="fp-label">Tipo</div>
       <div class="kind-toggle" id="startPopupKind">
-        <button type="button" class="active" data-kind="ongoing" onclick="setStartKind('ongoing')">Recurrente</button>
-        <button type="button" data-kind="oneShot" onclick="setStartKind('oneShot')">Puntual</button>
+        <button type="button" class="active" data-kind="ongoing" onclick="setStartKind('ongoing')" title="Se retoma durante días o semanas">Recurrente</button>
+        <button type="button" data-kind="oneShot" onclick="setStartKind('oneShot')" title="Algo que se hace una vez">Puntual</button>
       </div>
-      <span class="note-field-hint">Recurrente = se retoma días o semanas. Puntual = algo de una vez.</span>
     </div>
-    <div id="startPopupMemoRow" style="display:flex;flex-direction:column;gap:4px">
-      <div class="note-field-label">Nota de la tarea (persistente)</div>
-      <textarea id="startPopupMemo" placeholder="Ej. id Dynamics / ERP, recordatorio fijo…" maxlength="200" rows="2"></textarea>
-      <span class="note-field-hint">Se muestra cada vez que uses esta tarea. No sustituye la nota de cada sesión.</span>
-    </div>
-    <div id="startPopupSessionNoteRow" style="display:flex;flex-direction:column;gap:4px">
-      <div class="note-field-label">Nota de esta sesión</div>
-      <input type="text" id="startPopupSessionNote" placeholder="¿Qué vas a hacer en este rato? (opcional)" maxlength="500">
+    <div id="startPopupSessionNoteRow" class="fp-campo">
+      <label class="fp-label" for="startPopupSessionNote">Nota de esta sesión</label>
+      <input type="text" id="startPopupSessionNote" placeholder="¿Qué vas a hacer ahora? (opcional)" maxlength="500">
     </div>
     <div id="startPopupColorSection" style="display:none">
       <div class="colors-label">Color</div>
       <div class="color-row" id="startPopupColorPicker"></div>
     </div>
-    <div class="back-row" style="flex-wrap:wrap;row-gap:6px">
-      <span class="back-label">¿Ya llevas tiempo? Empezó hace:</span>
-      <input type="number" id="startBackMinutes" placeholder="0" min="0" max="600"
-        style="width:64px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:6px 8px;outline:none;-webkit-app-region:no-drag">
-      <span class="back-label">min</span>
-      <span class="back-label">o desde:</span>
-      <input type="time" id="startBackTime"
-        style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:6px 8px;outline:none;-webkit-app-region:no-drag">
+    <!-- Lo opcional, plegado: la nota fija y el tiempo que ya se lleva. -->
+    <button type="button" class="fp-mas" id="startPopupMasBtn" aria-expanded="false" aria-controls="startPopupMas" onclick="setStartMas()">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1l4 4-4 4"/></svg>
+      Más opciones
+    </button>
+    <div class="fp-mas-cuerpo" id="startPopupMas" hidden>
+      <div id="startPopupMemoRow" class="fp-campo">
+        <label class="fp-label" for="startPopupMemo">Nota fija de la tarea</label>
+        <textarea id="startPopupMemo" placeholder="Se ve siempre que uses esta tarea (ej. id de Dynamics)" maxlength="200" rows="2"></textarea>
+      </div>
+      <div class="fp-campo">
+        <div class="fp-label">Tiempo que ya llevas</div>
+        <div class="fp-tiempo">
+          <input type="number" id="startBackMinutes" placeholder="0" min="0" max="600" aria-label="Minutos que ya llevas">
+          <span>min, o desde las</span>
+          <input type="time" id="startBackTime" aria-label="Hora a la que empezaste">
+        </div>
+      </div>
     </div>
     <div class="entry-popup-actions">
       <div style="flex:1"></div>
@@ -1205,7 +1208,7 @@ function openStartPopup(task, subId, groupId) {
   const sub = subId && (task.subtasks || []).find(x => x.id === subId);
   document.getElementById('startPopupTitle').textContent =
     isNew ? 'Nueva tarea' : (sub ? `${task.name} · ${sub.name}` : task.name);
-  document.getElementById('startPopupNameFields').style.display = isNew ? 'block' : 'none';
+  document.getElementById('startPopupNameFields').style.display = isNew ? 'flex' : 'none';
   document.getElementById('startPopupName').value = '';
 
   // Tipo + memo: al crear se eligen; al empezar una existente se pueden retocar y se
@@ -1217,6 +1220,7 @@ function openStartPopup(task, subId, groupId) {
   const memoEl = document.getElementById('startPopupMemo');
   if (memoEl) memoEl.value = isNew ? '' : (task.memo || '');
   if (memoRow) memoRow.style.display = 'flex';
+  setStartMas(!isNew && !!(task.memo || '').trim());   // lo opcional, plegado salvo que la tarea ya tenga nota fija
   const sess = document.getElementById('startPopupSessionNote');
   if (sess) sess.value = '';
 
@@ -1246,6 +1250,14 @@ function openStartPopup(task, subId, groupId) {
   document.getElementById('startBackTime').value = '';
   document.getElementById('startPopupBackdrop').style.display = 'block';
   document.getElementById('startPopup').style.display = 'flex';
+}
+// "Más opciones" del diálogo de empezar: sin argumento, alterna.
+function setStartMas(abierto) {
+  const btn = document.getElementById('startPopupMasBtn'), cuerpo = document.getElementById('startPopupMas');
+  if (!btn || !cuerpo) return;
+  const on = abierto === undefined ? cuerpo.hidden : !!abierto;
+  cuerpo.hidden = !on;
+  btn.setAttribute('aria-expanded', on ? 'true' : 'false');
 }
 function buildStartColorPicker() {
   const cp = document.getElementById('startPopupColorPicker');

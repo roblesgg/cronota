@@ -12,6 +12,15 @@
    · Noche cálida (oscuro) es el tema principal; Luz el claro. Los colores llegan como
      variables desde themes.js (ver applyThemeVars en shared.js). */
 
+/* 2.8.5: DM Sans es la letra del texto (geométrica, como Syne, la de los títulos; con Inter
+   parecían dos apps distintas). Inter se queda de reserva. */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: block;
+  src: url('../assets/fonts/dm-sans-latin-variable.woff2') format('woff2');
+}
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -65,7 +74,7 @@
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
 body {
-  font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'DM Sans', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   letter-spacing: -0.006em;
   font-feature-settings: 'cv11', 'ss03';
@@ -1076,3 +1085,106 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .dias-menu.cerrando { pointer-events: none; }
 .dias-menu.cerrando > :not(.lg-canvas) { animation: lgContenidoSale .15s cubic-bezier(.4,0,1,1) both; }
 .dias-menu.cerrando:not(.lg-on) { animation: lgCajaSale .18s cubic-bezier(.4,0,1,1) both; }
+
+/* ── Desplegable propio (2.8.5): sustituye a la lista nativa de los <select> ───────────── */
+.dd-nativo { display: none !important; }
+.dd-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-width: 0; min-height: 40px; box-sizing: border-box;
+  background: var(--bg2); border: 1px solid transparent; border-radius: var(--r-field);
+  color: var(--text); font-family: inherit; font-size: 14px; font-weight: 500; text-align: left;
+  padding: 10px 14px; cursor: pointer; -webkit-app-region: no-drag;
+  transition: background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.dd-btn:hover { background: var(--bg3); }
+.dd-btn:focus-visible, .dd-btn.abierto { background: var(--bg3); box-shadow: var(--ring); outline: none; }
+.dd-btn:disabled { opacity: .5; cursor: default; }
+.dd-texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-flecha { flex-shrink: 0; color: var(--text2); transition: transform .28s var(--spring); }
+.dd-btn.abierto .dd-flecha { transform: rotate(180deg); }
+.dd-menu {
+  position: fixed; z-index: 9999; box-sizing: border-box; overflow-y: auto; padding: 5px;
+  display: flex; flex-direction: column; gap: 1px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(160%); backdrop-filter: blur(30px) saturate(160%);
+  border-radius: 14px;
+  box-shadow: var(--pop-shadow), inset 0 0 0 1px var(--border);
+  opacity: 0; transform: translateY(-6px) scale(.97); transform-origin: top center;
+  transition: opacity .16s ease, transform .3s var(--spring);
+  -webkit-app-region: no-drag;
+}
+.dd-menu.arriba { transform: translateY(6px) scale(.97); transform-origin: bottom center; }
+.dd-menu.abierto { opacity: 1; transform: none; }
+.dd-menu::-webkit-scrollbar { width: 8px; }
+.dd-menu::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 22%, transparent); border-radius: 4px; }
+.dd-op {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0; width: 100%;
+  background: transparent; border: none; border-radius: 9px;
+  color: var(--text); font-family: inherit; font-size: 14px; font-weight: 500; text-align: left;
+  padding: 9px 11px; cursor: pointer;
+}
+.dd-op.foco { background: var(--bg3); }
+.dd-op.elegida { color: var(--accent); font-weight: 650; }
+.dd-op:disabled { opacity: .45; cursor: default; }
+.dd-op-texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-check { flex-shrink: 0; }
+.dd-grupo { font-size: 11.5px; font-weight: 700; color: var(--text2); padding: 8px 11px 3px; letter-spacing: .04em; text-transform: uppercase; }
+@media (prefers-reduced-motion: reduce) { .dd-menu, .dd-flecha { transition: none; } }
+
+/* ── Diálogos de formulario (2.8.5): con aire, etiquetas legibles y lo opcional plegado ──── */
+.entry-popup.form-pop { width: 372px; max-width: 94%; gap: 18px; padding: 22px; overflow-y: auto; }
+.form-pop .entry-popup-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.form-pop .fp-grupo { display: flex; flex-direction: column; gap: 14px; }
+.form-pop .fp-campo { display: flex; flex-direction: column; gap: 7px; }
+.form-pop .fp-label { font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: 0; text-transform: none; }
+.form-pop input[type="text"], .form-pop textarea { font-size: 14.5px; padding: 11px 14px; border-radius: var(--r-field); }
+.form-pop textarea { border-radius: 14px; resize: none; }
+.form-pop .kind-toggle button { font-size: 13.5px; padding: 9px 10px; }
+.form-pop .fp-tiempo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.form-pop .fp-tiempo input {
+  font-size: 14px; padding: 9px 12px; border-radius: var(--r-field); background: var(--bg2);
+  border: 1px solid transparent; color: var(--text); font-family: inherit; outline: none;
+}
+.form-pop .fp-tiempo input[type="number"] { width: 76px; }
+.form-pop .fp-tiempo span { font-size: 13.5px; color: var(--text2); }
+.form-pop .fp-mas {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: none; color: var(--text2); font-family: inherit;
+  font-size: 13.5px; font-weight: 600; padding: 4px 2px; cursor: pointer;
+}
+.form-pop .fp-mas:hover { color: var(--text); }
+.form-pop .fp-mas:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.form-pop .fp-mas svg { transition: transform .28s var(--spring); }
+.form-pop .fp-mas[aria-expanded="true"] svg { transform: rotate(90deg); }
+.form-pop .fp-mas-cuerpo { display: flex; flex-direction: column; gap: 16px; animation: fpAbre .3s var(--ease) both; }
+.form-pop .fp-mas-cuerpo[hidden] { display: none; }
+@keyframes fpAbre { from { opacity: 0; transform: translateY(-6px); } }
+.form-pop .entry-popup-actions { margin-top: 2px; gap: 8px; }
+.form-pop .entry-popup-actions .btn-ghost, .form-pop .entry-popup-actions .btn-primary { padding: 10px 16px; font-size: 14px; }
+
+/* ── Syne (2.8.5): la letra de los títulos y los rótulos ─────────────────────────────────
+   Solo hay un grosor (ExtraBold), así que va en lo que es título o rótulo: nombres de
+   pantalla, títulos de diálogo, etiquetas de sección y botones principales. Las pestañas
+   no: es muy ancha y no cabían. El
+   texto corrido, los campos y los contadores van en DM Sans: una letra tan gruesa en
+   pequeño cansa, y sus cifras no tienen ancho fijo (el contador bailaría cada segundo). */
+@font-face {
+  font-family: 'Syne';
+  src: url('../assets/fonts/Syne-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+:root { --font-display: 'Syne', 'DM Sans', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
+.app-title, .entry-popup-title, .ask-title, .imp-title, .tut-card-title, .u-title,
+.hero-name, .hero-idle-title, .cal-title, .row-title,
+.section-label, .list-section-head, .group-name, .group-title,
+.cal-titlebar-title, .week-label,
+.btn-primary, .hero-btn:not(.ghost) {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+.app-title { letter-spacing: -0.02em; }
+.section-label, .list-section-head, .group-name, .group-title { letter-spacing: .03em; }
+/* Syne es muy ancha: en las filas de Ajustes, un punto menos para que quepa con su control. */
+.row-title { font-size: 13.5px; letter-spacing: 0; }

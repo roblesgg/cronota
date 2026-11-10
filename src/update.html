@@ -65,6 +65,14 @@ const ICONS = {
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// Se enseña "Instalando…" un momento y entonces se lanza: la app se cierra enseguida.
+function instalar() {
+  if (state.phase === 'installing') return;
+  state = { ...state, phase: 'installing' };
+  render();
+  setTimeout(() => act('update-install'), 1500);
+}
+
 function render() {
   const c = document.getElementById('content');
   const p = state.phase;
@@ -75,6 +83,12 @@ function render() {
       <div class="u-title">Buscando actualizaciones…</div>
       <div class="u-sub">Un momento, comprobando si hay una versión más nueva.</div>
       <div class="u-actions"><button class="btn-ghost" onclick="closeWin()">Cancelar</button></div>`;
+  } else if (p === 'installing') {
+    // 2.8.5: la instalación va en silencio (sin la ventana de Windows): el aviso es este.
+    c.innerHTML = `
+      <div class="u-spinner" style="margin:14px auto 4px"></div>
+      <div class="u-title">Instalando la versión ${esc(state.version)}…</div>
+      <div class="u-sub">imputa.me se cerrará y volverá a abrirse sola en unos segundos. No hace falta que hagas nada.</div>`;
   } else if (p === 'available') {
     c.innerHTML = `
       <div class="u-icon">${ICONS.download}</div>
@@ -104,7 +118,7 @@ function render() {
       <div class="u-sub">Se instalará cuando tú quieras. No perderás ninguna tarea ni tiempo; si lo dejas para luego, se instalará sola la próxima vez que cierres la app.</div>
       <div class="u-actions">
         <button class="btn-ghost" onclick="closeWin()">Más tarde</button>
-        <button class="btn-primary" onclick="act('update-install')">Reiniciar e instalar</button>
+        <button class="btn-primary" onclick="instalar()">Reiniciar e instalar</button>
       </div>`;
   } else if (p === 'uptodate') {
     c.innerHTML = `

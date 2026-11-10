@@ -3540,7 +3540,8 @@ function installUpdateNow() {
   // setImmediate para dejar que el ciclo de eventos procese las destrucciones antes
   // de lanzar el instalador.
   setImmediate(() => {
-    try { autoUpdater.quitAndInstall(false, true); } catch {}
+    // 2.8.5: en silencio (sin la ventana de instalación de Windows) y volviendo a abrir la app.
+    try { autoUpdater.quitAndInstall(true, true); } catch {}
     // Salida a la fuerza si en unos segundos seguimos vivos. quitAndInstall lanza el
     // instalador y PIDE salir, pero si algo se resiste (un temporizador, una ventana
     // que no se fue, otro proceso de la app) el instalador se encuentra la aplicación
