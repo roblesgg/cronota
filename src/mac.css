@@ -1164,8 +1164,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 
 /* ── Syne (2.8.5): la letra de los títulos y los rótulos ─────────────────────────────────
    Solo hay un grosor (ExtraBold), así que va en lo que es título o rótulo: nombres de
-   pantalla, títulos de diálogo, etiquetas de sección y botones principales. Las pestañas
-   no: es muy ancha y no cabían. El
+   pantalla, títulos de diálogo y etiquetas de sección. Los botones NO: todos van en la
+   misma letra (DM Sans), para que "Cancelar" y "Aplicar" no salgan cada uno con la suya. El
    texto corrido, los campos y los contadores van en DM Sans: una letra tan gruesa en
    pequeño cansa, y sus cifras no tienen ancho fijo (el contador bailaría cada segundo). */
 @font-face {
@@ -1179,8 +1179,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .app-title, .entry-popup-title, .ask-title, .imp-title, .tut-card-title, .u-title,
 .hero-name, .hero-idle-title, .cal-title, .row-title,
 .section-label, .list-section-head, .group-name, .group-title,
-.cal-titlebar-title, .week-label,
-.btn-primary, .hero-btn:not(.ghost) {
+.cal-titlebar-title, .week-label {
   font-family: var(--font-display);
   font-weight: 800;
 }
