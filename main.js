@@ -312,6 +312,7 @@ let settings = {
   colorMode: 'auto', // 'auto' | 'manual'
   openAtLogin: false, // arrancar al iniciar sesión en Windows (desactivado por defecto)
   bgOpacity: 85,       // 100 = mate; por debajo, el panel lateral es de cristal (2.8.3: de serie, un toque)
+  liquidGlass: true,   // estilo: cristal líquido (true) o plano (false), en Ajustes → Apariencia
   tutorialSeenSteps: [], // ids de pasos del tutorial guiado ya vistos u omitidos (ver TUTORIAL_STEPS en shared.js)
   groupSort: 'created',  // orden de las secciones en Guardadas: 'created' | 'alpha' | 'custom'
   groupSortDir: 'asc',   // y en qué sentido: 'asc' | 'desc'
@@ -1645,6 +1646,7 @@ function makeWindow(file, w, h, opts = {}) {
   });
   win.__sizeSpec = { minWidth: designMinW, minHeight: designMinH, maxWidth: designMaxW, maxHeight: designMaxH };
   win.on('focus', () => checkForUpdatesIfStale());   // volver a la app = buen momento para mirar
+  win.on('show', () => sendStateToWindow(win));      // escondida no recibe el tic de cada segundo
   win.on('move', debounce(() => adaptWindowToItsDisplay(win), 200));
   win.loadFile(path.join(__dirname, 'src', file));
   applyTranslucency(win);
@@ -1753,7 +1755,7 @@ function dockConfig() {
     barOffset: Math.max(0, Math.min(120, settings.dockBarOffset == null ? 4 : Number(settings.dockBarOffset))),
     barOpacity: Math.max(5, Math.min(100, Number(settings.dockBarOpacity) || 30)),
     barColor: settings.dockBarColor || '#ffffff',
-    barGlass: settings.dockBarGlass !== false,   // 2.8.3: de cristal (por defecto)
+    barGlass: settings.dockBarGlass !== false && settings.liquidGlass !== false,   // 2.8.3: de cristal (por defecto); con el estilo plano, lisa
     panelWidth: Math.max(320, Math.min(1600, Number(settings.dockPanelWidth) || 460)),
     panelHeight: Math.max(260, Math.min(1400, Number(settings.dockPanelHeight) || 620)),
     calendarWidth: Math.max(420, Math.min(1900, Number(settings.dockCalendarWidth) || 1180)),
@@ -1836,6 +1838,7 @@ function aplicarFormaPanel(size) {
   if (!w || w.isDestroyed() || !(size > 0)) return;
   const r = rectPanel(size), b = computeDockBounds();   // b: los límites que tiene (o va a tener) la ventana
   const forma = { x: r.x - b.x, y: r.y - b.y, width: r.width, height: r.height };
+  w.__rectForma = r;   // en pantalla: la zona que pide los clics (ver protegerClicsPanel)
   const clave = JSON.stringify(forma);
   if (clave === w.__forma) return;   // sin cambios: ni se toca (cada setShape repinta)
   w.__forma = clave;
@@ -2012,8 +2015,21 @@ function showDockPanel() {
   ajustarVentanaPanel();
   if (!dockPanelRect) aplicarFormaPanel(tamPanelVista(dockPanelView));   // la página la afina al entrar
   const wasVisible = dockPanelWin.isVisible();
-  // Oculto está frenado y puede llevar un fotograma viejo: el estado al día antes de verse.
-  if (!wasVisible) sendStateToWindow(dockPanelWin);
+  // Plegado no recibe el tic de cada segundo: se pone al día antes de verse. 2.8.5: ya solo la
+  // vista que se va a ver; las otras tres cuando el panel ha terminado de entrar (las cuatro
+  // vistas comparten hilo, y rehacerlas todas a la vez se comía la animación de entrada).
+  if (!wasVisible) {
+    sendStateToActiveDockFrame();
+    clearTimeout(dockPanelWin.__restoAlDia);
+    dockPanelWin.__restoAlDia = setTimeout(() => {
+      if (!dockPanelWin || dockPanelWin.isDestroyed() || !dockPanelWin.isVisible()) return;
+      const fichero = DOCK_VIEW_FILE[dockPanelView] || 'main.html';
+      const resto = allDockFrames().filter(f => { try { return !String(f.url || '').includes(fichero); } catch { return false; } });
+      if (!resto.length) return;
+      const s = getSerializableState();
+      resto.forEach(f => { try { f.send('state', s); } catch {} });
+    }, 900);
+  }
   dockPanelWin.__salida = (dockPanelWin.__salida || 0) + 1;   // anula una salida a medias
   try {
     dockPanelWin.showInactive(); dockPanelWin.moveTop(); dockPanelWin.focus();
@@ -2025,6 +2041,8 @@ function showDockPanel() {
   dockPanelWin.__botonPendiente = () => {
     if (!dockPanelWin || dockPanelWin.isDestroyed() || dockPanelWin.__salida !== turno || !dockExpanded) return;
     dockPanelWin.__botonPendiente = null;
+    // Por si la página no llegó a destaparla (ver el recorte en collapseDockPanel).
+    if (!dockPanelWin.__forma) aplicarFormaPanel(tamPanelVista(dockPanelView));
     showDockHide(dockPanelRect || computePanelBounds(dockPanelView));
   };
   setTimeout(() => { if (dockPanelWin && dockPanelWin.__botonPendiente) dockPanelWin.__botonPendiente(); }, 450);
@@ -2043,6 +2061,12 @@ function collapseDockPanel() {
   const esconder = () => {
     if (!dockPanelWin || dockPanelWin.isDestroyed() || dockPanelWin.__salida !== token || dockExpanded) return;
     dockPanelWin.__alSalir = null;
+    // 2.8.5: antes de esconderla se recorta a nada. Windows enseña el último fotograma de una
+    // ventana al volver a mostrarla, y si se escondió con la tarjeta aún a medio salir, al
+    // abrir otra vez asomaba un instante (el "aparece y parpadea"). La página la destapa en
+    // cuanto ha pintado la tarjeta fuera (entrar() en dock-panel.html).
+    try { dockPanelWin.setShape([{ x: 0, y: 0, width: 1, height: 1 }]); } catch {}
+    dockPanelWin.__forma = null; dockPanelWin.__rectForma = null;
     try { dockPanelWin.hide(); } catch {}
     ensureDockBarVisible();   // al cerrarse el panel, la barrita tiene que estar ahí
   };
@@ -2076,10 +2100,26 @@ function setDockIgnore(ignore) {
   }
 }
 
+// Segunda protección del panel: su ventana cubre toda el área de trabajo y lo único que
+// dejaba pasar los clics a lo de detrás era el recorte (setShape). Si ese recorte no llega a
+// aplicarse en algún equipo, la ventana invisible se tragaba todos los clics con el panel
+// abierto. Aquí, además, la ventana solo pide el ratón mientras el cursor está sobre la zona
+// visible (la tarjeta; la ventana entera mientras se redimensiona a mano).
+function protegerClicsPanel(p) {
+  const w = dockPanelWin;
+  if (!w || w.isDestroyed() || !w.isVisible()) return;
+  const r = w.__rectForma === null ? null : (w.__rectForma || dockPanelRect || computePanelBounds(dockPanelView));
+  const dentro = !!r && p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height;
+  if (w.__ignora === !dentro) return;
+  w.__ignora = !dentro;
+  try { w.setIgnoreMouseEvents(!dentro); } catch {}
+}
+
 function updateDockHitTest() {
   if (!dockWin || dockWin.isDestroyed()) return;
   let p, b;
   try { p = screen.getCursorScreenPoint(); b = dockWin.getBounds(); } catch { return; }
+  protegerClicsPanel(p);
   const x = p.x - b.x, y = p.y - b.y;
   const inside = dockHitRects.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
   setDockIgnore(!inside);
@@ -2142,6 +2182,9 @@ function createDock() {
   try { dockWin.setAlwaysOnTop(true, 'screen-saver'); } catch {}
   dockWin.loadFile(path.join(__dirname, 'src', 'dock.html'));
   sendDockConfig();
+  // 2.8.5: el panel se prepara escondido poco después de arrancar (sus vistas y su cristal
+  // tardan ~medio segundo la primera vez): así el primer clic en la barrita ya abre al momento.
+  setTimeout(() => { if (settings.dockMode && dockWin && !dockWin.isDestroyed()) createDockPanel(); }, 2500);
   dockWin.once('ready-to-show', () => { if (dockWin && !dockWin.isDestroyed()) dockWin.showInactive(); });
   // El clic fuera se detecta en la ventana del PANEL (ver createDockPanel): esta ventana
   // es la de la barrita y no tiene foco propio.
@@ -2306,7 +2349,7 @@ function openSettings() {
     minWidth: 380, minHeight: 420,
     maxWidth: 560, maxHeight: 900,
   });
-  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.webContents.send('settings', settings); });
+  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion() }); });
   settingsWin.on('closed', () => { settingsWin = null; });
 }
 
@@ -2477,20 +2520,29 @@ function allDockFrames() {
   return todos.filter(f => { try { return ficheros.some(x => String(f.url || '').includes(x)); } catch { return false; } });
 }
 
-let ticsDock = 0;
 // opts.tic: es el refresco de cada segundo (solo cambian los tiempos), no un cambio de verdad.
 function broadcastState(opts) {
   updateTrayTitle();
-  // Se calcula una sola vez (antes, una por ventana, cada segundo).
-  const s = getSerializableState();
-  [widgetWin, mainWin, calendarWin, groupsWin].forEach(w => sendToAllFrames(w, 'state', s));
+  const tic = !!(opts && opts.tic);
+  const seVe = (w) => !!w && !w.isDestroyed() && w.isVisible();
+  // 2.8.5: el tic de cada segundo (solo cambian los tiempos) va solo a lo que se ve. Antes iba
+  // también a las ventanas escondidas y al panel plegado, que se repintaban todo el día sin que
+  // nadie las viera. Al enseñarse se ponen al día (makeWindow 'show', showDockPanel).
+  const ventanas = [widgetWin, mainWin, calendarWin, groupsWin].filter(w => w && !w.isDestroyed() && (!tic || seVe(w)));
   // El panel del dock lo escucha su iframe (panel/calendario/tareas), no la página que lo
   // envuelve; la barrita (dockWin) no escucha 'state'. Con un cambio de verdad se ponen al
   // día TODAS sus vistas: así la que entra al cambiar de pestaña ya está pintada y no tiene
   // que rehacerse justo mientras se anima (eso era lo que se comía la animación). Con el
-  // tic de cada segundo, solo la visible, y las escondidas cada cinco.
-  const todas = !(opts && opts.tic) || (++ticsDock % 5 === 0);
-  (todas ? allDockFrames() : activeDockFrames()).forEach(f => { try { f.send('state', s); } catch {} });
+  // tic de cada segundo, solo la visible: las demás se ponen al día al cambiar de pestaña
+  // ('dock-view-changed'). 2.8.5: antes iba a las cuatro cada cinco tics, y rehacer el
+  // calendario escondido (~90 ms) daba un tirón cada cinco segundos con el panel abierto.
+  let marcos = [];
+  if (!tic) marcos = allDockFrames();
+  else if (seVe(dockPanelWin)) marcos = activeDockFrames();
+  if (!ventanas.length && !marcos.length) return;   // nadie mira: ni se calcula
+  const s = getSerializableState();   // una sola vez (antes, una por ventana, cada segundo)
+  ventanas.forEach(w => sendToAllFrames(w, 'state', s));
+  marcos.forEach(f => { try { f.send('state', s); } catch {} });
 }
 
 // ── Deshacer / rehacer (Ctrl+Z / Ctrl+Y) ─────────────────────────────────────────
@@ -2698,6 +2750,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (key === 'reminderMinutes' || key === 'widgetAutoHide' || key === 'widgetAutoHideSeconds') resetReminderTimer();
       if (key === 'openAtLogin') applyLoginItem();
       if (key === 'widgetScale') widgetBounds = null;   // el sitio guardado era del tamaño de antes
+      if (key === 'liquidGlass') { broadcastTheme(); sendDockConfig(); }   // estilo: cristal o plano, al momento
       broadcastState();   // p. ej. colorMode lo usan los selectores de color
       break;
     }
@@ -2829,6 +2882,14 @@ ipcMain.on('action', (event, { type, payload }) => {
       }
       break;
     }
+    case 'fin-captura': {   // la página ya no lee la pantalla (estilo plano o panel mate)
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win || win.isDestroyed()) break;
+      ventanasExcluidas.delete(win);
+      try { win.setContentProtection(false); } catch {}   // vuelve a salir en las capturas
+      actualizarVigilanteCapturas();
+      break;
+    }
     case 'dock-panel-entrando':   // la tarjeta empieza a deslizarse: ahora sí, el botón
       if (dockPanelWin && !dockPanelWin.isDestroyed() && dockPanelWin.__botonPendiente) dockPanelWin.__botonPendiente();
       break;
@@ -2930,7 +2991,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       }
       saveSettings(); broadcastTheme();
       break;
-    case 'get-settings':  event.reply('settings', settings); break;
+    case 'get-settings':  event.reply('settings', { ...settings, appVersion: app.getVersion() }); break;
     case 'min-main':      if (mainWin && !mainWin.isDestroyed()) mainWin.minimize(); break;
     case 'close-calendar':
       if (settings.dockMode) dockNavigate('panel');
@@ -2959,6 +3020,19 @@ ipcMain.on('action', (event, { type, payload }) => {
         lastAutoCheckAt = 0;              // que la próxima comprobación no la frene el límite
         checkForUpdates(true);            // mirar ya en el canal nuevo
       }
+      break;
+    // 2.8.5: botón "Volver a la estable" de Ajustes (solo con una beta instalada). Deja el canal
+    // estable y baja ya la última estable, aunque sea más antigua que la beta.
+    case 'volver-estable':
+      settings.betaUpdates = false;
+      saveSettings();
+      if (autoUpdater) {
+        autoUpdater.allowPrerelease = false;
+        autoUpdater.allowDowngrade = true;
+        volviendoEstable = true;
+        lastAutoCheckAt = 0;
+        checkForUpdates(true);
+      } else checkForUpdates(true);
       break;
     case 'get-state':     event.reply('state', getSerializableState()); break;
   }
@@ -3133,10 +3207,21 @@ function alCambiarCaptura(empieza) {
   }
 }
 
+// 2.8.5: el vigilante de capturas (mira el teclado cada 40 ms) solo corre mientras alguna
+// ventana está excluida; con el estilo plano no hay ninguna y no corre.
+let pararVigilante = null;
+function actualizarVigilanteCapturas() {
+  ventanasExcluidas.forEach(w => { if (w.isDestroyed()) ventanasExcluidas.delete(w); });
+  if (ventanasExcluidas.size && !pararVigilante) pararVigilante = vigilarCapturas(alCambiarCaptura);
+  else if (!ventanasExcluidas.size && pararVigilante) { pararVigilante(); pararVigilante = null; capturaEnCurso = false; }
+}
+
 ipcMain.handle('fuente-dxgi', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win || win.isDestroyed()) return null;
+  if (!ventanasExcluidas.has(win)) win.once('closed', () => setTimeout(actualizarVigilanteCapturas, 0));
   ventanasExcluidas.add(win);
+  actualizarVigilanteCapturas();
   if (capturaEnCurso) sendToAllFrames(win, 'captura-pausa', true);
   else { try { win.setContentProtection(true); } catch {} }
   try {
@@ -3259,6 +3344,7 @@ function startTick() {
 let autoUpdater = null;
 let manualCheck = false;   // true cuando el usuario pulsa "Buscar actualizaciones…"
 let lastAutoCheckAt = 0;
+let volviendoEstable = false;   // el beta ha pedido volver a la estable: se descarga sin preguntar
 const AUTO_CHECK_THROTTLE_MS = 60 * 1000;   // como mucho una comprobación automática cada minuto
 
 // Comprueba actualizaciones si ha pasado un rato desde la última vez (se llama al
@@ -3296,6 +3382,7 @@ function setupAutoUpdate() {
     sendUpdateState({ phase: 'available', current: app.getVersion(), version: info.version });
     // Notificación del sistema, para enterarse aunque se esté en otra aplicación. Solo la
     // primera vez que se detecta esa versión, para no repetirla en cada comprobación.
+    if (volviendoEstable) { volviendoEstable = false; autoUpdater.downloadUpdate(); return; }
     if (isNew) notifyUpdateAvailable(info.version);
   });
 
@@ -3304,6 +3391,7 @@ function setupAutoUpdate() {
   });
 
   autoUpdater.on('update-not-available', () => {
+    volviendoEstable = false;
     if (manualCheck) { openUpdateWindow(); sendUpdateState({ phase: 'uptodate', current: app.getVersion() }); }
     manualCheck = false;
   });
@@ -3355,7 +3443,7 @@ function checkForUpdates(manual) {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
-  vigilarCapturas(alCambiarCaptura);   // que la app salga en las capturas del usuario (ver fuente-dxgi)
+  // El vigilante de capturas arranca solo cuando alguna ventana se excluye (ver fuente-dxgi).
   DATA_FILE = path.join(app.getPath('userData'), 'imputa-tasks.json');
   SETTINGS_FILE = path.join(app.getPath('userData'), 'imputa-settings.json');
   loadData();

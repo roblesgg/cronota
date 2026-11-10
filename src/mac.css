@@ -200,6 +200,17 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
   box-shadow: var(--pop-shadow), inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 1px rgba(0,0,0,.04);
 }
 .entry-popup { animation: macPop .34s var(--spring); gap: 12px; }
+/* Los diálogos centrados nunca más altos que la ventana: lo que sobra lo encoge su lista (que
+   ya tiene scroll), así los botones de abajo ("Crear y empezar") siempre quedan a la vista. */
+.entry-popup:not(.pop) { max-height: calc(100vh - 24px); }
+.entry-popup:not(.pop) > :is(.emp-lista, .task-picker) { flex: 1 1 auto; min-height: 72px; }
+
+/* Estilo plano (Ajustes → Estilo): sin cristal ni esmerilado, superficies macizas. */
+:root[data-glass="off"] :is(.entry-popup, .ask-card, .imp-card, .tut-card) {
+  background: var(--surface);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-glass="off"] .entry-popup:not(.pop) { overflow-y: auto; }
 .entry-popup-title, .ask-title, .imp-title, .tut-card-title { font-size: 15px; font-weight: 650; letter-spacing: -0.015em; }
 .entry-popup-actions { gap: 6px; }
 .entry-popup-actions .btn-ghost { padding: 8px 12px; }

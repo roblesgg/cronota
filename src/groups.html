@@ -11,7 +11,11 @@
     font-size:11px; color:var(--text2); line-height:1.35; padding:0 12px 8px 42px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  .groups-filter { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .groups-filter { display:flex; gap:6px; flex-wrap:wrap; }
+  /* 2.8.5: filtros y herramientas del árbol en una sola fila (antes eran dos). */
+  .filtro-fila { display:flex;align-items:center;justify-content:space-between;gap:8px 10px;flex-wrap:wrap;margin-top:2px; }
+  .filtro-fila .tree-bar { margin:0 0 0 auto; }
+  .tree-btn.solo-icono { font-size:0;gap:0;padding:8px;width:32px;height:32px;justify-content:center; }
   .archived-task-name-wrap { display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
   .archived-item { animation: fadeSlideIn .26s ease both; }
   .group-card { transition: outline .15s, background .15s, transform .15s, box-shadow .15s; }
@@ -267,19 +271,18 @@
         Nueva
       </button>
     </div>
+    <div class="filtro-fila">
     <div class="groups-filter filter-chips" id="groupsFilter">
       <button type="button" class="filter-chip active" data-filter="all" onclick="setGroupsFilter('all')">Todas</button>
       <button type="button" class="filter-chip" data-filter="ongoing" onclick="setGroupsFilter('ongoing')">Recurrentes</button>
       <button type="button" class="filter-chip" data-filter="oneShot" onclick="setGroupsFilter('oneShot')">Puntuales</button>
     </div>
-  </div>
-
-  <div class="tree-bar no-drag">
-    <button class="tree-btn" onclick="expandirTodo()" title="Abrir todas las secciones y todas sus subtareas">
+    <div class="tree-bar no-drag">
+    <button class="tree-btn solo-icono" onclick="expandirTodo()" title="Expandir todo: abre todas las secciones y sus subtareas" aria-label="Expandir todo">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       Expandir todo
     </button>
-    <button class="tree-btn" onclick="colapsarTodo()" title="Cerrar todas las secciones">
+    <button class="tree-btn solo-icono" onclick="colapsarTodo()" title="Colapsar todo: cierra todas las secciones" aria-label="Colapsar todo">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/></svg>
       Colapsar todo
     </button>
@@ -314,6 +317,8 @@
           Descendente
         </button>
       </div>
+    </div>
+  </div>
     </div>
   </div>
 

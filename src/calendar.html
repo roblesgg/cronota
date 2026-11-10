@@ -40,6 +40,8 @@
     width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:16px;
     padding:16px;border-right:1px solid var(--border);overflow-y:auto;
   }
+  /* 2.8.5: con sitio de sobra, más ancha: los nombres de las tareas se cortaban a las pocas letras. */
+  @media (min-width: 1000px) { .sidebar { width:252px; } }
 
 
   .mini-cal-nav { display:flex;align-items:center;justify-content:space-between;margin-bottom:6px; }
@@ -857,7 +859,7 @@ function renderTotalsInto(listId, totals, vacio) {
     const item = document.createElement('div');
     item.className = 'legend-item' + (oculta ? ' hidden-task' : '') +
       (task.id === currentState.activeTaskId ? ' active-task' : '');
-    item.title = 'Clic derecho: iniciar ahora';
+    item.title = task.name + ' · clic derecho: iniciar ahora';   // el nombre entero, por si se corta
     item.innerHTML = `
       <div class="legend-dot" style="background:${task.color}" title="Cambiar color"></div>
       <span class="legend-name">${task.name}${task.deleted ? ' <span class="legend-deleted-tag">(eliminada)</span>' : ''}</span>
@@ -1755,7 +1757,9 @@ function destinoPegado() {
 
 function pintarCursorPegado(nuevo) {
   document.querySelectorAll('.paste-caret').forEach(el => el.remove());
-  if (!cursorPegado) return;
+  // 2.8.5: después de pegar ya no se sugiere más (el sitio se recuerda: otro Ctrl+V sigue
+  // pegando detrás). Vuelve a verse al hacer clic en otro hueco.
+  if (!cursorPegado || cursorPegado.oculto) return;
   const col = colDe(cursorPegado.date);
   if (!col) return;
   const clip = calDnD.getClipboard();
@@ -1794,6 +1798,7 @@ function onPasted(info) {
     const dayStart = startOfDay(cursorPegado.date).getTime();
     cursorPegado.hour = Math.min(24, (info.startMs + clip.durationMs - dayStart) / 3600000);
   }
+  if (cursorPegado) { cursorPegado.oculto = true; pintarCursorPegado(); }
   toast(info.recortada ? 'Pegado (recortado para que quepa en el hueco)' : 'Pegado', 'pegar');
 }
 

@@ -573,19 +573,20 @@ void main() {
     _seguirNativo(nat) {
       this._nativo = nat;
       let ultimo = '';
-      const paso = () => {
+      let ultimaCaptura = -1e9;
+      const cada = this.opts.capturaMs || 0;
+      const paso = (ahora) => {
         if (!this.gl) return;
         // Pase lo que pase en un fotograma (la GPU se reinicia, cambia la resolución...), el
         // bucle sigue: la captura se recupera sola y mientras tanto queda el último fondo.
         try {
-          let pintar = false;
-          if (nat.sincronizar && nat.sincronizar()) {
-            const region = nat.regionDIP();
-            this.foto.region = region; this.foto.k = this.foto.pw / region.w;
-            pintar = true;
+          let pintar = this._sincronizar();
+          // Congelado (el host está moviendo su tarjeta: lo de detrás no cambia por eso) se sigue
+          // con el último fondo; si no, como mucho un fotograma de la pantalla cada `cada` ms.
+          if (!pausaCaptura && !this._congelado && ahora - ultimaCaptura >= cada) {
+            const fr = nat.captura.leer();
+            if (fr) { ultimaCaptura = ahora; this._subirNativo(fr); this._hornear(2); pintar = true; }
           }
-          const fr = pausaCaptura ? null : nat.captura.leer();
-          if (fr) { this._subirNativo(fr); this._hornear(2); pintar = true; }
           const r = this.host.getBoundingClientRect();
           const clave = r.left + ',' + r.top + ',' + r.width + ',' + r.height + ',' + window.screenX + ',' + window.screenY;
           if (clave !== ultimo) { ultimo = clave; this._medir(); pintar = true; }
@@ -596,6 +597,35 @@ void main() {
         this._rafVivo = requestAnimationFrame(paso);
       };
       this._rafVivo = requestAnimationFrame(paso);
+    }
+
+    // Si la ventana se ha movido, la zona capturada va con ella.
+    _sincronizar() {
+      const nat = this._nativo;
+      if (!nat || !nat.sincronizar || !nat.sincronizar()) return false;
+      const region = nat.regionDIP();
+      this.foto.region = region; this.foto.k = this.foto.pw / region.w;
+      return true;
+    }
+
+    // Mientras el host anima su tarjeta no se lee la pantalla (se sigue pintando con el último
+    // fondo): leerla y desenfocarla en cada fotograma es lo que se comía la animación.
+    congelar(on) { this._congelado = !!on; }
+
+    // Lo de detrás AHORA (esperando a la GPU si hace falta) y repintado: para que, al volver a
+    // verse tras un rato escondido, el cristal no salga con el fondo de la última vez.
+    refrescar() {
+      const nat = this._nativo;
+      if (!this.gl || !nat || pausaCaptura) return;
+      try {
+        this._sincronizar();
+        const fr = nat.captura.leer(true);
+        if (fr) { this._subirNativo(fr); this._hornear(2); }
+        this._medir();
+        this.draw();
+      } catch (e) {
+        if (!this._avisado) { this._avisado = true; console.warn('[glass] captura nativa:', e && e.message); }
+      }
     }
 
     // Con cada fotograma nuevo de la pantalla: subirlo, desenfocarlo y repintar el cristal.
@@ -614,7 +644,7 @@ void main() {
           this.f0 = this._destino(this.W0, this.H0); this.f1 = this._destino(this.W0, this.H0); this.f2 = this._destino(this.W0, this.H0);
         }
         this._medir();
-        if (!pausaCaptura) { this._subirVideo(video); this._hornear(false); }
+        if (!pausaCaptura && !this._congelado) { this._subirVideo(video); this._hornear(false); }
         this.draw();
         this._vfc = video.requestVideoFrameCallback(otro);
       };
@@ -890,7 +920,9 @@ void main() {
   // fotogramas de retraso, sin la cola de vídeo de Chromium. zona: { x, y, w, h } en px de la
   // ventana (o una función que la devuelva); se mueve con la ventana. Devuelve null si no se
   // puede (no es Windows, gráfica sin Desktop Duplication...) y entonces se usa pantallaEnVivo.
-  async function pantallaNativa(zona) {
+  // opciones.cuarto: a un cuarto de resolución en vez de a la mitad (para fondos muy
+  // desenfocados: no se nota y es 4 veces menos que copiar, subir y desenfocar).
+  async function pantallaNativa(zona, opciones) {
     let ipc = null, Captura = null;
     try {
       ipc = require('electron').ipcRenderer;
@@ -906,7 +938,7 @@ void main() {
     const aFis = (z) => ({ x: m.fis.x + (z.x - m.dip.x) * m.sf, y: m.fis.y + (z.y - m.dip.y) * m.sf, w: z.w * m.sf, h: z.h * m.sf });
     const aDip = (z) => ({ x: m.dip.x + (z.x - m.fis.x) / m.sf, y: m.dip.y + (z.y - m.fis.y) / m.sf, w: z.w / m.sf, h: z.h / m.sf });
     let actual = zonaDIP();
-    const c = Captura.crear(aFis(actual), { mitad: true });
+    const c = Captura.crear(aFis(actual), { mitad: true, cuarto: !!(opciones && opciones.cuarto) });
     if (!c) return null;
     // El primer fotograma (la imagen entera del escritorio) llega enseguida.
     let primero = null;

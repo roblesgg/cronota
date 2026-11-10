@@ -202,7 +202,7 @@ const TUTORIAL_STEPS = [
   { id:'set-mini-283',   window:'settings', version:'2.8.3', selector:'#mini',
     title:'Tu app, en pequeño', text:'Toca un tema, un acento o la transparencia y lo ves aquí al momento, antes de mirar la app de verdad.' },
   { id:'set-cristal-28', window:'settings', version:'2.8.0', selector:'.row:has(#liquidGlass)',
-    title:'Cristal líquido', text:'Los bocadillos y el menú circular doblan lo que hay detrás, como un cristal. Si lo prefieres esmerilado, se apaga aquí.' },
+    title:'Estilo', text:'Cristal líquido: el panel, los bocadillos y los menús doblan lo que hay detrás, como un cristal. Plano: todo macizo, como antes, y lo más ligero para el equipo.' },
   { id:'set-dock',       window:'settings', version:'2.2.2', selector:'.row:has(#dockMode)',
     title:'La barra flotante', text:'Es el modo por defecto: una barra discreta en el borde. Aquí ajustas su borde, color, largo, grosor, transparencia, monitor y cuándo se cierra sola.' },
   { id:'set-beta',       window:'settings', version:'2.2.2', selector:'.row:has(#betaUpdates)',
@@ -227,6 +227,8 @@ function hasMoreWindows(windowName) {
 
 function tutIsVisible(el) {
   if (!el) return false;
+  // Ajustes enseña una categoría cada vez: la página abre la del elemento antes de medirlo.
+  if (typeof window.alMostrarPaso === 'function') { try { window.alMostrarPaso(el); } catch {} }
   const cs = window.getComputedStyle(el);
   if (cs.display === 'none' || cs.visibility === 'hidden') return false;
   const r = el.getBoundingClientRect();

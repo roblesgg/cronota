@@ -60,17 +60,18 @@ function cargar() {
       Unmap: P('void cdx_Unmap(void *self, void *res, uint32 sub)'),
       CreateShaderResourceView: P('int cdx_CreateSRV(void *self, void *res, void *desc, _Out_ void **srv)'),
       GenerateMips: P('void cdx_GenerateMips(void *self, void *srv)'),
+      Flush: P('void cdx_Flush(void *self)'),
     };
     // Índice de cada método en su vtable (heredados incluidos):
     // IUnknown 0-2 · IDXGIObject 3-6 · IDXGIFactory 7-11, IDXGIFactory1 12 EnumAdapters1
     // IDXGIAdapter 7 EnumOutputs · IDXGIOutput 7 GetDesc, IDXGIOutput1 22 DuplicateOutput
     // IDXGIOutputDuplication 8 AcquireNextFrame, 14 ReleaseFrame
     // ID3D11Device 5 CreateTexture2D, 7 CreateShaderResourceView
-    // ID3D11DeviceContext 14 Map, 15 Unmap, 46 CopySubresourceRegion, 54 GenerateMips
+    // ID3D11DeviceContext 14 Map, 15 Unmap, 46 CopySubresourceRegion, 54 GenerateMips, 111 Flush
     const VT = {
       QueryInterface: 0, Release: 2, EnumAdapters1: 12, EnumOutputs: 7, OutputGetDesc: 7, DuplicateOutput: 22,
       AcquireNextFrame: 8, ReleaseFrame: 14, CreateTexture2D: 5, Map: 14, Unmap: 15, CopySubresourceRegion: 46,
-      CreateShaderResourceView: 7, GenerateMips: 54,
+      CreateShaderResourceView: 7, GenerateMips: 54, Flush: 111,
     };
     const dxgi = koffi.load('dxgi.dll'), d3d11 = koffi.load('d3d11.dll'), k32 = koffi.load('kernel32.dll');
     k = {
@@ -98,7 +99,12 @@ const IID = {
   IDXGIOutput1: guid('00cddea8-939b-4b83-a340-a685226666cc'),
   ID3D11Texture2D: guid('6f15aaf2-d208-4e89-9ab4-489535d34f9c'),
 };
-const HR = { WAIT_TIMEOUT: 0x887A0027 | 0, ACCESS_LOST: 0x887A0026 | 0 };
+const HR = { WAIT_TIMEOUT: 0x887A0027 | 0, ACCESS_LOST: 0x887A0026 | 0, STILL_DRAWING: 0x887A000A | 0 };
+// Texturas de lectura en rueda: cada fotograma se copia a una y se lee en una llamada posterior,
+// cuando la GPU ya ha terminado (Map con DO_NOT_WAIT). Leerla en la misma llamada obligaba a
+// esperar a la GPU: ~6,6 ms por fotograma en un portátil con gráfica integrada (medido).
+const LECTURAS = 3;
+const MAP_READ = 1, MAP_DO_NOT_WAIT = 0x100000;
 
 // Llama al método `nombre` del objeto COM `obj`.
 function com(obj, nombre, ...args) {
@@ -118,7 +124,8 @@ class CapturaDXGI {
   static crear(rect, opciones) {
     if (!cargar()) return null;
     const c = new CapturaDXGI();
-    c.mitad = !!(opciones && opciones.mitad);
+    // Cuántas veces la reduce la GPU a la mitad antes de leerla (opciones.cuarto: dos).
+    c.niveles = opciones && opciones.cuarto ? 2 : opciones && opciones.mitad ? 1 : 0;
     try { if (c._abrir(rect)) return c; } catch (e) { console.warn('[captura-dxgi]', e && e.message); }
     c.cerrar();
     return null;
@@ -181,9 +188,10 @@ class CapturaDXGI {
     const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
     this.caja = { left: x0 - r.left, top: y0 - r.top, front: 0, right: x0 - r.left + w, bottom: y0 - r.top + h, back: 1 };
     this.zona = { x: x0, y: y0, w, h };   // lo que de verdad se captura (recortado a la pantalla)
-    if (this.staging && this.zonaW === w && this.zonaH === h) return;
+    if (this.lecturas && this.zonaW === w && this.zonaH === h) return;
     this.zonaW = w; this.zonaH = h;
-    for (const n of ['staging', 'reductor', 'reductorVista']) { soltar(this[n]); this[n] = null; }
+    this._soltarLecturas();
+    for (const n of ['reductor', 'reductorVista']) { soltar(this[n]); this[n] = null; }
     const tex = (desc) => {
       const t = [null];
       const base = { MipLevels: 1, ArraySize: 1, Format: 87 /* B8G8R8A8_UNORM */, SampleDesc: { Count: 1, Quality: 0 },
@@ -192,71 +200,107 @@ class CapturaDXGI {
       return t[0];
     };
     let ancho = w, alto = h;
-    if (this.mitad && w >= 4 && h >= 4) {
-      // Textura con 2 niveles (la zona y su mitad) que la GPU sabe reducir sola (GenerateMips).
-      const r = tex({ Width: w, Height: h, MipLevels: 2, BindFlags: 0x28 /* RENDER_TARGET | SHADER_RESOURCE */, MiscFlags: 1 /* GENERATE_MIPS */ });
+    this.nivel = 0;
+    const niveles = Math.min(this.niveles || 0, Math.floor(Math.log2(Math.max(1, Math.min(w, h) / 2))));
+    if (niveles > 0) {
+      // Textura con la zona y sus reducciones a la mitad, que la GPU sabe hacer sola (GenerateMips).
+      const r = tex({ Width: w, Height: h, MipLevels: niveles + 1, BindFlags: 0x28 /* RENDER_TARGET | SHADER_RESOURCE */, MiscFlags: 1 /* GENERATE_MIPS */ });
       const v = [null];
       if (r && com(this.dispositivo, 'CreateShaderResourceView', r, null, v) >= 0 && v[0]) {
-        this.reductor = r; this.reductorVista = v[0];
-        ancho = Math.max(1, w >> 1); alto = Math.max(1, h >> 1);
+        this.reductor = r; this.reductorVista = v[0]; this.nivel = niveles;
+        ancho = Math.max(1, w >> niveles); alto = Math.max(1, h >> niveles);
       } else soltar(r);   // sin reducir: se copia a tamaño completo
     }
-    const st = tex({ Width: ancho, Height: alto, Usage: 3 /* STAGING */, CPUAccessFlags: 0x20000 /* READ */ });
-    if (!st) throw new Error('CreateTexture2D');
-    this.staging = st; this.ancho = ancho; this.alto = alto;
+    this.lecturas = [];
+    for (let i = 0; i < LECTURAS; i++) {
+      const st = tex({ Width: ancho, Height: alto, Usage: 3 /* STAGING */, CPUAccessFlags: 0x20000 /* READ */ });
+      if (!st) throw new Error('CreateTexture2D');
+      this.lecturas.push(st);
+    }
+    this.cola = [];        // copias pedidas a la GPU y aún sin leer, de la más vieja a la más nueva
+    this.siguiente = 0;    // la textura de la rueda donde va la próxima copia
+    this.ancho = ancho; this.alto = alto;
     this.datos = null;
   }
 
-  // El último fotograma, si hay uno nuevo desde la vez anterior.
-  leer() {
+  _soltarLecturas() {
+    (this.lecturas || []).forEach(soltar);
+    this.lecturas = null; this.cola = [];
+  }
+
+  // El fotograma más reciente que ya se pueda leer, o null si no hay nada nuevo. Sin esperar a la
+  // GPU (llega con un fotograma de retraso); con `esperar`, la espera (para tenerlo ya).
+  leer(esperar) {
     if (!this.duplicacion && !this._duplicar()) return null;
+    this._capturar();
+    return this._recoger(!!esperar);
+  }
+
+  // Si Windows ha pintado algo nuevo, se pide a la GPU que lo copie a la siguiente textura de la
+  // rueda. No se espera a que termine.
+  _capturar() {
     const info = {}, rec = [null];
     const hr = com(this.duplicacion, 'AcquireNextFrame', 0, info, rec);
-    if (hr === HR.WAIT_TIMEOUT) return null;
-    if (hr === HR.ACCESS_LOST) { this._duplicar(); return null; }   // UAC, cambio de resolución, pantalla completa...
-    if (hr < 0 || !rec[0]) return null;
-    let resultado = null;
+    if (hr === HR.WAIT_TIMEOUT) return;
+    if (hr === HR.ACCESS_LOST) { this._duplicar(); return; }   // UAC, cambio de resolución, pantalla completa...
+    if (hr < 0 || !rec[0]) return;
     try {
       // Solo interesa si cambió la imagen (no si solo se movió el ratón).
-      if (info.LastPresentTime && BigInt(info.LastPresentTime) !== 0n) {
-        const tex = [null];
-        if (com(rec[0], 'QueryInterface', IID.ID3D11Texture2D, tex) >= 0 && tex[0]) {
-          if (this.reductor) {
-            // La zona a la textura de 2 niveles, la GPU genera la mitad, y esa mitad a la de lectura.
-            com(this.contexto, 'CopySubresourceRegion', this.reductor, 0, 0, 0, 0, tex[0], 0, this.caja);
-            com(this.contexto, 'GenerateMips', this.reductorVista);
-            com(this.contexto, 'CopySubresourceRegion', this.staging, 0, 0, 0, 0, this.reductor, 1, null);
-          } else {
-            com(this.contexto, 'CopySubresourceRegion', this.staging, 0, 0, 0, 0, tex[0], 0, this.caja);
-          }
-          soltar(tex[0]);
-          resultado = true;
-        }
+      if (!info.LastPresentTime || BigInt(info.LastPresentTime) === 0n) return;
+      const tex = [null];
+      if (com(rec[0], 'QueryInterface', IID.ID3D11Texture2D, tex) < 0 || !tex[0]) return;
+      // La siguiente de la rueda es siempre la copia más vieja: si las tres siguen sin leerse, esa se pierde.
+      if (this.cola.length >= this.lecturas.length) this.cola.shift();
+      const i = this.siguiente;
+      this.siguiente = (i + 1) % this.lecturas.length;
+      if (this.reductor) {
+        // La zona a la textura con niveles, la GPU genera las mitades, y la reducida a la de lectura.
+        com(this.contexto, 'CopySubresourceRegion', this.reductor, 0, 0, 0, 0, tex[0], 0, this.caja);
+        com(this.contexto, 'GenerateMips', this.reductorVista);
+        com(this.contexto, 'CopySubresourceRegion', this.lecturas[i], 0, 0, 0, 0, this.reductor, this.nivel, null);
+      } else {
+        com(this.contexto, 'CopySubresourceRegion', this.lecturas[i], 0, 0, 0, 0, tex[0], 0, this.caja);
       }
+      com(this.contexto, 'Flush');   // que la GPU empiece ya: así en la siguiente llamada suele estar lista
+      soltar(tex[0]);
+      this.cola.push({ i, t: info.LastPresentTime });
     } finally {
       soltar(rec[0]);
       com(this.duplicacion, 'ReleaseFrame');
     }
-    if (!resultado) return null;
-    const m = {};
-    if (com(this.contexto, 'Map', this.staging, 0, 1 /* D3D11_MAP_READ */, 0, m) < 0 || !m.pData) return null;
-    try {
-      const n = m.RowPitch * this.alto;
-      if (!this.datos || this.datos.length !== n) this.datos = new Uint8Array(n);
-      k.copiar(this.datos, m.pData, n);
-      const ahora = [0n];
-      k.QPC(ahora);
-      return {
-        datos: this.datos, paso: m.RowPitch, ancho: this.ancho, alto: this.alto,
-        edadMs: Number(BigInt(ahora[0]) - BigInt(info.LastPresentTime)) * 1000 / this.frecuencia,
-      };
-    } finally {
-      com(this.contexto, 'Unmap', this.staging, 0);
+  }
+
+  // De la copia más nueva a la más vieja, la primera que la GPU ya haya terminado (la GPU las
+  // hace en orden: si la nueva está, las viejas también, y ya no hacen falta).
+  _recoger(esperar) {
+    for (let j = this.cola.length - 1; j >= 0; j--) {
+      const pedida = this.cola[j];
+      const m = {};
+      const hr = com(this.contexto, 'Map', this.lecturas[pedida.i], 0, MAP_READ,
+        esperar && j === this.cola.length - 1 ? 0 : MAP_DO_NOT_WAIT, m);
+      if (hr === HR.STILL_DRAWING) continue;
+      this.cola.splice(0, j + 1);
+      if (hr < 0 || !m.pData) return null;
+      try {
+        const n = m.RowPitch * this.alto;
+        if (!this.datos || this.datos.length !== n) this.datos = new Uint8Array(n);
+        k.copiar(this.datos, m.pData, n);
+        const ahora = [0n];
+        k.QPC(ahora);
+        return {
+          datos: this.datos, paso: m.RowPitch, ancho: this.ancho, alto: this.alto,
+          edadMs: Number(BigInt(ahora[0]) - BigInt(pedida.t)) * 1000 / this.frecuencia,
+        };
+      } finally {
+        com(this.contexto, 'Unmap', this.lecturas[pedida.i], 0);
+      }
     }
+    return null;
   }
 
   cerrar() {
-    for (const n of ['staging', 'reductorVista', 'reductor', 'duplicacion', 'salida1', 'contexto', 'dispositivo', 'salida', 'adaptador', 'factoria']) {
+    this._soltarLecturas();
+    for (const n of ['reductorVista', 'reductor', 'duplicacion', 'salida1', 'contexto', 'dispositivo', 'salida', 'adaptador', 'factoria']) {
       soltar(this[n]); this[n] = null;
     }
   }

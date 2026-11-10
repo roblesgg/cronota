@@ -51,10 +51,26 @@
     let glass = null;
     let token = 0;
     let abierto = false;
+    let anclaActual = null;
+
+    // Si el bocadillo cambia de tamaño estando abierto (al elegir "+ Nueva tarea", una nota que
+    // crece...), se vuelve a colocar para que quepa entero. Antes se quedaba donde se abrió y el
+    // botón de Guardar acababa por debajo del borde de la pantalla.
+    function recolocar() {
+      if (!abierto) return;
+      const sitio = colocar(el, anclaActual);
+      el.style.left = sitio.left + 'px';
+      el.style.top = sitio.top + 'px';
+      el.style.setProperty('--origin', sitio.origin);
+      if (glass) { if (sitio.tail) glass.setTail(sitio.tail); else glass.reflow(); }
+    }
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => recolocar()) : null;
+    if (typeof window !== 'undefined') window.addEventListener('resize', recolocar);
 
     async function abrir(ancla, alMostrar) {
       const mio = ++token;
       abierto = true;
+      anclaActual = ancla || null;
       if (glass) { glass.detach(); glass = null; }
       el.classList.remove('saliendo', 'abierto');
       el.classList.add('pop', 'preparando');
@@ -63,6 +79,7 @@
       el.style.left = sitio.left + 'px';
       el.style.top = sitio.top + 'px';
       el.style.setProperty('--origin', sitio.origin);
+      if (ro) ro.observe(el);
       const g = global.LiquidGlass ? await global.LiquidGlass.attach(el, { tail: sitio.tail }) : null;
       if (mio !== token) { if (g) g.detach(); return; }
       glass = g;
@@ -77,6 +94,7 @@
     function cerrar() {
       const mio = ++token;
       abierto = false;
+      if (ro) ro.disconnect();
       const g = glass;
       glass = null;
       el.classList.remove('abierto');
@@ -94,6 +112,7 @@
     // La gotita sigue al ancla (p. ej. el borrador de una entrada al cambiarle las horas);
     // el bocadillo no se mueve.
     function reapuntar(ancla) {
+      if (ancla) anclaActual = ancla;
       if (!glass || !ancla || !glass.opts.tail) return;
       const r = ancla.getBoundingClientRect(), p = el.getBoundingClientRect();
       const t = glass.opts.tail;
@@ -175,7 +194,19 @@
     if (g) g.salir(210).then(fin); else setTimeout(fin, 210);
   }
 
+  // Se mira como mucho una vez por fotograma (antes, en cada cambio de estilo o clase de la
+  // página, midiendo cada popup) y nada con el estilo plano: ahí no hay cristal que poner.
+  let revisarPendiente = false;
+  function revisarPronto() {
+    if (revisarPendiente) return;
+    revisarPendiente = true;
+    requestAnimationFrame(() => { revisarPendiente = false; revisar(); });
+  }
   function revisar() {
+    if (document.documentElement.dataset.glass === 'off') {
+      Array.from(vestidos.keys()).forEach(desvestir);
+      return;
+    }
     document.querySelectorAll(SELECTOR_AUTO).forEach((el) => {
       if (el.classList.contains('pop') || el.classList.contains('lg-cerrando') || el.dataset.glass === 'no') return;
       if (seVe(el)) { vestir(el); apuntarSitio(el, vestidos.get(el)); } else desvestir(el);
@@ -184,7 +215,7 @@
   }
 
   if (typeof MutationObserver === 'function' && typeof document !== 'undefined' && document.body) {
-    new MutationObserver(revisar).observe(document.body,
+    new MutationObserver(revisarPronto).observe(document.body,
       { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] });
   }
 

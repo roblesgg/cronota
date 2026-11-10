@@ -235,13 +235,14 @@ function ponerTam(px, animado) {
 function anchosVistas() {
   Object.entries(frames).forEach(([v, f]) => { f.style.width = esVertical() ? tamVista(v) + 'px' : ''; });
 }
-// Config nueva, borde nuevo o pantalla nueva: todo a su sitio, sin animación.
-function ajustarTodo() {
+// Config nueva, borde nuevo o pantalla nueva: todo a su sitio, sin animación. sinAvisar: no
+// decírselo aún a main (al entrar, ver entrar()).
+function ajustarTodo(sinAvisar) {
   if (finAncho) finAncho();
   const t = tamVista(currentView);
   anchosVistas();
   ponerTam(t, false);
-  avisarTam(t, t);
+  if (!sinAvisar) avisarTam(t, t);
 }
 
 function setAnchor(a) {
@@ -304,10 +305,30 @@ function zonaCristal() {
   const h = Math.min(H, cfg.panelHeight + M);
   return { x: 0, y: anchor === 'top' ? 0 : H - h, w: W, h };
 }
+// 2.8.5: con el fondo difuminado basta leer la pantalla a un cuarto de resolución.
+function quiereCuarto() { return window.__difuminar !== false; }
+let nativaToken = 0;
 function capturaNativa() {
-  if (nativa) return Promise.resolve(nativa);
-  if (!nativaPedida) nativaPedida = LiquidGlass.pantallaNativa(zonaCristal).then((n) => { nativa = n; return n; }).catch(() => null);
-  return nativaPedida;
+  const cuarto = quiereCuarto();
+  if (nativa && nativa.cuarto === cuarto) return Promise.resolve(nativa);
+  if (nativaPedida && nativaPedida.cuarto === cuarto) return nativaPedida;
+  soltarNativa();   // otra resolución (ha cambiado "Difuminar") o la de antes falló
+  const mio = ++nativaToken;
+  const p = LiquidGlass.pantallaNativa(zonaCristal, { cuarto }).then((n) => {
+    if (mio !== nativaToken) { if (n) n.parar(); return null; }
+    if (n) n.cuarto = cuarto;
+    nativa = n;
+    return n;
+  }).catch(() => null);
+  p.cuarto = cuarto;
+  nativaPedida = p;
+  return p;
+}
+function soltarNativa() {
+  nativaToken++;
+  const vieja = nativa;
+  nativa = null; nativaPedida = null;
+  if (vieja) setTimeout(() => vieja.parar(), 500);   // cuando el cristal que la usaba ya no la lee
 }
 function quitarVidrio() {
   vidrioToken++;
@@ -315,10 +336,19 @@ function quitarVidrio() {
   if (enVivo) { enVivo.parar(); enVivo = null; }
   panel.classList.remove('con-vidrio');
 }
+// Estilo plano (o el panel pasa a mate): fuera el cristal y la captura de pantalla, y main deja
+// que la ventana vuelva a salir en las capturas del usuario.
+function apagarCristal() {
+  const habia = !!(vidrio || enVivo || nativa || nativaPedida);
+  quitarVidrio();
+  soltarNativa();
+  if (habia) ipcRenderer.send('action', { type: 'fin-captura' });
+}
+function congelarVidrio(on) { if (vidrio) vidrio.congelar(on); }
 async function ponerVidrio() {
   const mio = ++vidrioToken;
   if (vidrio) { vidrio.detach(); vidrio = null; }
-  if (!quiereVidrio()) { quitarVidrio(); return; }
+  if (!quiereVidrio()) { apagarCristal(); return; }
   const nat = await capturaNativa();
   if (!nat && !enVivo) enVivo = await LiquidGlass.pantallaEnVivo(60);
   if (mio !== vidrioToken) return;
@@ -328,31 +358,35 @@ async function ponerVidrio() {
     margen: 0, sombra: false, extiende: extensionBorde(), dpr: 1, sinMarca: true,
     tinte: tinteVidrio(), desenfoque: desenfoqueVidrio(),
     radius: 26 / 0.44,   // la superelipse de las esquinas de 26 px
+    capturaMs: 33,       // lo de detrás, como mucho 30 veces por segundo
   });
   if (!g) return;
   if (mio !== vidrioToken || !quiereVidrio()) { g.detach(); return; }
   vidrio = g;
-  g.aparecer(220, () => { if (vidrio === g) panel.classList.add('con-vidrio'); });
+  // 2.8.5: el cristal se queda puesto entre aperturas. Si se pone con el panel escondido (al
+  // cargar), queda ya entero; solo se funde si se pone con el panel a la vista.
+  if (root.classList.contains('fuera')) { g.draw(); panel.classList.add('con-vidrio'); }
+  else g.aparecer(220, () => { if (vidrio === g) panel.classList.add('con-vidrio'); });
 }
-// Al entrar, y al mover el deslizador de translucidez o cambiar de tema.
+// Al cargar, al entrar, y al mover el deslizador de translucidez o cambiar de tema o de estilo.
 function ponerCristal() {
-  if (!quiereVidrio()) { if (vidrio || enVivo) quitarVidrio(); return; }
-  if (vidrio && vidrio.opts.desenfoque !== desenfoqueVidrio()) { ponerVidrio(); return; }   // va horneado
+  if (!quiereVidrio()) { apagarCristal(); return; }
+  const otraCaptura = nativa && nativa.cuarto !== quiereCuarto();
+  if (vidrio && (otraCaptura || vidrio.opts.desenfoque !== desenfoqueVidrio())) { ponerVidrio(); return; }   // va horneado
   if (vidrio) { vidrio.opts.tinte = tinteVidrio(); vidrio.draw(); return; }
   ponerVidrio();
 }
-window.addEventListener('theme-change', () => { if (!root.classList.contains('fuera')) ponerCristal(); });
+window.addEventListener('theme-change', ponerCristal);
 // La ventana del panel solo cambia de tamaño si cambia la pantalla (otro monitor, otra
 // resolución): la captura era de la pantalla anterior y se rehace.
 window.addEventListener('resize', () => {
   if (!nativa && !nativaPedida) return;
-  const vieja = nativa;
-  nativa = null; nativaPedida = null;
+  soltarNativa();
   if (vidrio) ponerVidrio();
-  if (vieja) setTimeout(() => vieja.parar(), 500);   // cuando el cristal nuevo ya no la usa
 });
-// La captura se prepara en segundo plano, con el panel aún escondido: así al abrirlo ya está.
-setTimeout(() => { if (quiereVidrio()) capturaNativa(); }, 1500);
+// El cristal (y su captura) se prepara en segundo plano, con el panel aún escondido: así la
+// primera vez que se abre ya está, y entra con el cristal puesto en vez de cambiar después.
+setTimeout(() => { if (quiereVidrio() && !vidrio) ponerVidrio(); }, 1500);
 
 // ---- Entrar y salir (la tarjeta se desliza desde su borde) ----
 let entrando = 0;
@@ -362,21 +396,39 @@ function entrar() {
   entrandoAhora = true;
   const mio = ++entrando;
   ponerCristal();
-  ajustarTodo();   // la tarjeta a su tamaño, y main recorta la ventana a ella, antes de verse
+  if (vidrio) vidrio.refrescar();   // lo de detrás de ahora, no el de la última vez que se vio
+  ajustarTodo(true);   // la tarjeta a su tamaño (fuera aún)
   // Dos fotogramas con el panel aún fuera: la ventana acaba de enseñarse y tiene que haber
   // pintado ese punto de partida, o no se vería entrar.
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (mio !== entrando) return;
     entrandoAhora = false;
+    // 2.8.5: main la recortó a nada al esconderla (Windows enseña el último fotograma de una
+    // ventana al volver a mostrarla, y asomaba la tarjeta de la vez anterior). Ya se ha pintado
+    // la tarjeta fuera: ahora sí se destapa.
+    avisarTam(tamActual, tamActual);
+    // Mientras entra no se lee la pantalla (lo de detrás no cambia por moverse la tarjeta).
+    congelarVidrio(true);
     root.classList.remove('fuera');
     ipcRenderer.send('action', { type:'dock-panel-entrando' });
     seguirForma(800);
+    let hecho = false;
+    const fin = (e) => {
+      if (e && (e.target !== panel || e.propertyName !== 'transform')) return;
+      if (hecho) return;
+      hecho = true;
+      panel.removeEventListener('transitionend', fin);
+      if (mio === entrando && !resizeState && !finAncho) congelarVidrio(false);
+    };
+    panel.addEventListener('transitionend', fin);
+    setTimeout(() => fin(), 650);
   }));
 }
 function salir() {
   entrandoAhora = false;
   const mio = ++entrando;
   if (resizeState) endResize();
+  congelarVidrio(true);   // 2.8.5: el cristal se queda puesto (escondido no gasta: no hay fotogramas)
   root.classList.add('fuera');
   seguirForma(450);
   let avisado = false;
@@ -384,7 +436,6 @@ function salir() {
     if (avisado) return;
     avisado = true;
     panel.removeEventListener('transitionend', alAcabar);
-    if (mio === entrando) quitarVidrio();
     ipcRenderer.send('action', { type:'dock-panel-salido' });
   };
   const alAcabar = (e) => { if (e.target === panel && e.propertyName === 'transform') avisar(); };
@@ -502,6 +553,7 @@ function navTo(view) {
   const desde = tamActual, hasta = tamVista(view);
   if (Math.abs(hasta - desde) < 1) { meter(view, dir, 'deslizar'); return; }
   avisarTam(hasta, Math.max(desde, hasta) + 40);
+  congelarVidrio(true);   // mientras cambia de ancho, el cristal con el fondo que ya tiene
   ponerTam(hasta, true);
   seguirForma(800);
   meter(view, dir, 'enfoque');
@@ -513,6 +565,7 @@ function navTo(view) {
     clearTimeout(red);
     if (finAncho === terminar) finAncho = null;
     if (token === navToken && !resizeState) avisarTam(hasta, hasta);
+    if (!resizeState && !root.classList.contains('fuera')) congelarVidrio(false);
   };
   const alAcabar = (e) => { if (e.target === panel && (e.propertyName === 'width' || e.propertyName === 'height')) terminar(); };
   panel.addEventListener('transitionend', alAcabar);
@@ -541,6 +594,7 @@ resizer.addEventListener('mousedown', (e) => {
   e.preventDefault();
   if (finAncho) finAncho();
   resizeState = { x: e.screenX, y: e.screenY, desde: tamActual, size: tamActual, view: currentView };
+  congelarVidrio(true);
   panel.classList.add('sin-anim-ancho');
   avisarTam(tamActual, esVertical() ? window.innerWidth : window.innerHeight);
   // Con captura del puntero los eventos siguen llegando aunque el cursor salga de la tarjeta.
@@ -577,9 +631,17 @@ function endResize() {
   else cfg.panelHeight = size;
   anchosVistas();
   avisarTam(size, size);
+  if (!root.classList.contains('fuera')) congelarVidrio(false);
   if (size !== desde) ipcRenderer.send('action', { type:'dock-panel-resize-end', payload:{ size, view } });
 }
 document.addEventListener('mouseup', endResize);
+// La captura se pide con el id real del puntero (ratón, táctil o lápiz) y el arrastre termina
+// también con pointerup/pointercancel: si el "soltar" se perdía (sobre una vista, sin captura),
+// la ventana se quedaba entera visible y bloqueaba los clics a lo de detrás.
+resizer.addEventListener('pointerdown', (e) => { try { resizer.setPointerCapture(e.pointerId); } catch {} });
+resizer.addEventListener('lostpointercapture', endResize);
+window.addEventListener('pointerup', endResize);
+window.addEventListener('pointercancel', endResize);
 // Si la ventana pierde el foco, el arrastre también termina.
 window.addEventListener('blur', endResize);
 </script>

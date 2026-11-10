@@ -19,6 +19,25 @@
     -webkit-app-region:drag;align-self:flex-start;flex-shrink:0;
   }
 
+  /* ── Categorías ────────────────────────────────────────────── */
+  .cats { display:flex;gap:2px;background:var(--bg2);border-radius:12px;padding:3px;flex-shrink:0;overflow-x:auto;-webkit-app-region:no-drag; }
+  .cats::-webkit-scrollbar { display:none; }
+  .cats button {
+    flex:1 0 auto;background:transparent;border:none;color:var(--text2);white-space:nowrap;
+    font-size:12.5px;font-weight:600;padding:8px 9px;border-radius:9px;cursor:pointer;
+    transition:background-color .18s, color .18s;
+  }
+  .cats button:hover { color:var(--text); }
+  .cats button.active { background:var(--accent-soft-2);color:var(--accent); }
+  .cats button:focus-visible { outline:2px solid var(--accent);outline-offset:1px; }
+  .app[data-cat] .section[data-cat] { display:none; }
+  .app[data-cat="apariencia"] .section[data-cat="apariencia"] { display:flex; }
+  .app[data-cat="avisos"] .section[data-cat="avisos"] { display:flex; }
+  .app[data-cat="calendario"] .section[data-cat="calendario"] { display:flex; }
+  .app[data-cat="barra"] .section[data-cat="barra"] { display:flex; }
+  .app[data-cat="general"] .section[data-cat="general"] { display:flex; }
+  .section[data-solo] > .section-label { display:none; }   /* ya lo dice la pestaña */
+  .app[data-cat="general"] { gap:22px; }
   /* ── Secciones ─────────────────────────────────────────────── */
   /* 2.8.3: menos letra y más grande. Cada ajuste lleva su icono de color (como los Ajustes
      del Mac) y como mucho una línea corta; lo que se puede enseñar, se enseña con un dibujo. */
@@ -26,6 +45,7 @@
   .section-label { font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px 6px; }
   .card { background:var(--bg2);border-radius:18px;display:flex;flex-direction:column;overflow:hidden; }
   .row { position:relative;display:flex;align-items:center;gap:12px;padding:13px 16px;-webkit-app-region:no-drag; }
+  .solo-cristal[hidden] { display:none !important; }
   .card > * + .row::before { content:'';position:absolute;top:0;left:58px;right:0;height:1px;background:var(--border); }
   .row.col { flex-direction:column;align-items:stretch;gap:14px; }
   .row-head { display:flex;align-items:center;gap:12px; }
@@ -370,10 +390,19 @@
 
   <div class="app-title">Ajustes</div>
 
+  <!-- Categorías: se ve una cada vez (antes era una sola tira larga). -->
+  <div class="cats" id="cats" role="tablist">
+    <button role="tab" data-cat="apariencia" onclick="irACat('apariencia')">Apariencia</button>
+    <button role="tab" data-cat="avisos" onclick="irACat('avisos')">Avisos</button>
+    <button role="tab" data-cat="calendario" onclick="irACat('calendario')">Calendario</button>
+    <button role="tab" data-cat="barra" onclick="irACat('barra')">Barra</button>
+    <button role="tab" data-cat="general" onclick="irACat('general')">General</button>
+  </div>
+
   <!-- 2.8.3: cada ajuste con su icono y como mucho una línea corta de explicación. -->
 
   <!-- ── Apariencia ─────────────────────────────────────────── -->
-  <div class="section">
+  <div class="section" data-cat="apariencia" data-solo>
     <div class="section-label">Apariencia</div>
     <div class="card">
       <!-- La app en formas: cambia en vivo con el tema, el acento y el cristal. -->
@@ -404,6 +433,22 @@
         </div>
         <div class="mini-burbuja"><s></s><s></s></div>
       </div>
+      <!-- 2.8.5: el estilo de toda la app. Plano = sin cristal ni capturas de pantalla: macizo y
+           lo más ligero. El interruptor de siempre (#liquidGlass) sigue, escondido, detrás. -->
+      <div class="row col">
+        <div class="row-head">
+          <span class="ico" data-ico="cristal" style="--ic:#2bb8e0"></span>
+          <div class="row-text">
+            <span class="row-title">Estilo</span>
+            <span class="row-desc">Plano es macizo y el más ligero</span>
+          </div>
+        </div>
+        <div class="seg" id="estiloSeg">
+          <button type="button" data-cristal="1">Cristal líquido</button>
+          <button type="button" data-cristal="0">Plano</button>
+        </div>
+        <input type="checkbox" id="liquidGlass" hidden>
+      </div>
       <div class="row col">
         <div class="row-head">
           <span class="ico" data-ico="tema" style="--ic:#ff8a3d"></span>
@@ -421,7 +466,7 @@
         </div>
         <div class="acentos" id="accentSwatches"></div>
       </div>
-      <div class="row col">
+      <div class="row col solo-cristal">
         <div class="row-head">
           <span class="ico" data-ico="panel" style="--ic:#5b8cff"></span>
           <div class="row-text">
@@ -436,7 +481,7 @@
           <span class="unit">Cristal</span>
         </div>
       </div>
-      <div class="row">
+      <div class="row solo-cristal">
         <span class="ico" data-ico="difuminar" style="--ic:#8f8f99"></span>
         <div class="row-text">
           <span class="row-title">Difuminar el fondo</span>
@@ -444,18 +489,6 @@
         </div>
         <label class="switch">
           <input type="checkbox" id="blurEnabled">
-          <span class="switch-track"></span>
-          <span class="switch-knob"></span>
-        </label>
-      </div>
-      <div class="row">
-        <span class="ico" data-ico="cristal" style="--ic:#2bb8e0"></span>
-        <div class="row-text">
-          <span class="row-title">Cristal líquido</span>
-          <span class="row-desc">En bocadillos y menús</span>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="liquidGlass">
           <span class="switch-track"></span>
           <span class="switch-knob"></span>
         </label>
@@ -476,7 +509,7 @@
   </div>
 
   <!-- ── Avisos ─────────────────────────────────────────────── -->
-  <div class="section">
+  <div class="section" data-cat="avisos" data-solo>
     <div class="section-label">Avisos</div>
     <div class="card">
       <div class="row">
@@ -593,7 +626,7 @@
   </div>
 
   <!-- ── Calendario ─────────────────────────────────────────── -->
-  <div class="section">
+  <div class="section" data-cat="calendario" data-solo>
     <div class="section-label">Calendario</div>
     <div class="card">
       <div class="row col">
@@ -641,7 +674,7 @@
   </div>
 
   <!-- ── Barra flotante ─────────────────────────────────────── -->
-  <div class="section">
+  <div class="section" data-cat="barra" data-solo>
     <div class="section-label">Barra flotante</div>
     <div class="card">
       <div class="row">
@@ -682,7 +715,7 @@
             <input type="color" id="dockColorCustom" value="#ffffff">
             <span>Otro color…</span>
           </label>
-          <div class="day-row">
+          <div class="day-row solo-cristal">
             <span class="day-name">De cristal</span>
             <input type="checkbox" class="day-check" id="dockBarGlass">
           </div>
@@ -735,8 +768,8 @@
   </div>
 
   <!-- ── General ────────────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-label">General</div>
+  <div class="section" data-cat="general">
+    <div class="section-label">Inicio y versiones</div>
     <div class="card">
       <div class="row">
         <span class="ico" data-ico="encender" style="--ic:#30c48d"></span>
@@ -766,8 +799,8 @@
   </div>
 
   <!-- ── Acciones ───────────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-label">Acciones</div>
+  <div class="section" data-cat="general">
+    <div class="section-label">Ayuda y copias</div>
     <div class="btn-grid">
       <button class="big-btn" onclick="startTutorial()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4.2 2.8c-.8.4-1.3 1.1-1.3 2"/><path d="M12 17h.01"/></svg>
@@ -789,11 +822,15 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0l-4 4m4-4l4 4"/><path d="M4 21h16"/></svg>
         Restaurar copia
       </button>
+      <button class="big-btn" id="volverEstable" hidden onclick="volverEstable()" title="Si la versión de prueba te impide trabajar: instala la última estable y sale del canal Betatester">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+        Volver a la estable
+      </button>
     </div>
   </div>
 
   <!-- ── Cuenta ─────────────────────────────────────────────── -->
-  <div class="section">
+  <div class="section" data-cat="general">
     <div class="section-label">Cuenta</div>
     <div class="card">
       <div class="row col">
@@ -841,6 +878,26 @@
 <script src="bocadillo.js"></script>
 <script>
 const { ipcRenderer } = require('electron');
+
+// ── Categorías (2.8.5) ──────────────────────────────────────────────────────────
+// Los ajustes se ven de una categoría en una. Se recuerda la última abierta.
+const CATS = ['apariencia','avisos','calendario','barra','general'];
+function irACat(cat, recordar = true) {
+  if (!CATS.includes(cat)) cat = CATS[0];
+  const app = document.querySelector('.app');
+  const cambia = app.dataset.cat !== cat;
+  app.dataset.cat = cat;
+  document.querySelectorAll('#cats button').forEach(b => {
+    const on = b.dataset.cat === cat;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  if (cambia) app.scrollTop = 0;
+  if (recordar) { try { localStorage.setItem('ajustesCat', cat); } catch {} }
+}
+{ let c = null; try { c = localStorage.getItem('ajustesCat'); } catch {} irACat(c || CATS[0], false); }
+// El recorrido guiado señala ajustes de cualquier categoría: se abre la suya antes.
+window.alMostrarPaso = (el) => { const s = el.closest('.section[data-cat]'); if (s) irACat(s.dataset.cat, false); };
 
 const DOCK_COLORS = ['#ffffff','#cbd5e1','#94a3b8','#6366f1','#38bdf8','#34d399','#fbbf24','#fb7185','#a78bfa'];
 // Mismo orden y claves que THEMES en themes.js (muestra de fondo + su acento).
@@ -1306,7 +1363,8 @@ function pintarRangos() {
 // panel de verdad), esmerilado o claro según "Difuminar", y el bocadillo según "Cristal líquido".
 function pintarMini() {
   const mini = document.getElementById('mini');
-  const cristal = (parseInt(document.getElementById('bgOpacity').value) || 0) / 100;
+  const plano = !document.getElementById('liquidGlass').checked;
+  const cristal = plano ? 0 : (parseInt(document.getElementById('bgOpacity').value) || 0) / 100;
   mini.style.setProperty('--mini-op', cristal < 0.005 ? 1 : 0.3 + 0.62 * (1 - cristal));
   mini.classList.toggle('con-cristal', cristal >= 0.005);
   mini.classList.toggle('sin-blur', !document.getElementById('blurEnabled').checked);
@@ -1363,6 +1421,21 @@ function pintarDibujos() { pintarRangos(); pintarMini(); pintarBarra(); pintarOj
 ['input', 'change', 'click'].forEach(ev => document.addEventListener(ev, () => requestAnimationFrame(pintarDibujos)));
 window.addEventListener('resize', pintarDibujos);
 
+// Estilo: cristal líquido o plano. Se aplica al momento en toda la app, y con el plano se
+// esconden los ajustes que solo existen con cristal (transparencia, difuminar, barrita de cristal).
+function pintarEstilo() {
+  const cristal = document.getElementById('liquidGlass').checked;
+  document.querySelectorAll('#estiloSeg button').forEach(b => b.classList.toggle('active', (b.dataset.cristal === '1') === cristal));
+  document.querySelectorAll('.solo-cristal').forEach(el => { el.hidden = !cristal; });
+}
+document.querySelectorAll('#estiloSeg button').forEach(b => b.addEventListener('click', () => {
+  const cristal = b.dataset.cristal === '1';
+  if (document.getElementById('liquidGlass').checked === cristal) return;
+  document.getElementById('liquidGlass').checked = cristal;
+  pintarEstilo();
+  ipcRenderer.send('action', { type:'set-setting', payload:{ key:'liquidGlass', value: cristal } });
+}));
+
 // "Difuminar" se ve al momento en el cristal del panel lateral, como la transparencia.
 document.getElementById('blurEnabled').addEventListener('change', (e) => {
   ipcRenderer.send('action', { type:'set-blur', payload:{ enabled: e.target.checked } });
@@ -1378,7 +1451,9 @@ ipcRenderer.on('settings', (_, s) => {
   document.getElementById('bgOpacity').value = 100 - (s.bgOpacity == null ? 85 : s.bgOpacity);
   document.getElementById('blurEnabled').checked = s.blurEnabled !== false;
   document.getElementById('liquidGlass').checked = s.liquidGlass !== false;
+  pintarEstilo();
   document.getElementById('betaUpdates').checked = !!s.betaUpdates;
+  document.getElementById('volverEstable').hidden = !/-/.test(s.appVersion || '');   // solo con una beta (2.8.5-beta.1)
   tutorialSeen = s.tutorialSeenSteps || [];
   setTimeout(maybeStartTutorial, 60);   // tras pintar temas, colores y la barra flotante
   setTimeout(pintarDibujos, 0);   // cuando ya están puestos todos los valores
@@ -1500,6 +1575,10 @@ function cancel() { ipcRenderer.send('action', { type:'close-settings' }); }
 // arranca el recorrido. Hacer las dos cosas provocaba dos navegaciones pisándose.
 function startTutorial() { ipcRenderer.send('action', { type:'reset-tutorial' }); }
 function checkUpdates() { ipcRenderer.send('action', { type:'check-for-updates' }); }
+function volverEstable() {
+  document.getElementById('betaUpdates').checked = false;
+  ipcRenderer.send('action', { type:'volver-estable' });
+}
 function showWhatsNew() { ipcRenderer.send('action', { type:'show-whats-new' }); }
 
 // ---------- Copia de seguridad ----------
