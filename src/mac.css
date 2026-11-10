@@ -12,14 +12,15 @@
    · Noche cálida (oscuro) es el tema principal; Luz el claro. Los colores llegan como
      variables desde themes.js (ver applyThemeVars en shared.js). */
 
-/* 2.8.5: DM Sans es la letra del texto (geométrica, como Syne, la de los títulos; con Inter
-   parecían dos apps distintas). Inter se queda de reserva. */
+/* 2.8.5: dos letras. Syne ExtraBold (el fichero que eligió Álvaro) para títulos y rótulos, y
+   Montserrat (sus caras están en shared.css) para todo lo demás: texto, campos, botones y
+   cifras. Inter se queda de reserva. */
 @font-face {
-  font-family: 'DM Sans';
+  font-family: 'Syne';
   font-style: normal;
-  font-weight: 100 1000;
+  font-weight: 800;
   font-display: block;
-  src: url('../assets/fonts/dm-sans-latin-variable.woff2') format('woff2');
+  src: url('../assets/fonts/Syne-ExtraBold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Inter';
@@ -74,7 +75,7 @@
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
 body {
-  font-family: 'DM Sans', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Montserrat', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   letter-spacing: -0.006em;
   font-feature-settings: 'cv11', 'ss03';
@@ -1162,20 +1163,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .form-pop .entry-popup-actions { margin-top: 2px; gap: 8px; }
 .form-pop .entry-popup-actions .btn-ghost, .form-pop .entry-popup-actions .btn-primary { padding: 10px 16px; font-size: 14px; }
 
-/* ── Syne (2.8.5): la letra de los títulos y los rótulos ─────────────────────────────────
-   Solo hay un grosor (ExtraBold), así que va en lo que es título o rótulo: nombres de
-   pantalla, títulos de diálogo y etiquetas de sección. Los botones NO: todos van en la
-   misma letra (DM Sans), para que "Cancelar" y "Aplicar" no salgan cada uno con la suya. El
-   texto corrido, los campos y los contadores van en DM Sans: una letra tan gruesa en
-   pequeño cansa, y sus cifras no tienen ancho fijo (el contador bailaría cada segundo). */
-@font-face {
-  font-family: 'Syne';
-  src: url('../assets/fonts/Syne-ExtraBold.ttf') format('truetype');
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
-:root { --font-display: 'Syne', 'DM Sans', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
+/* ── Títulos y rótulos (2.8.5): Syne en su grosor ExtraBold ───────────────────────────── */
+:root { --font-display: 'Syne', 'Montserrat', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
 .app-title, .entry-popup-title, .ask-title, .imp-title, .tut-card-title, .u-title,
 .hero-name, .hero-idle-title, .cal-title, .row-title,
 .section-label, .list-section-head, .group-name, .group-title,
@@ -1187,3 +1176,61 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .section-label, .list-section-head, .group-name, .group-title { letter-spacing: .03em; }
 /* Syne es muy ancha: en las filas de Ajustes, un punto menos para que quepa con su control. */
 .row-title { font-size: 13.5px; letter-spacing: 0; }
+
+/* ── Tarjeta de la tarea en marcha (2.8.5, rehecha) ──────────────────────────────────────
+   Antes: todo centrado sobre un resplandor del color de acento. Ahora: una ficha sobria que
+   se tiñe del color de la PROPIA tarea (franja a la izquierda y un velo suave), con el nombre
+   y el contador a la izquierda y la pausa, redonda, a la derecha. Sin animaciones continuas. */
+.hero:not(.idle) {
+  --tc: var(--accent2);
+  position: relative; overflow: hidden; align-items: stretch;
+  padding: 16px 16px 16px 22px; gap: 12px; border: none; border-radius: 20px;
+  background: linear-gradient(115deg, color-mix(in srgb, var(--tc) 20%, var(--bg2)) 0%, var(--bg2) 62%);
+  box-shadow: none;
+}
+.hero:not(.idle)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--tc);
+}
+.hero-live { display: flex; flex-direction: column; gap: 12px; width: 100%; min-width: 0; }
+.hero-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.hero-estado {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text2);
+}
+.hero-dot {
+  width: 9px; height: 9px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tc) 28%, transparent);
+  animation: latidoTarea 2.2s ease-in-out 3;
+}
+@keyframes latidoTarea {
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--tc) 28%, transparent); }
+  50%      { box-shadow: 0 0 0 8px color-mix(in srgb, var(--tc) 8%, transparent); }
+}
+.hero-centro { display: flex; align-items: center; gap: 14px; }
+.hero-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.hero-name { text-align: left; font-size: 16px; line-height: 1.25; }
+.hero-time { text-align: left; white-space: nowrap; font-size: clamp(28px, 9vw, 40px); line-height: 1.05; letter-spacing: -0.03em; }
+.hero-btn.hero-pausa {
+  width: 56px; height: 56px; padding: 0; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent2); color: #fff;
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--accent2) 70%, transparent);
+  transition: transform .3s var(--spring), background-color var(--t-fast) var(--ease);
+}
+.hero-btn.hero-pausa:hover { background: var(--accent2); filter: brightness(1.08); transform: scale(1.06); }
+.hero-btn.hero-pausa:active { transform: scale(.94); }
+.hero-btn.hero-pausa:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.hero-top .hero-btn.ghost { width: 30px; height: 30px; padding: 0; border-radius: 50%; }
+.hero-notes { gap: 8px; }
+.hero-campo { display: flex; align-items: center; gap: 10px; width: 100%; }
+.hero-campo svg { flex-shrink: 0; color: var(--text3); }
+.hero-campo input { flex: 1; min-width: 0; }
+
+/* ── Pie del panel (2.8.5): Imputar y Añadir tarea, en una fila ───────────────────────── */
+.new-task-area { flex-direction: row; align-items: stretch; gap: 8px; padding-top: 2px; }
+.new-task-area > button { flex: 1 1 0; min-width: 0; width: auto !important; justify-content: center; padding: 12px; border-radius: 14px; font-size: 13.5px; font-weight: 650; }
+.new-task-area .btn-primary { background: var(--bg2); color: var(--text); }
+.new-task-area .btn-primary:hover { background: var(--bg3); }
+.new-task-area .btn-primary svg { color: var(--accent); }
+/* Montserrat es más ancha que la letra de antes: un punto menos en la lista para que los
+   nombres de las tareas no se partan en dos líneas a la primera. */
+.task-name { font-size: 13.5px; }
