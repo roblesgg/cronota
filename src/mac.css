@@ -12,15 +12,22 @@
    · Noche cálida (oscuro) es el tema principal; Luz el claro. Los colores llegan como
      variables desde themes.js (ver applyThemeVars en shared.js). */
 
-/* 2.8.5: dos letras. Syne ExtraBold (el fichero que eligió Álvaro) para títulos y rótulos, y
-   Montserrat (sus caras están en shared.css) para todo lo demás: texto, campos, botones y
-   cifras. Inter se queda de reserva. */
+/* 2.8.5: las letras de yeasy.io, que eligió Álvaro (las dos libres, OFL, de Zalando):
+   Zalando Sans Expanded (la ancha) para títulos y rótulos, y Zalando Sans para todo lo demás.
+   Inter se queda de reserva. */
 @font-face {
-  font-family: 'Syne';
+  font-family: 'Zalando Sans';
   font-style: normal;
-  font-weight: 800;
+  font-weight: 200 900;
   font-display: block;
-  src: url('../assets/fonts/Syne-ExtraBold.ttf') format('truetype');
+  src: url('../assets/fonts/zalando-sans-latin-variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zalando Sans Expanded';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: block;
+  src: url('../assets/fonts/zalando-sans-expanded-latin-variable.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
@@ -75,7 +82,7 @@
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
 body {
-  font-family: 'Montserrat', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Zalando Sans', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   letter-spacing: -0.006em;
   font-feature-settings: 'cv11', 'ss03';
@@ -1164,21 +1171,21 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .form-pop .entry-popup-actions .btn-ghost, .form-pop .entry-popup-actions .btn-primary { padding: 10px 16px; font-size: 14px; }
 
 /* ── Letras (2.8.5) ──────────────────────────────────────────────────────────────────────
-   Syne ExtraBold (la que eligió Álvaro) SOLO en los rótulos en mayúsculas: secciones de
-   Tareas ("SIN SECCIÓN"), etiquetas de Ajustes ("INICIO Y VERSIONES"), "HOY", "EN MARCHA"...
-   Todo lo que va en minúsculas, títulos incluidos, en Montserrat: Syne en minúscula no le gusta. */
-:root { --font-display: 'Syne', 'Montserrat', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
+   Como en yeasy.io: Zalando Sans Expanded (la ancha) en títulos y rótulos en mayúsculas;
+   Zalando Sans en todo lo demás (texto, botones, campos y cifras). Todos los botones, iguales. */
+:root { --font-display: 'Zalando Sans Expanded', 'Zalando Sans', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
 .section-label, .list-section-head, .group-name, .legend-title, .total-label, .hero-estado {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: .04em;
+  font-weight: 700;
+  letter-spacing: .05em;
 }
 .app-title, .entry-popup-title, .ask-title, .imp-title, .tut-card-title, .u-title,
 .hero-idle-title, .cal-title, .cal-titlebar-title, .week-label {
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
-.hero-name, .row-title { font-weight: 700; letter-spacing: -0.01em; }
+.hero-name, .row-title { font-weight: 650; letter-spacing: -0.01em; }
 
 /* ── Tarjeta de la tarea en marcha (2.8.5, rehecha) ──────────────────────────────────────
    Antes: todo centrado sobre un resplandor del color de acento. Ahora: una ficha sobria que
@@ -1237,3 +1244,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 /* Montserrat es más ancha que la letra de antes: un punto menos en la lista para que los
    nombres de las tareas no se partan en dos líneas a la primera. */
 .task-name { font-size: 13.5px; }
+
+/* Zalando Sans dibuja sus cifras de ancho fijo (tabular-nums) con otro estilo, casi de máquina de
+   escribir, y desentonaban con el resto. Se usan sus cifras normales en toda la app. Los tiempos
+   que corren van alineados a la izquierda, así que el cambio de ancho apenas se nota. */
+*, *::before, *::after { font-variant-numeric: normal !important; }
