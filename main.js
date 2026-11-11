@@ -42,7 +42,7 @@ const UI_VERSION = 5;
 // no llegara a salir), y por eso se comparte el objeto: así se detecta que ya se ha
 // visto y no se repite palabra por palabra en la siguiente actualización.
 const NOVEDADES_2_2 = {
-  title: 'Novedades de imputa.me 2.2',
+  title: 'Novedades de Cronota 2.2',
   steps: [
     { icon:'cursor', title:'Se acabó el parpadeo del cursor',
       text:'Al pasar el ratón por botones, campos y agarradores el cursor se quedaba parpadeando entre la flecha y la mano. Ya no: ahora se mantiene estable mientras mueves el ratón.' },
@@ -62,7 +62,7 @@ const NOVEDADES_2_2 = {
 };
 
 const NOVEDADES_2_3 = {
-  title: 'Novedades de imputa.me 2.3',
+  title: 'Novedades de Cronota 2.3',
   steps: [
     { icon:'bar', title:'La barra flotante ya no se pierde',
       text:'Se quedaba sin aparecer al encender el ordenador, y con varios monitores podía acabar plantada en medio de la pantalla. Ahora se recoloca sola al arrancar, cuando conectas o desconectas pantallas, y vuelve siempre a su sitio al cerrar el panel.' },
@@ -82,7 +82,7 @@ const NOVEDADES_2_3 = {
 };
 
 const NOVEDADES_2_4 = {
-  title: 'Novedades de imputa.me 2.4',
+  title: 'Novedades de Cronota 2.4',
   steps: [
     { icon:'lista', title:'Subtareas',
       text:'Dentro de una tarea puedes crear subtareas: en "Cocina", el horno y el frigorífico. La flechita de cada tarea del Panel las despliega, cada una lleva su propio tiempo y su play, y todo lo que hagas dentro suma en la tarea. Sus notas van como siempre, una por sesión.' },
@@ -107,7 +107,7 @@ const NOVEDADES_2_4 = {
 // Este es corto a propósito, porque lo que explica de verdad viene después: el
 // recorrido guiado, que va señalando cada cosa en su sitio.
 const NOVEDADES_2_4_1 = {
-  title: 'Novedades de imputa.me 2.4',
+  title: 'Novedades de Cronota 2.4',
   steps: [
     { icon:'guide', title:'Ahora te lo enseño, no te lo cuento',
       text:'Hasta ahora las novedades eran una presentación que leías y cerrabas, y luego tocaba buscarse la vida. A partir de aquí, el recorrido va por la app señalando cada cosa nueva en el sitio donde está.' },
@@ -119,7 +119,7 @@ const NOVEDADES_2_4_1 = {
 };
 
 const NOVEDADES_2_5 = {
-  title: 'Novedades de imputa.me 2.5',
+  title: 'Novedades de Cronota 2.5',
   steps: [
     { icon:'guide', title:'Te lo enseño donde está',
       text:'Como en la 2.4: cuando acabes de leer esto, el recorrido te lleva por la app señalando cada cosa nueva en su sitio. Solo verás lo que no hayas visto ya, y con darle a Siguiente basta.' },
@@ -143,7 +143,7 @@ const NOVEDADES_2_5 = {
 };
 
 const NOVEDADES_2_8 = {
-  title: 'Novedades de imputa.me 2.8',
+  title: 'Novedades de Cronota 2.8',
   steps: [
     { icon:'guide', title:'Te lo enseño en su sitio',
       text:'Cuando acabes de leer esto, el recorrido te lleva por el calendario, Tareas y Ajustes señalando cada cosa nueva donde está. Solo verás lo que no hayas visto ya.' },
@@ -161,7 +161,7 @@ const NOVEDADES_2_8 = {
 };
 
 const NOVEDADES_2_8_3 = {
-  title: 'Novedades de imputa.me 2.8.3',
+  title: 'Novedades de Cronota 2.8.3',
   steps: [
     { icon:'spark', title:'Ajustes, de un vistazo',
       text:'Cada opción con su icono y una línea, no un párrafo. Arriba, tu app en pequeño cambia de color según tocas; la barra flotante y el descanso visual se ven en una pantallita.' },
@@ -181,7 +181,7 @@ const NOVEDADES_2_8_3 = {
 };
 
 const NOVEDADES_2_9 = {
-  title: 'Novedades de imputa.me 2.9',
+  title: 'Novedades de Cronota 2.9',
   steps: [
     { icon:'spark', title:'Un lavado de cara',
       text:'Letra nueva, más aire y menos texto pequeño en todas las pantallas. Los desplegables ya no son los de Windows: se abren con una animación y se manejan también con el teclado.' },
@@ -199,8 +199,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.9.1': { title: 'imputa.me ahora se llama Cronota', steps: [
+    { icon:'spark', title:'Nuevo nombre, la misma app',
+      text:'imputa.me pasa a llamarse Cronota: cronómetro y nota, que es lo que hace. Tus tareas, tus horas y tus ajustes siguen exactamente igual.' },
+  ] },
   '2.9.0': NOVEDADES_2_9,
-  '2.8.4': { ...NOVEDADES_2_8_3, title: 'Novedades de imputa.me 2.8.4' },
+  '2.8.4': { ...NOVEDADES_2_8_3, title: 'Novedades de Cronota 2.8.4' },
   '2.8.3': NOVEDADES_2_8_3,
   '2.8.0': NOVEDADES_2_8,
   '2.8.1': NOVEDADES_2_8,
@@ -521,7 +525,7 @@ let lastTrayTip = null, lastTrayTipAt = 0;
 function updateTrayTitle() {
   if (!tray) return;
   const active = getActiveTask();
-  const tip = `imputa.me · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
+  const tip = `Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
   const now = Date.now();
   if (tip !== lastTrayTip || now - lastTrayTipAt > 60000) {
     lastTrayTip = tip; lastTrayTipAt = now; tray.setToolTip(tip);
@@ -535,7 +539,7 @@ function buildTrayMenu() {
     click: () => switchTask(t.id),
   }));
   return Menu.buildFromTemplate([
-    { label: 'imputa.me', enabled: false },
+    { label: 'Cronota', enabled: false },
     { label: `Hoy: ${formatDuration(totalTodaySeconds())}`, enabled: false },
     { type: 'separator' },
     ...taskItems,
@@ -1148,7 +1152,7 @@ function notifyLeaveTime(task, parada, corte) {
   try {
     if (!Notification.isSupported()) return;
     const n = new Notification({
-      title: 'imputa.me · hora de salida',
+      title: 'Cronota · hora de salida',
       body: parada
         ? `He parado "${nombre}"${hora ? ` a las ${hora}` : ''}. Hasta mañana.`
         : `Sigues con "${nombre}"${llevas ? ` (${llevas} hoy)` : ''}. ¿La paras antes de irte?`,
@@ -1184,7 +1188,7 @@ function showDockContextMenu() {
   const esconder = (min, etiqueta) => ({ label: etiqueta, click: () => hideDockFor(min) });
 
   const plantilla = [
-    { label: 'imputa.me', enabled: false },
+    { label: 'Cronota', enabled: false },
     { label: `Hoy: ${formatDuration(totalTodaySeconds())}`, enabled: false },
     { type: 'separator' },
     activa
@@ -1249,7 +1253,7 @@ function showDockContextMenu() {
     { type: 'separator' },
     // Modo clásico = ventanas sueltas de siempre, sin barra flotante.
     { label: 'Cambiar a modo clásico (ventanas)', click: () => toggleDockMode() },
-    { label: 'Salir de imputa.me', click: () => { saveData(); app.quit(); } },
+    { label: 'Salir de Cronota', click: () => { saveData(); app.quit(); } },
   );
 
   try { Menu.buildFromTemplate(plantilla).popup({ window: dockWin }); } catch {}
@@ -3125,7 +3129,7 @@ ipcMain.handle('export-backup', async () => {
     const { canceled, filePath } = await dialog.showSaveDialog(parent, {
       title: 'Exportar copia de seguridad',
       defaultPath: path.join(baseDir, `imputa-backup-${new Date().toISOString().slice(0, 10)}.json`),
-      filters: [{ name: 'Copia de seguridad de imputa.me', extensions: ['json'] }],
+      filters: [{ name: 'Copia de seguridad de Cronota', extensions: ['json'] }],
     });
     if (canceled || !filePath) return { ok: false, canceled: true };
     const payload = { imputaBackup: true, exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups };
@@ -3146,13 +3150,13 @@ ipcMain.handle('import-backup', async () => {
     const parent = settingsWin && !settingsWin.isDestroyed() ? settingsWin : (mainWin || undefined);
     const { canceled, filePaths } = await dialog.showOpenDialog(parent, {
       title: 'Restaurar copia de seguridad',
-      filters: [{ name: 'Copia de seguridad de imputa.me', extensions: ['json'] }],
+      filters: [{ name: 'Copia de seguridad de Cronota', extensions: ['json'] }],
       properties: ['openFile'],
     });
     if (canceled || !filePaths || !filePaths[0]) return { ok: false, canceled: true };
     const raw = JSON.parse(fs.readFileSync(filePaths[0], 'utf8'));
     if (!raw || !Array.isArray(raw.tasks) || !Array.isArray(raw.groups)) {
-      return { ok: false, error: 'El archivo no es una copia de seguridad válida de imputa.me.' };
+      return { ok: false, error: 'El archivo no es una copia de seguridad válida de Cronota.' };
     }
     // Compara cada tarea/grupo de la copia con lo que ya hay en local por id: si no
     // existe es nuevo (se añade sin preguntar), si es idéntico se ignora en silencio,
@@ -3445,7 +3449,7 @@ function notifyUpdateAvailable(version) {
   try {
     if (!Notification.isSupported()) return;
     const n = new Notification({
-      title: 'imputa.me · actualización disponible',
+      title: 'Cronota · actualización disponible',
       body: `Versión ${version} lista para descargar. Tú decides cuándo.`,
       icon: APP_ICON_PATH,
       silent: false,
@@ -3457,7 +3461,7 @@ function notifyUpdateAvailable(version) {
 
 function checkForUpdates(manual) {
   // En la Store, "Buscar actualizaciones" abre la página de descargas y actualizaciones de la Store.
-  if (IS_STORE) { if (manual) { try { require('electron').shell.openExternal('ms-windows-store://downloadsandupdates'); } catch {} } return; }
+  if (IS_STORE) { if (manual) { try { require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {} } return; }
   if (!autoUpdater) {
     if (manual) { openUpdateWindow(); sendUpdateState({ phase: 'unavailable' }); }
     return;
@@ -3507,7 +3511,7 @@ app.whenReady().then(() => {
   const trayIcon = nativeImage.createFromPath(APP_ICON_PATH).resize({ width: 32, height: 32, quality: 'best' });
 
   tray = new Tray(trayIcon);
-  tray.setToolTip('imputa.me');
+  tray.setToolTip('Cronota');
   // El menú se monta al abrirlo, no cada segundo (ver updateTrayTitle).
   tray.on('right-click', () => { try { tray.popUpContextMenu(buildTrayMenu()); } catch {} });
   tray.on('click', () => openLastView());

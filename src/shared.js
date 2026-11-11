@@ -128,7 +128,7 @@ const TUTORIAL_STEPS = [
   { id:'main-note',      window:'main', version:'1.2.19', selector:'#activeNoteRow',
     title:'Nota de esta sesión', text:'Anota qué estás haciendo exactamente en este rato. Se guarda en la entrada y se ve en el calendario. Si la tarea tiene una nota persistente (memo), esa se muestra aparte y no se borra al pausar.' },
   { id:'main-update',    window:'main', version:'1.2.19', selector:'#updateBtn',
-    title:'Actualización disponible', text:'Cuando haya una versión nueva de imputa.me, aparece este aviso. Haz clic para instalarla.' },
+    title:'Actualización disponible', text:'Cuando haya una versión nueva de Cronota, aparece este aviso. Haz clic para instalarla.' },
   { id:'main-back',      window:'main', version:'1.2.19', selector:'.back-row',
     title:'¿Ya llevas tiempo?', text:'Si empezaste una tarea antes de abrir la app, pon aquí cuántos minutos llevas (o la hora exacta): al darle a play se descontará ese tiempo.' },
   { id:'main-playpause', window:'main', version:'1.2.19', selector:'#tasksList .task-pill-actions .icon-btn:last-child',

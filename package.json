@@ -1,7 +1,7 @@
 {
   "name": "imputa-me",
-  "version": "2.9.0",
-  "description": "imputa.me — registra y consulta tus horas por tarea",
+  "version": "2.9.1",
+  "description": "Cronota — registra y consulta tus horas por tarea",
   "main": "main.js",
   "author": "imputa.me",
   "scripts": {
@@ -64,7 +64,8 @@
       "runAfterFinish": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "imputa.me",
+      "shortcutName": "Cronota",
+      "uninstallDisplayName": "Cronota",
       "artifactName": "imputame-setup.exe",
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
@@ -74,11 +75,11 @@
       "node_modules/koffi/build/koffi/win32_x64/**"
     ],
     "appx": {
-      "identityName": "PENDIENTE.imputame",
-      "publisher": "CN=PENDIENTE",
-      "publisherDisplayName": "PENDIENTE",
+      "identityName": "lvaroRoblesGonzlezDripDev.Cronota",
+      "publisher": "CN=5FC043BE-23BD-4F4B-BCAA-EB64CDF0A6B1",
+      "publisherDisplayName": "Álvaro Robles González (DripDev)",
       "applicationId": "imputame",
-      "displayName": "imputa.me",
+      "displayName": "Cronota",
       "backgroundColor": "transparent",
       "showNameOnTiles": false,
       "languages": [

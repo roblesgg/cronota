@@ -496,7 +496,7 @@
         color: task.color,
       };
       try {
-        const summary = `imputa.me: ${entryClipboard.nameAtTime}` +
+        const summary = `Cronota: ${entryClipboard.nameAtTime}` +
           (entryClipboard.subNameAtTime ? ` · ${entryClipboard.subNameAtTime}` : '') +
           ` (${Math.round(entryClipboard.durationMs / 60000)} min)`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
