@@ -7,7 +7,7 @@
 // ejecutarse y la pestaña Tareas salia vacia. Con un solo punto de entrada no hay forma
 // de leer un "ok" que no sea de verdad.
 //
-//   node check-all.js
+//   npm run check   (o: node tools/check-all.js, desde la raíz del proyecto)
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -18,9 +18,9 @@ const js = ['main.js', 'sync.js', 'themes.js', 'palettes.js', 'src/shared.js', '
 
 const pasos = [
   ['sintaxis de los .js', [...js.flatMap(f => ['--check', f])], true],
-  ['sintaxis dentro de los .html', ['check-syntax.js', ...htmls], false],
-  ['referencias y funciones sueltas', ['check-refs.js', ...js, ...htmls], false],
-  ['pintado de la pestaña Tareas', ['check-render.js', '.'], false],
+  ['sintaxis dentro de los .html', ['tools/check-syntax.js', ...htmls], false],
+  ['referencias y funciones sueltas', ['tools/check-refs.js', ...js, ...htmls], false],
+  ['pintado de la pestaña Tareas', ['tools/check-render.js', '.'], false],
 ];
 
 let fallos = 0;

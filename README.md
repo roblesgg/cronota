@@ -1,7 +1,7 @@
 <a href="https://dripdev.dev"><img src="docs/readme/dripdev.png" alt="Un producto de DripDev" width="100%"></a>
 
 <p align="center">
-  <img src="docs/readme/portada.png" alt="imputa.me: tus horas por tarea, sin pensar en ellas" width="100%">
+  <img src="docs/readme/portada.png" alt="Cronota: tus horas por tarea, sin pensar en ellas" width="100%">
 </p>
 
 <p align="center">
@@ -10,12 +10,12 @@
   <img src="https://img.shields.io/badge/%E2%97%8F-en%20marcha-F53F4C?style=for-the-badge" alt="En marcha">
 </p>
 
-**imputa.me** cuenta el tiempo que dedicas a cada tarea mientras trabajas. Un clic para empezar, otro para parar. A final de semana, el calendario te dice dónde fue cada hora, e imputar es copiar y pegar.
+**Cronota** (antes imputa.me) cuenta el tiempo que dedicas a cada tarea mientras trabajas. Un clic para empezar, otro para parar. A final de semana, el calendario te dice dónde fue cada hora, e imputar es copiar y pegar.
 
 Vive en la bandeja del sistema y no molesta.
 
 <p align="center">
-  <img src="docs/readme/capturas.png" alt="Calendario semanal de imputa.me" width="100%">
+  <img src="docs/readme/capturas.png" alt="Calendario semanal de Cronota" width="100%">
 </p>
 
 ## Qué puedes hacer
@@ -38,9 +38,11 @@ En la [última versión](https://github.com/roblesgg/imputa-me/releases/latest):
 | `imputame-setup.exe` | Instalador. **Se actualiza sola.** Recomendado. |
 | `imputame-portable.exe` | Sin instalar, por ejemplo desde un USB. |
 
+Pronto también en la Microsoft Store.
+
 ## Hecho con
 
-Electron con HTML, CSS y JavaScript, sin framework. Tipografía Montserrat y el efecto translúcido de Windows 11.
+Electron con HTML, CSS y JavaScript, sin framework. Tipografías Zalando Sans y Zalando Sans Expanded.
 
 <details>
 <summary><b>Para desarrollar</b></summary>
@@ -49,13 +51,23 @@ Electron con HTML, CSS y JavaScript, sin framework. Tipografía Montserrat y el 
 
 ```bash
 npm install
-npm start        # modo desarrollo
-npm run dist     # instalador y portable en release/
+npm start          # modo desarrollo (o tools/iniciar-dev.vbs)
+npm run check      # comprobaciones antes de publicar
 ```
 
-Si lanzas la app desde una terminal con `ELECTRON_RUN_AS_NODE` definida, ábrela con `Iniciar imputa.me.vbs`. Todo el detalle técnico está en [`CONTEXTO.md`](CONTEXTO.md).
+Cómo está montado el proyecto:
 
-Las capturas de arriba son de la interfaz real de la app con tareas de ejemplo.
+| Carpeta | Qué hay |
+|---|---|
+| `main.js`, `sync.js`… | Proceso principal de la app |
+| `src/` | Pantallas (HTML, CSS y JS) |
+| `assets/`, `build/`, `build-hooks/` | Iconos, letras y personalización del instalador |
+| `movil/` | App del móvil |
+| `web/` | Web de descarga |
+| `tools/` | Comprobaciones, capturas y arranque en desarrollo |
+| `docs/` | [Roadmap](docs/ROADMAP.md), [notas técnicas](docs/notas-tecnicas.md) y la ficha de la Microsoft Store |
+
+El roadmap explica también cómo se publica cada versión (beta → estable → Microsoft Store).
 
 </details>
 

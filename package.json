@@ -6,8 +6,8 @@
   "author": "imputa.me",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win",
-    "release": "electron-builder --win --publish always",
+    "check": "node tools/check-all.js",
+    "dist": "electron-builder --win --publish never",
     "store": "electron-builder --win appx --publish never"
   },
   "dependencies": {
@@ -37,7 +37,7 @@
       "!node_modules/koffi/build/koffi/!(win32_x64)/**"
     ],
     "directories": {
-      "output": "release"
+      "output": "dist"
     },
     "publish": [
       {

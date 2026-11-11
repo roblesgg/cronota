@@ -7,7 +7,7 @@
 Todo cambio sigue siempre estos cuatro pasos, sin saltarse ninguno:
 
 1. **Planificar**: antes de tocar código se escribe qué se va a hacer, cómo se va a probar y qué puede romperse. Álvaro lo revisa y da el visto bueno.
-2. **Implementar y comprobar**: `node check-all.js` en verde, capturas en segundo plano (`tools/snap.js`) y, cuando haga falta usar la app de verdad, prueba acordada con Álvaro (nunca moviéndole el ratón sin avisar).
+2. **Implementar y comprobar**: `npm run check` en verde, capturas en segundo plano (`tools/snap.js`) y, cuando haga falta usar la app de verdad, prueba acordada con Álvaro (nunca moviéndole el ratón sin avisar).
 3. **Beta**: se publica como versión de prueba `X.Y.Z-beta.N` (prerelease en GitHub). Solo la reciben quienes tienen «Betatester» encendido. Se deja rodar y se corrigen los fallos que salgan.
 4. **Publicar**: cuando la beta va bien, versión estable `X.Y.Z` para todos (GitHub, «Latest») **y** envío del mismo código a la Microsoft Store (`npm run store` → subir `imputame-store.appx` en Partner Center).
 
@@ -54,4 +54,4 @@ Requisito previo: **preguntar a sistemas de Bitec** si permiten una app que lea 
 - **Microsoft Store**: cuando aprueben la 2.9.1, mejorar la ficha con más capturas (tema claro, barra flotante, recordatorio, nueva tarea) e imágenes de portada (póster 720×1080 y cuadrada 1080×1080).
 - **Instalador**: confirmar en un equipo real que la actualización silenciosa y la espera ante ficheros ocupados (SentinelOne) funcionan. Si sigue fallando, pedir a sistemas que excluyan la carpeta de la app.
 - **Primera instalación**: decidir si se hace silenciosa o con instalador propio (hoy sale la ventanita de Windows).
-- **Web de descarga** (`web/`): renombrarla a Cronota.
+- **Imágenes del README** (`docs/readme/portada.png` y `capturas.png`): aún muestran el nombre y el diseño antiguos; rehacerlas con Cronota.

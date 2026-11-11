@@ -1,12 +1,13 @@
 # Dependencias
 node_modules/
 
-# Salidas de build de electron-builder (se generan con npm run dist/release)
+# Compilaciones (npm run dist / npm run store). Cada versión en dist/<versión>/; se vacía tras publicar.
+dist/
+# Restos de compilaciones antiguas
 release/
 release_*/
-dist/
 
-# app.asar bloqueados sueltos (ver CONTEXTO.md)
+# app.asar bloqueados sueltos (ver docs/notas-tecnicas.md)
 *.asar
 
 # Logs y temporales
@@ -18,5 +19,12 @@ Thumbs.db
 # Config local del editor / Claude
 .claude/settings.local.json
 
-# Maquetas de diseño de las sesiones (superpowers)
+# Maquetas de diseño de las sesiones
 .superpowers/
+
+# Carpetas vacías que crea el editor
+agent-tools/
+agent-transcripts/
+canvases/
+mcps/
+terminals/
