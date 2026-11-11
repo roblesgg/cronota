@@ -28,6 +28,9 @@ const { THEMES, DEFAULT_THEME, ACCENTS, themeVars: resolverTema } = require('./t
 const { aplicarDesenfoqueWindows, quitarDesenfoqueWindows, esquinasWindows } = require('./desenfoque-windows');
 const { vigilarCapturas } = require('./capturas-windows');
 const USAR_DESENFOQUE_SISTEMA = false;
+// Versión de la Microsoft Store (paquete MSIX): la actualiza la Store, no nuestro actualizador, y
+// el arranque con Windows lo gestiona Windows (Configuración → Aplicaciones → Inicio).
+const IS_STORE = !!process.windowsStore;
 const { GROUP_PALETTES, colorFromGroupPalette } = require('./palettes');
 // Versión de la interfaz: la 3 es el rediseño de la 2.8 (Noche cálida). Al pasar a ella se
 // estrena el tema nuevo una vez; después cada cual elige el que quiera en Ajustes.
@@ -451,7 +454,7 @@ function saveSettings() {
 // Al arrancar por el login se le pasa "--hidden" para ir directo a la bandeja
 // sin abrir el panel. En desarrollo no se toca el registro (apuntaría a electron.exe).
 function applyLoginItem() {
-  if (!app.isPackaged) return;
+  if (!app.isPackaged || IS_STORE) return;
   try {
     app.setLoginItemSettings({ openAtLogin: !!settings.openAtLogin, args: ['--hidden'] });
   } catch {}
@@ -2373,7 +2376,7 @@ function openSettings() {
     minWidth: 380, minHeight: 420,
     maxWidth: 560, maxHeight: 900,
   });
-  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion() }); });
+  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE }); });
   settingsWin.on('closed', () => { settingsWin = null; });
 }
 
@@ -3015,7 +3018,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       }
       saveSettings(); broadcastTheme();
       break;
-    case 'get-settings':  event.reply('settings', { ...settings, appVersion: app.getVersion() }); break;
+    case 'get-settings':  event.reply('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE }); break;
     case 'min-main':      if (mainWin && !mainWin.isDestroyed()) mainWin.minimize(); break;
     case 'close-calendar':
       if (settings.dockMode) dockNavigate('panel');
@@ -3383,6 +3386,7 @@ function checkForUpdatesIfStale() {
 
 function setupAutoUpdate() {
   if (!app.isPackaged) return;          // en desarrollo no existe app-update.yml
+  if (IS_STORE) return;                 // la actualiza la Store
   try {
     ({ autoUpdater } = require('electron-updater'));
   } catch {
@@ -3452,6 +3456,8 @@ function notifyUpdateAvailable(version) {
 }
 
 function checkForUpdates(manual) {
+  // En la Store, "Buscar actualizaciones" abre la página de descargas y actualizaciones de la Store.
+  if (IS_STORE) { if (manual) { try { require('electron').shell.openExternal('ms-windows-store://downloadsandupdates'); } catch {} } return; }
   if (!autoUpdater) {
     if (manual) { openUpdateWindow(); sendUpdateState({ phase: 'unavailable' }); }
     return;

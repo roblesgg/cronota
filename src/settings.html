@@ -1453,7 +1453,13 @@ ipcRenderer.on('settings', (_, s) => {
   document.getElementById('liquidGlass').checked = s.liquidGlass !== false;
   pintarEstilo();
   document.getElementById('betaUpdates').checked = !!s.betaUpdates;
-  document.getElementById('volverEstable').hidden = !/-/.test(s.appVersion || '');   // solo con una beta (2.8.5-beta.1)
+  document.getElementById('volverEstable').hidden = !/-/.test(s.appVersion || '');
+  // Versión de la Microsoft Store: la actualiza la Store (sin canal de pruebas) y el arranque con
+  // Windows se activa en Configuración de Windows → Aplicaciones → Inicio.
+  if (s.isStore) {
+    ['openAtLogin', 'betaUpdates'].forEach(id => { const f = document.getElementById(id).closest('.row'); if (f) f.hidden = true; });
+    document.getElementById('volverEstable').hidden = true;
+  }   // solo con una beta (2.8.5-beta.1)
   tutorialSeen = s.tutorialSeenSteps || [];
   setTimeout(maybeStartTutorial, 60);   // tras pintar temas, colores y la barra flotante
   setTimeout(pintarDibujos, 0);   // cuando ya están puestos todos los valores
