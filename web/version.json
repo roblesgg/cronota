@@ -1,4 +1,4 @@
 {
-  "version": "2.8.4",
-  "notes": "imputa.me 2.8.4. Ajustes con vista previa de temas, acentos y transparencia. Cristal líquido con captura nativa de Windows en el panel y los avisos. Mejoras en los bordes al desplazar listas, las animaciones del panel, los detalles del calendario y el recordatorio. Correcciones de la repetición del tutorial y del texto superpuesto al desplazar Ajustes. Publicación con versión superior para actualizar también desde las compilaciones de prueba 2.8.3."
+  "version": "2.9.0",
+  "notes": "imputa.me 2.9.0. Lavado de cara: letra nueva, Ajustes por categorías, tarea en marcha rehecha, diálogo de nueva tarea más claro y desplegables propios. Calendario y Tareas pulidos. Actualizaciones silenciosas que esperan si algún fichero sigue ocupado, y el panel lateral ya no bloquea los clics a lo que hay detrás."
 }

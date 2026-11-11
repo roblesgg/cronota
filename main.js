@@ -177,7 +177,26 @@ const NOVEDADES_2_8_3 = {
   ],
 };
 
+const NOVEDADES_2_9 = {
+  title: 'Novedades de imputa.me 2.9',
+  steps: [
+    { icon:'spark', title:'Un lavado de cara',
+      text:'Letra nueva, más aire y menos texto pequeño en todas las pantallas. Los desplegables ya no son los de Windows: se abren con una animación y se manejan también con el teclado.' },
+    { icon:'bar', title:'La tarea en marcha, más clara',
+      text:'Se tiñe del color de la propia tarea, con el contador grande a la izquierda y la pausa a mano a la derecha. Abajo, Imputar y Añadir tarea juntos.' },
+    { icon:'guide', title:'Ajustes por categorías',
+      text:'Apariencia, Avisos, Calendario, Barra y General: ves una cada vez en lugar de una lista larguísima, y se acuerda de la última que abriste.' },
+    { icon:'pencil', title:'Nueva tarea, sin agobios',
+      text:'Lo justo a la vista: nombre, sección, tipo y nota. La nota fija y el tiempo que ya llevas, en «Más opciones».' },
+    { icon:'calendar', title:'Calendario y Tareas',
+      text:'Los nombres de la izquierda ya no se cortan, la sugerencia de pegar desaparece al pegar, y en Tareas la flecha de cada sección mira a la derecha cerrada y hacia abajo abierta.' },
+    { icon:'bell', title:'Actualizaciones sin pelearse',
+      text:'Se instalan solas, sin la ventana de Windows, y la app vuelve a abrirse. Si algún fichero sigue ocupado, el instalador espera en vez de dar error. Y el panel lateral ya no bloquea lo que hay detrás.' },
+  ],
+};
+
 const WHATS_NEW = {
+  '2.9.0': NOVEDADES_2_9,
   '2.8.4': { ...NOVEDADES_2_8_3, title: 'Novedades de imputa.me 2.8.4' },
   '2.8.3': NOVEDADES_2_8_3,
   '2.8.0': NOVEDADES_2_8,
