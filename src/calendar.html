@@ -1755,14 +1755,31 @@ function destinoPegado() {
   return { dayCol: col || { _date: cursorPegado.date }, hour: cursorPegado.hour };
 }
 
+// La sugerencia «Ctrl+V pegar aquí» sale una sola vez por cada cosa copiada: se va para
+// siempre al pegar, al cerrarla con la x o a los 10 s de verse. Si copias otra cosa, vuelve.
+let sugerenciaFuera = null;     // lo copiado cuya sugerencia ya no se enseña
+let sugerenciaReloj = null;     // { clip, timer }
+const SUGERENCIA_MS = 10000;
+
+function apagarSugerencia(clip) {
+  if (!clip) return;
+  sugerenciaFuera = clip;
+  if (sugerenciaReloj) { clearTimeout(sugerenciaReloj.timer); sugerenciaReloj = null; }
+  const el = document.querySelector('.paste-caret.con-copia');
+  if (!el) { pintarCursorPegado(); return; }
+  el.classList.add('saliendo');
+  setTimeout(pintarCursorPegado, 220);
+}
+
 function pintarCursorPegado(nuevo) {
   document.querySelectorAll('.paste-caret').forEach(el => el.remove());
-  // 2.8.5: después de pegar ya no se sugiere más (el sitio se recuerda: otro Ctrl+V sigue
-  // pegando detrás). Vuelve a verse al hacer clic en otro hueco.
+  // 2.8.5: después de pegar no se ve el cursor (el sitio se recuerda: otro Ctrl+V sigue
+  // pegando detrás). Vuelve al hacer clic en otro hueco, pero ya sin la sugerencia.
   if (!cursorPegado || cursorPegado.oculto) return;
   const col = colDe(cursorPegado.date);
   if (!col) return;
-  const clip = calDnD.getClipboard();
+  const copiado = calDnD.getClipboard();
+  const clip = copiado && copiado !== sugerenciaFuera ? copiado : null;
   const el = document.createElement('div');
   el.className = 'paste-caret' + (clip ? ' con-copia' : '') + (nuevo ? ' nuevo' : '');
   el.style.top = (cursorPegado.hour * ROW_H) + 'px';
@@ -1773,13 +1790,19 @@ function pintarCursorPegado(nuevo) {
     const fin = hueco ? (hueco.endMs - dayStart) / 3600000 : cursorPegado.hour + clip.durationMs / 3600000;
     el.style.top = (ini * ROW_H) + 'px';
     el.innerHTML = `<div class="pc-preview" style="--c:${clip.color};height:${Math.max(8, (fin - ini) * ROW_H - 2)}px"><span class="pc-name"></span></div>
-      <div class="pc-label" title="Clic para pegar"><b>Ctrl+V</b> pegar aquí · ${hourToHHMM(ini)}</div>`;
+      <div class="pc-label" title="Clic para pegar"><b>Ctrl+V</b> pegar aquí · ${hourToHHMM(ini)}<button class="pc-cerrar" title="No sugerirlo más" aria-label="Quitar la sugerencia"><svg viewBox="0 0 10 10" width="8" height="8"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`;
     el.querySelector('.pc-name').textContent = clip.nameAtTime + (clip.subNameAtTime ? ' · ' + clip.subNameAtTime : '');
     // 2.8.3: clic en la vista previa o en la etiqueta = pegar ahí (como Ctrl+V).
     el.querySelectorAll('.pc-preview, .pc-label').forEach(x => {
       x.addEventListener('pointerdown', (e) => e.stopPropagation());
       x.addEventListener('click', (e) => { e.stopPropagation(); calDnD.pasteNow(); pintarCursorPegado(); });
     });
+    el.querySelector('.pc-cerrar').addEventListener('click', (e) => { e.stopPropagation(); apagarSugerencia(clip); });
+    // Los 10 s cuentan desde que se ve por primera vez (repintar no los reinicia).
+    if (!sugerenciaReloj || sugerenciaReloj.clip !== clip) {
+      if (sugerenciaReloj) clearTimeout(sugerenciaReloj.timer);
+      sugerenciaReloj = { clip, timer: setTimeout(() => apagarSugerencia(clip), SUGERENCIA_MS) };
+    }
     if (!hueco) el.classList.add('no-cabe');
   } else {
     el.innerHTML = `<div class="pc-label">${hourToHHMM(cursorPegado.hour)}</div>`;
@@ -1798,6 +1821,7 @@ function onPasted(info) {
     const dayStart = startOfDay(cursorPegado.date).getTime();
     cursorPegado.hour = Math.min(24, (info.startMs + clip.durationMs - dayStart) / 3600000);
   }
+  if (clip) { sugerenciaFuera = clip; if (sugerenciaReloj) { clearTimeout(sugerenciaReloj.timer); sugerenciaReloj = null; } }
   if (cursorPegado) { cursorPegado.oculto = true; pintarCursorPegado(); }
   toast(info.recortada ? 'Pegado (recortado para que quepa en el hueco)' : 'Pegado', 'pegar');
 }

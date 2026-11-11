@@ -2,6 +2,8 @@
 
 Última revisión: 11 de noviembre de 2026 · Versión publicada: 2.9.1 (instalador) / en certificación (Microsoft Store)
 
+Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
+
 ## Cómo se trabaja cada cambio
 
 Todo cambio sigue siempre estos cuatro pasos, sin saltarse ninguno:
@@ -12,6 +14,29 @@ Todo cambio sigue siempre estos cuatro pasos, sin saltarse ninguno:
 4. **Publicar**: cuando la beta va bien, versión estable `X.Y.Z` para todos (GitHub, «Latest») **y** envío del mismo código a la Microsoft Store (`npm run store` → subir `imputame-store.appx` en Partner Center).
 
 ## Fases
+
+### Fase 0 · Primera actualización en la Microsoft Store (2.9.2) — EN CURSO
+
+**Cuándo:** en cuanto Microsoft apruebe y publique la 2.9.1 en la Store. Hasta entonces no se publica nada: los cambios se van guardando en la rama `2.9.2-primera-actualizacion` y se apuntan aquí.
+
+**Para qué:** aprender el ciclo completo con algo pequeño y de poco riesgo (cambio → beta → estable + Store) antes de las fases grandes. Cuando esta actualización llegue bien a la Store, Álvaro empieza a **promocionar la app**.
+
+Cambios que lleva (se van añadiendo según salen):
+
+- [x] **Calendario · sugerencia de pegar**: «Ctrl+V pegar aquí» sale una sola vez por cada cosa copiada; se va al pegar, con una x o a los 10 s sin pegar. Ctrl+V sigue pegando donde hiciste clic. *(hecho, pendiente de probar en la beta)*
+
+El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que se aprenda):
+
+1. Cerrar la lista de arriba y subir la versión a `2.9.2` en `package.json` (también la del bloque `appx`; la Store exige que sea mayor que la publicada) y escribir las novedades en `WHATS_NEW` de `main.js`.
+2. `npm run check` y capturas en segundo plano.
+3. **Beta** `2.9.2-beta.1` en GitHub (prerelease) para los que tienen «Betatester». Unos días de uso; si sale algo, se arregla y `beta.2`.
+4. **Estable** `2.9.2` en GitHub («Latest»): la reciben solos los que usan el instalador.
+5. **Store**: `npm run store` → en Partner Center, *Actualizar* el envío → subir el `.appx` nuevo en Paquetes → poner las novedades en la ficha («Novedades de esta versión») → enviar a certificación (1–3 días). Los de la Store la reciben solos desde la propia Store.
+6. Comprobar en un equipo con la versión de la Store que se actualiza, y unir la rama a `main`.
+
+Lo que se aprenda en esta primera vuelta (tiempos reales, pasos de Partner Center, sorpresas) se apunta aquí debajo:
+
+- *(pendiente)*
 
 ### Fase 1 · La píldora entre pantallas (2.10)
 

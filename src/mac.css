@@ -631,6 +631,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 }
 .paste-caret.no-cabe .pc-preview { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
 .paste-caret.no-cabe .pc-label { color: var(--danger); }
+/* x para quitar la sugerencia; al irse (pegar, x o 10 s) se desvanece. */
+.pc-cerrar {
+  display: inline-grid; place-items: center; width: 16px; height: 16px; margin: -2px -4px -2px 6px;
+  padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: .55;
+  cursor: pointer; vertical-align: middle; transition: opacity .15s, background-color .15s;
+}
+.pc-cerrar:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
+.paste-caret.saliendo .pc-label, .paste-caret.saliendo .pc-preview { transition: opacity .2s var(--ease), transform .2s var(--ease); opacity: 0; transform: scale(.96); }
 
 /* Avisos cortos (copiado, pegado…): una cápsula abajo que sube con muelle. */
 .cal-toast {
