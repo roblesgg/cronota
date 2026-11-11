@@ -59,7 +59,7 @@ Registra el tiempo de cada tarea con un clic e imputa tus horas en un minuto.
 
 - **Categoría**: Productividad.
 - **URL de la política de privacidad**: la de `web/privacidad.html` publicada (ver abajo).
-- **Correo de soporte**: el que pongas en la política de privacidad.
+- **Correo de soporte**: roblesgg16@gmail.com
 - **Justificación de runFullTrust** (Opciones de envío → Capacidades restringidas):
   > Cronota es una aplicación de escritorio (Electron) que vive en la bandeja del sistema y muestra una barra flotante y recordatorios por encima de otras ventanas. Necesita ejecutarse como aplicación de escritorio de plena confianza para esas ventanas, para el icono de la bandeja y para guardar sus datos localmente.
 
@@ -67,5 +67,5 @@ Registra el tiempo de cada tarea con un clic e imputa tus horas en un minuto.
 
 El texto está en `web/privacidad.html`. Antes de usarla:
 
-1. Cambia `CORREO_DE_CONTACTO` (aparece dos veces) por el correo que quieras dar.
+1. Correo de contacto: roblesgg16@gmail.com (ya puesto).
 2. Publícala. La carpeta `web/` es la web de descarga (Vercel): al desplegarla quedará en `https://<tu-dominio>/privacidad.html`. Esa es la URL para Partner Center.
