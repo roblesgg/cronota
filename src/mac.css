@@ -1163,19 +1163,22 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .form-pop .entry-popup-actions { margin-top: 2px; gap: 8px; }
 .form-pop .entry-popup-actions .btn-ghost, .form-pop .entry-popup-actions .btn-primary { padding: 10px 16px; font-size: 14px; }
 
-/* ── Títulos y rótulos (2.8.5): Syne en su grosor ExtraBold ───────────────────────────── */
+/* ── Letras (2.8.5) ──────────────────────────────────────────────────────────────────────
+   Syne ExtraBold (la que eligió Álvaro) SOLO en los rótulos en mayúsculas: secciones de
+   Tareas ("SIN SECCIÓN"), etiquetas de Ajustes ("INICIO Y VERSIONES"), "HOY", "EN MARCHA"...
+   Todo lo que va en minúsculas, títulos incluidos, en Montserrat: Syne en minúscula no le gusta. */
 :root { --font-display: 'Syne', 'Montserrat', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
-.app-title, .entry-popup-title, .ask-title, .imp-title, .tut-card-title, .u-title,
-.hero-name, .hero-idle-title, .cal-title, .row-title,
-.section-label, .list-section-head, .group-name, .group-title,
-.cal-titlebar-title, .week-label {
+.section-label, .list-section-head, .group-name, .legend-title, .total-label, .hero-estado {
   font-family: var(--font-display);
   font-weight: 800;
+  letter-spacing: .04em;
 }
-.app-title { letter-spacing: -0.02em; }
-.section-label, .list-section-head, .group-name, .group-title { letter-spacing: .03em; }
-/* Syne es muy ancha: en las filas de Ajustes, un punto menos para que quepa con su control. */
-.row-title { font-size: 13.5px; letter-spacing: 0; }
+.app-title, .entry-popup-title, .ask-title, .imp-title, .tut-card-title, .u-title,
+.hero-idle-title, .cal-title, .cal-titlebar-title, .week-label {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hero-name, .row-title { font-weight: 700; letter-spacing: -0.01em; }
 
 /* ── Tarjeta de la tarea en marcha (2.8.5, rehecha) ──────────────────────────────────────
    Antes: todo centrado sobre un resplandor del color de acento. Ahora: una ficha sobria que
