@@ -77,3 +77,52 @@
     Sleep 500
   ${endIf}
 !macroend
+
+; ── Quitar la versión anterior con paciencia (2.8.5) ────────────────────────────────────
+; Al actualizar, el instalador nuevo ejecuta el desinstalador de la versión anterior, que mueve
+; uno a uno sus ficheros y, si alguno está ocupado, lo devuelve todo y sale con código 2.
+; electron-builder lo reintenta 5 veces en unos 5 s y luego enseña "Fallo al desinstalar
+; archivos antiguos de la aplicación: 2" y se va. En los equipos de la empresa, el antivirus
+; (SentinelOne, además de Defender) tiene abiertos los ficheros de un programa recién cerrado
+; más rato que eso. Aquí se sigue intentando hasta ~1 min, cerrando cualquier resto de la app
+; entre intento e intento; y si ni así, se vuelve a abrir la versión que había (sus ficheros
+; están intactos: el desinstalador los restaura) para no dejar a nadie sin la app.
+; Usa lo que deja uninstallOldVersion: $R0 (resultado) y $0 (argumentos).
+!macro customUnInstallCheck
+  ${If} ${Errors}
+    DetailPrint `Uninstall was not successful. Not able to launch uninstaller!`
+  ${Else}
+    ; Las variables de electron-builder (uninstallerFileNameTemp, installationDir) se declaran
+    ; más abajo en su plantilla y aquí aún no existen: se sacan las mismas rutas por su cuenta.
+    ReadRegStr $R8 SHCTX "${INSTALL_REGISTRY_KEY}" InstallLocation
+    ${If} $R8 == ""
+      StrCpy $R8 $INSTDIR
+    ${EndIf}
+    StrCpy $R6 0
+    ${DoWhile} $R0 != 0
+      IntOp $R6 $R6 + 1
+      ${If} $R6 > 8
+        ${ExitDo}
+      ${EndIf}
+      DetailPrint `Old version still busy (code $R0), retrying ($R6)...`
+      Sleep 3000
+      nsExec::Exec `%SYSTEMROOT%\System32\cmd.exe /c taskkill /f /im "${APP_EXECUTABLE_FILENAME}" /fi "USERNAME eq %USERNAME%"`
+      Pop $R7
+      ClearErrors
+      ExecWait '"$PLUGINSDIR\old-uninstaller.exe" /S /KEEP_APP_DATA $0 _?=$R8' $R0
+      ${If} ${Errors}
+        ClearErrors
+        ExecWait '"$R8\${UNINSTALL_FILENAME}" /S /KEEP_APP_DATA $0 _?=$R8' $R0
+      ${EndIf}
+    ${Loop}
+    ${If} $R0 != 0
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(uninstallFailed): $R0"
+      DetailPrint `Uninstall was not successful. Uninstaller error code: $R0.`
+      ${If} ${FileExists} "$R8\${APP_EXECUTABLE_FILENAME}"
+        Exec '"$R8\${APP_EXECUTABLE_FILENAME}"'
+      ${EndIf}
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+  ${EndIf}
+!macroend
