@@ -63,6 +63,19 @@ Registra el tiempo de cada tarea con un clic e imputa tus horas en un minuto.
 - **Justificación de runFullTrust** (Opciones de envío → Capacidades restringidas):
   > Cronota es una aplicación de escritorio (Electron) que vive en la bandeja del sistema y muestra una barra flotante y recordatorios por encima de otras ventanas. Necesita ejecutarse como aplicación de escritorio de plena confianza para esas ventanas, para el icono de la bandeja y para guardar sus datos localmente.
 
+## Imágenes (en esta carpeta)
+
+En Partner Center: *Actualizar* el envío → *Fichas de Store* → *Español (España)*.
+
+| Archivo | Dónde va |
+|---|---|
+| `captura-1-calendario.png`, `captura-2-panel-tareas-ajustes.png` (1366×768) | Capturas de pantalla → Escritorio |
+| `logo-icono-300.png` (300×300, transparente) | Logotipos de la tienda → icono de aplicación 1:1. En la ficha sustituye al icono del paquete |
+| `logo-caja-1080.png` (1080×1080) | Logotipos de la tienda → arte de caja 1:1 |
+| `logo-poster-720x1080.png` (720×1080) | Logotipos de la tienda → arte de póster 2:3 |
+
+El icono de la app (menú Inicio, barra de tareas) sale del paquete `.appx`, que ya lleva el logo nuevo desde la 2.9.2. Los logotipos se rehacen con `npx electron tools/imagenes-store.js` (sin `ELECTRON_RUN_AS_NODE`). Las capturas hay que rehacerlas cuando llegue la interfaz nueva.
+
 ## Política de privacidad
 
 El texto está en `web/privacidad.html`. Antes de usarla:

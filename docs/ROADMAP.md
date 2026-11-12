@@ -34,7 +34,7 @@ Cambios que lleva (se van añadiendo según salen):
   Lo que queda por dentro, y por qué, está en `docs/notas-tecnicas.md`. *En la beta: comprobar el nombre en el Administrador de tareas y que una copia antigua se restaura bien.*
 - [x] **Logo nuevo** (12-11-2026): el cronómetro con «CRONOTA» (original en `docs/marca/cronota-logo.webp`). Está en el icono de la app y del `.exe`, en los iconos de la Store, en las imágenes del instalador y en la web. Se regenera con los scripts de `build-hooks/` (pasos en `make-icon-ico.js`).
 - [ ] **Fotos con la interfaz nueva** (la hace ChatGPT; cuando esté): fotos del README (`docs/readme/portada.png` y `capturas.png`) y capturas de la Store, sin «imputame» y con datos inventados.
-- [ ] **Ficha de la Store**: capturas nuevas, el vídeo (lo prepara ChatGPT con ESL) y la URL de privacidad nueva, en el envío de la 2.9.2.
+- [ ] **Ficha de la Store**: capturas nuevas, el vídeo (lo prepara ChatGPT con ESL) y la URL de privacidad nueva, en el envío de la 2.9.2. Los logotipos de la tienda con el logo nuevo ya están hechos (`docs/store/`, qué va dónde en `ficha-store.md`). Para que Claude los suba hay que conectar Claude in Chrome en el portátil nuevo.
 - [x] **Pasar a la Store a los que usan el instalador** (12-11-2026: aprobado y programado, falta probarlo). Detalle justo debajo.
 
 #### Pasar a la Store a los que usan el instalador (aprobado el 12-11-2026)
