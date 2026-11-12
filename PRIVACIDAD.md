@@ -46,5 +46,3 @@ Los datos locales los borras al desinstalar Cronota o eliminando su carpeta de d
 ## Cambios en esta política
 
 Si cambia algo importante, actualizaremos esta página y la fecha de arriba.
-
-_Cronota se llamaba antes imputa.me._

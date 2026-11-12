@@ -14,7 +14,7 @@ if (!ficheros.length) {
   process.exit(2);
 }
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'imputa-syntax-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cronota-syntax-'));
 let mal = 0;
 
 for (const f of ficheros) {

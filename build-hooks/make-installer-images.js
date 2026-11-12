@@ -96,7 +96,7 @@ async function main() {
   const logoS = logo.clone().resize(96, 96);
   sb.composite(logoS, 82 - 48, 118 - 48);
   // Nombre centrado bajo el logo
-  const name = 'imputa.me';
+  const name = 'Cronota';
   const nameW = Jimp.measureText(fontBig, name);
   sb.print(fontBig, Math.round((164 - nameW) / 2), 196, name);
   const tag = 'Registra tus horas';
@@ -110,8 +110,8 @@ async function main() {
   paintBackground(hd, 26, 28, 90, 0.5);
   const logoH = logo.clone().resize(38, 38);
   hd.composite(logoH, 8, 10);
-  hd.print(fontBig, 52, 12, 'imputa');
-  hd.print(fontSmall, 52, 34, '.me');
+  hd.print(fontBig, 52, 12, 'Cronota');
+  hd.print(fontSmall, 52, 34, 'Registra tus horas');
   writeBMP24(hd, path.join(OUT, 'installerHeader.bmp'));
 
   console.log('OK -> build/installerSidebar.bmp, uninstallerSidebar.bmp, installerHeader.bmp');

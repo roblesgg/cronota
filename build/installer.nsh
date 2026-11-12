@@ -1,8 +1,8 @@
-; Cierre de imputa.me antes de instalar encima.
+; Cierre de la app antes de instalar encima.
 ;
 ; La comprobación de serie de electron-builder mata la app con taskkill /f, espera
-; unos 3 s en total y, si aún ve un proceso imputa.me.exe, saca "no se puede cerrar
-; imputa.me, ciérrela y pulse Reintentar". Electron son varios procesos (principal,
+; unos 3 s en total y, si aún ve un proceso de la app, saca "no se puede cerrar
+; la app, ciérrela y pulse Reintentar". Electron son varios procesos (principal,
 ; GPU, uno por ventana) y a veces tardan más que eso en desaparecer del todo, así
 ; que el aviso salía de vez en cuando al actualizar aunque la app ya estuviera
 ; saliendo. Y si ahí se pulsa Cancelar, la actualización se queda a medias.
@@ -18,14 +18,14 @@
 ; cerrarla, y a partir de ahí igual.
 
 ; 2.8.5: SIN /t (matar también los procesos hijos). Al actualizar, el instalador lo lanza la
-; propia app, así que el instalador y su cmd son HIJOS de imputa.me.exe: si la app seguía
+; propia app, así que el instalador y su cmd son HIJOS del .exe de la app: si la app seguía
 ; viva al forzar, taskkill /t mataba también al instalador (comprobado con un proceso de
 ; prueba) y la actualización se quedaba a medias sin avisar. No hace falta /t: todos los
-; procesos de la app (principal, GPU, uno por ventana) se llaman imputa.me.exe y /im ya los
+; procesos de la app (principal, GPU, uno por ventana) tienen el mismo nombre de .exe y /im ya los
 ; coge uno por uno.
 ;
 ; Si aun así no se puede cerrar, lo que contestó taskkill se guarda en
-; %TEMP%\imputame-instalador.log antes de preguntar, para saber por qué (p. ej. "Acceso
+; %TEMP%\cronota-instalador.log antes de preguntar, para saber por qué (p. ej. "Acceso
 ; denegado" si la app se abrió como administrador).
 !macro customCheckAppRunning
   !insertmacro FIND_PROCESS "${APP_EXECUTABLE_FILENAME}" $R0
@@ -58,7 +58,7 @@
       ${endIf}
       ${if} $R1 > 52
         ClearErrors
-        FileOpen $R4 "$TEMP\imputame-instalador.log" w
+        FileOpen $R4 "$TEMP\cronota-instalador.log" w
         ${IfNot} ${Errors}
           FileWrite $R4 "taskkill codigo=$R2$\r$\n$R3$\r$\n"
           FileClose $R4

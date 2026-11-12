@@ -1,6 +1,13 @@
 # Notas técnicas de Cronota
 
-Lo que hay que saber para trabajar en la app y que no está a la vista en el código. Cronota se llamaba antes **imputa.me**: por dentro se mantienen ese nombre en el ejecutable (`imputa.me.exe`), la carpeta de instalación y la de datos (`%APPDATA%\imputa-me`), para no romper las actualizaciones.
+Lo que hay que saber para trabajar en la app y que no está a la vista en el código.
+
+**Nombre.** Todo lo que se ve se llama Cronota: ventanas, Administrador de tareas y propiedades del `.exe` (los pone `build-hooks/afterPack.js`), editor en «Aplicaciones instaladas» (`author`), archivos que exporta la app (`cronota-horas-….csv`, `cronota-backup-FECHA.json`) y archivos que se publican (`cronota-setup.exe`, `cronota-portable.exe`, `cronota-store.appx`). Por dentro se mantiene el nombre antiguo, que no ve nadie y que cambiarlo rompería actualizaciones o datos:
+- `productName` `imputa.me`: nombre del ejecutable (`imputa.me.exe`) y de la carpeta de instalación. También sale en la ventana del instalador la primera vez que se instala.
+- Carpeta de datos `%APPDATA%\imputa-me` y sus ficheros `imputa-*.json`.
+- `appId` `me.imputa.app` y el `applicationId` de la Store: si cambian, Windows y la Store la tratan como otra app.
+- La clave `imputa.horasDecimales` del calendario y el canal `imputame-desktop` de Supabase.
+- La app del móvil y los dominios `imputame.dripdev.dev` e `imputame-app.dripdev.dev`.
 
 ## Arrancar en desarrollo
 
@@ -30,7 +37,7 @@ El proceso completo (planificar → beta → estable → Microsoft Store) está 
 
 - `build/installer.nsh` personaliza el instalador:
   - **Cerrar la app**: al actualizar le da 6 s para salir sola y luego la cierra con `taskkill /f` (sin `/t`: el instalador es hijo de la app y se mataría a sí mismo).
-  - **Quitar la versión anterior**: si algún fichero sigue ocupado (en los equipos de la empresa, SentinelOne los retiene un rato), reintenta durante ~1 min; si no puede, vuelve a abrir la versión que había. Si no consigue cerrar la app, deja el motivo en `%TEMP%\imputame-instalador.log`.
+  - **Quitar la versión anterior**: si algún fichero sigue ocupado (en los equipos de la empresa, SentinelOne los retiene un rato), reintenta durante ~1 min; si no puede, vuelve a abrir la versión que había. Si no consigue cerrar la app, deja el motivo en `%TEMP%\cronota-instalador.log`.
 - La app instala las actualizaciones en silencio (`quitAndInstall(true, true)`) y vuelve a abrirse sola.
 - Los cambios del instalador solo se notan **a partir de la versión que los trae**, porque el desinstalador que se ejecuta es el de la versión vieja.
 

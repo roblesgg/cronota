@@ -4,16 +4,18 @@
   ],
   "redirects": [
     {
-      "source": "/imputame-latest.exe",
-      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/imputame-setup.exe",
+      "source": "/cronota-setup.exe",
+      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/cronota-setup.exe",
       "permanent": false
     },
     {
-      "source": "/imputame-portable.exe",
-      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/imputame-portable.exe",
+      "source": "/cronota-portable.exe",
+      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/cronota-portable.exe",
       "permanent": false
     },
-    { "source": "/exe", "destination": "/imputame-latest.exe", "permanent": false },
+    { "source": "/exe", "destination": "/cronota-setup.exe", "permanent": false },
+    { "source": "/imputame-latest.exe", "destination": "/cronota-setup.exe", "permanent": false },
+    { "source": "/imputame-portable.exe", "destination": "/cronota-portable.exe", "permanent": false },
     {
       "source": "/imputame.apk",
       "destination": "https://github.com/roblesgg/cronota/releases/download/v1.1.0/imputame.apk",

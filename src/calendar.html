@@ -2733,10 +2733,10 @@ function buildCSV(fromMs, toMsExcl) {
 }
 
 function exportFileName(r) {
-  if (r.label === 'todos')  return 'imputa-horas-todos.csv';
-  if (r.label === 'semana') return 'imputa-horas-semana.csv';
-  if (r.label === 'dia')    return `imputa-horas-${dateKey(new Date(r.fromMs))}.csv`;
-  return `imputa-horas-${dateKey(new Date(r.fromMs))}_a_${dateKey(new Date(r.toMsExcl - 86400000))}.csv`;
+  if (r.label === 'todos')  return 'cronota-horas-todos.csv';
+  if (r.label === 'semana') return 'cronota-horas-semana.csv';
+  if (r.label === 'dia')    return `cronota-horas-${dateKey(new Date(r.fromMs))}.csv`;
+  return `cronota-horas-${dateKey(new Date(r.fromMs))}_a_${dateKey(new Date(r.toMsExcl - 86400000))}.csv`;
 }
 
 async function confirmExport() {

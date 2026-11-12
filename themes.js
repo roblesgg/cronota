@@ -1,4 +1,4 @@
-// Temas de color de imputa.me. Vive aparte de main.js para poder usarlo también desde las
+// Temas de color de Cronota. Vive aparte de main.js para poder usarlo también desde las
 // herramientas de captura (tools/), sin arrancar la app entera.
 //
 // Cada tema define la paleta completa. Se envía a TODAS las ventanas (y a los iframes del

@@ -11,7 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-app.setPath('userData', path.join(os.tmpdir(), 'imputame-snap'));
+app.setPath('userData', path.join(os.tmpdir(), 'cronota-snap'));
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 const RAIZ = path.join(__dirname, '..');

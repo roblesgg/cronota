@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/%E2%97%8F-en%20marcha-F53F4C?style=for-the-badge" alt="En marcha">
 </p>
 
-**Cronota** (antes imputa.me) cuenta el tiempo que dedicas a cada tarea mientras trabajas. Un clic para empezar, otro para parar. A final de semana, el calendario te dice dónde fue cada hora, e imputar es copiar y pegar.
+**Cronota** cuenta el tiempo que dedicas a cada tarea mientras trabajas. Un clic para empezar, otro para parar. A final de semana, el calendario te dice dónde fue cada hora, e imputar es copiar y pegar.
 
 Vive en la bandeja del sistema y no molesta.
 
@@ -35,8 +35,8 @@ En la [última versión](https://github.com/roblesgg/cronota/releases/latest):
 
 | Archivo | Para quién |
 |---|---|
-| `imputame-setup.exe` | Instalador. **Se actualiza sola.** Recomendado. |
-| `imputame-portable.exe` | Sin instalar, por ejemplo desde un USB. |
+| `cronota-setup.exe` | Instalador. **Se actualiza sola.** Recomendado. |
+| `cronota-portable.exe` | Sin instalar, por ejemplo desde un USB. |
 
 Pronto también en la Microsoft Store.
 

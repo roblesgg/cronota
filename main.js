@@ -454,7 +454,7 @@ function saveSettings() {
   try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch {}
 }
 
-// Registra (o quita) imputa.me del arranque de Windows según el ajuste.
+// Registra (o quita) Cronota del arranque de Windows según el ajuste.
 // Al arrancar por el login se le pasa "--hidden" para ir directo a la bandeja
 // sin abrir el panel. En desarrollo no se toca el registro (apuntaría a electron.exe).
 function applyLoginItem() {
@@ -3108,7 +3108,7 @@ ipcMain.handle('export-csv', async (_e, { content, defaultName }) => {
     const baseDir = app.getPath('documents') || app.getPath('home') || app.getPath('desktop') || '';
     const { canceled, filePath } = await dialog.showSaveDialog(parent, {
       title: 'Exportar horas',
-      defaultPath: path.join(baseDir, defaultName || 'imputa-horas.csv'),
+      defaultPath: path.join(baseDir, defaultName || 'cronota-horas.csv'),
       filters: [{ name: 'CSV', extensions: ['csv'] }],
     });
     if (canceled || !filePath) return { ok: false, canceled: true };
@@ -3128,11 +3128,13 @@ ipcMain.handle('export-backup', async () => {
     const baseDir = app.getPath('documents') || app.getPath('home') || app.getPath('desktop') || '';
     const { canceled, filePath } = await dialog.showSaveDialog(parent, {
       title: 'Exportar copia de seguridad',
-      defaultPath: path.join(baseDir, `imputa-backup-${new Date().toISOString().slice(0, 10)}.json`),
+      defaultPath: path.join(baseDir, `cronota-backup-${new Date().toISOString().slice(0, 10)}.json`),
       filters: [{ name: 'Copia de seguridad de Cronota', extensions: ['json'] }],
     });
     if (canceled || !filePath) return { ok: false, canceled: true };
-    const payload = { imputaBackup: true, exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups };
+    // La marca del archivo es solo informativa: al restaurar basta con que traiga tasks y groups,
+    // así que las copias antiguas (con la marca de antes) se siguen pudiendo restaurar.
+    const payload = { cronotaBackup: true, exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups };
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
     return { ok: true, path: filePath };
   } catch (e) {
@@ -3561,7 +3563,7 @@ app.whenReady().then(() => {
 
 // Cierre a conciencia antes de instalar una actualización.
 // El instalador intenta cerrar la app por su cuenta y no siempre puede: las ventanas
-// de imputa.me no salen en la barra de tareas, varias no tienen marco y alguna ni
+// de Cronota no salen en la barra de tareas, varias no tienen marco y alguna ni
 // acepta el foco, así que el "cierra la aplicación y reintenta" salía una y otra vez.
 // destroy() se salta cualquier manejador de cierre y garantiza que se van; la bandeja
 // también, porque es lo último que mantiene la app en pie.
@@ -3580,7 +3582,7 @@ function installUpdateNow() {
     // Salida a la fuerza si en unos segundos seguimos vivos. quitAndInstall lanza el
     // instalador y PIDE salir, pero si algo se resiste (un temporizador, una ventana
     // que no se fue, otro proceso de la app) el instalador se encuentra la aplicación
-    // en marcha: enseña "no se puede cerrar imputa.me", y si ahí se cancela, ya ha
+    // en marcha: enseña el aviso de que no se puede cerrar la app, y si ahí se cancela, ya ha
     // borrado los ficheros viejos y la instalación se queda inservible. Es justo lo que
     // pasó: la carpeta acabó con un icono suelto y sin ejecutable.
     setTimeout(() => { try { app.exit(0); } catch {} }, 2500);   // 2.8.5: antes 4 s; el instalador espera 6 antes de forzar
