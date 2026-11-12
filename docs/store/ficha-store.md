@@ -26,7 +26,7 @@ Sin publicidad y sin seguimiento.
 
 ## Novedades de esta versión
 
-Cronota es el nuevo nombre de imputa.me. Esta versión trae un lavado de cara completo: letra nueva, Ajustes por categorías, una tarjeta más clara para la tarea en marcha, un diálogo de nueva tarea más sencillo y un calendario más pulido.
+Esta versión trae un lavado de cara completo: letra nueva, Ajustes por categorías, una tarjeta más clara para la tarea en marcha, un diálogo de nueva tarea más sencillo y un calendario más pulido.
 
 ## Características del producto (una por línea)
 
@@ -70,7 +70,7 @@ En Partner Center: *Actualizar* el envío → *Fichas de Store* → *Español (E
 | Archivo | Dónde va |
 |---|---|
 | `captura-1-portada.png` … `captura-5-personalizable.png` (1920×1080), por ese orden | Capturas de pantalla → Escritorio |
-| `logo-icono-300.png` (300×300, transparente) | Logotipos de la tienda → icono de aplicación 1:1. En la ficha sustituye al icono del paquete |
+| `logo-icono-300.png`, `logo-icono-150.png` y `logo-icono-71.png` (transparentes) | Imágenes para mostrar en Store → iconos 1:1 de 300, 150 y 71. En la ficha sustituyen a los del paquete |
 | `logo-caja-1080.png` (1080×1080) | Logotipos de la tienda → arte de caja 1:1 |
 | `logo-poster-720x1080.png` (720×1080) | Logotipos de la tienda → arte de póster 2:3 |
 
