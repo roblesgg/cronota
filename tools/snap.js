@@ -24,6 +24,8 @@ function leerJson(p, porDefecto) { try { return JSON.parse(fs.readFileSync(p, 'u
 const dir = path.join(process.env.APPDATA || '', 'imputa-me');
 const datos = leerJson(path.join(dir, 'imputa-tasks.json'), { tasks: [], groups: [], activeTaskId: null });
 const ajustes = { ...leerJson(path.join(dir, 'imputa-settings.json'), {}), theme: tema, accent: null, bgOpacity: 10, tutorialSeenSteps: [] };
+// Ajustes extra para una captura concreta, p. ej. SNAP_AJUSTES={"accent":"azul","liquidGlass":false,"bgOpacity":100}
+try { if (process.env.SNAP_AJUSTES) Object.assign(ajustes, JSON.parse(process.env.SNAP_AJUSTES)); } catch {}
 // Sin tutorial en las capturas: todos los pasos por vistos.
 try {
   const shared = fs.readFileSync(path.join(RAIZ, 'src', 'shared.js'), 'utf8');
@@ -36,19 +38,21 @@ function estado() {
     const a = Math.max(e.start, desde || 0), b = e.end || Date.now();
     return s + Math.max(0, (b - a) / 1000);
   }, 0);
+  const tareas = (datos.tasks || []).map(t => ({
+    ...t,
+    todaySecs: segs(t, hoy0.getTime()), totalSecs: segs(t, 0),
+    inTrash: !!(t.deleted && !t.purged), inactive: false,
+    subtasks: (t.subtasks || []).map(s => ({ ...s, todaySecs: 0, totalSecs: 0 })),
+    ownTodaySecs: segs(t, hoy0.getTime()),
+  }));
   return {
-    tasks: (datos.tasks || []).map(t => ({
-      ...t,
-      todaySecs: segs(t, hoy0.getTime()), totalSecs: segs(t, 0),
-      inTrash: !!(t.deleted && !t.purged), inactive: false,
-      subtasks: (t.subtasks || []).map(s => ({ ...s, todaySecs: 0, totalSecs: 0 })),
-      ownTodaySecs: segs(t, hoy0.getTime()),
-    })),
+    tasks: tareas,
     groups: datos.groups || [],
     palettes: GROUP_PALETTES,
     activeTaskId: datos.activeTaskId || null,
     activeSubId: datos.activeSubId || null,
-    todayTotal: 0,
+    // El "Hoy" del panel: antes iba fijo a 0 y en las capturas se veía «0m 00s».
+    todayTotal: tareas.filter(t => !t.deleted).reduce((s, t) => s + t.todaySecs, 0),
     settings: ajustes,
     updateAvailable: null,
     trashRetentionDays: 30,
