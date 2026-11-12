@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 12 de noviembre de 2026 · Versiones publicadas: 2.9.0 (instalador, GitHub; la 2.9.2 se retiró el mismo día) y 2.9.1 (Microsoft Store; la ficha nueva, en certificación)
+Última revisión: 12 de noviembre de 2026 · Versiones publicadas: 2.9.3 (instalador, GitHub, con el aviso para pasarse a la Store) y 2.9.1 (Microsoft Store; la ficha nueva, en certificación)
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -77,7 +77,7 @@ El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que 
 Lo que se aprenda en esta primera vuelta (tiempos reales, pasos de Partner Center, sorpresas) se apunta aquí debajo:
 
 - **2.9.2 estable en GitHub** (12-11-2026, decisión de Álvaro): sin beta previa y antes que la 2.9.2 de la Store, para que todos pasen ya a la Store. Quien pulse el botón instala la 2.9.1 de la Store, que no arranca sola con Windows hasta que llegue la 2.9.2 allí. La versión de GitHub lleva también `imputame-setup.exe` e `imputame-portable.exe` (copias) para que la web y los enlaces antiguos sigan descargando; se pueden quitar cuando la web apunte a la Store.
-- **2.9.2 retirada a los pocos minutos** (12-11-2026): en el portátil de Álvaro, la app guardaba, se cerraba y no pasaba nada más. El antivirus de la empresa (SentinelOne) no deja correr el PowerShell suelto que desinstalaba la versión vieja, y las dos versiones comparten el bloqueo de instancia única. Se pasó a borrador y se quitó la etiqueta `v2.9.2`; GitHub vuelve a servir la 2.9.0. **2.9.3**: nada en segundo plano. La vieja abre la de la Store y se cierra, sin desinstalarse, y comprueba si está con `reg.exe` en vez de PowerShell. Pendiente de probarla en un equipo real antes de publicarla.
+- **2.9.2 retirada a los pocos minutos** (12-11-2026): en el portátil de Álvaro, la app guardaba, se cerraba y no pasaba nada más. El antivirus de la empresa (SentinelOne) no deja correr el PowerShell suelto que desinstalaba la versión vieja, y las dos versiones comparten el bloqueo de instancia única. Se pasó a borrador y se quitó la etiqueta `v2.9.2`; GitHub vuelve a servir la 2.9.0. **2.9.3**: nada en segundo plano. La vieja abre la de la Store y se cierra, sin desinstalarse, y comprueba si está con `reg.exe` en vez de PowerShell. Probada en el portátil de Álvaro por la vía normal: publicada primero solo para «Betatester», se actualizó desde la app, guardó, abrió sola la de la Store y se cerró. **2.9.3 publicada como estable para todos el 12-11-2026 hacia las 16:30.** Una instalación lanzada a mano en silencio y con la app abierta falló (`cronota-setup.exe`, error en `System.dll`); la actualización normal desde la app no.
 - **Cambiar solo la ficha** (12-11-2026, envío 2): Información general → «Iniciar actualización» → Descripciones de Store → Español (España). Cada recuadro de imagen admite un solo archivo. El de una captura que ya existe la sustituye; las nuevas van por el «+». Después, «Guardar» y «Enviar para certificación». Mientras se certifica no se puede abrir otro envío. *Apuntar aquí cuánto tardó en salir.*
 
 ### Fase 1 · La píldora entre pantallas (2.10)
