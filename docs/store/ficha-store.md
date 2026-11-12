@@ -58,7 +58,7 @@ Registra el tiempo de cada tarea con un clic e imputa tus horas en un minuto.
 ## Otros campos
 
 - **Categoría**: Productividad.
-- **URL de la política de privacidad**: https://github.com/roblesgg/imputa-me/blob/main/PRIVACIDAD.md
+- **URL de la política de privacidad**: https://github.com/roblesgg/cronota/blob/main/PRIVACIDAD.md (el envío de la 2.9.1 lleva la antigua, de `imputa-me`, que redirige a esta; cambiarla en el envío de la 2.9.2)
 - **Correo de soporte**: roblesgg16@gmail.com
 - **Justificación de runFullTrust** (Opciones de envío → Capacidades restringidas):
   > Cronota es una aplicación de escritorio (Electron) que vive en la bandeja del sistema y muestra una barra flotante y recordatorios por encima de otras ventanas. Necesita ejecutarse como aplicación de escritorio de plena confianza para esas ventanas, para el icono de la bandeja y para guardar sus datos localmente.

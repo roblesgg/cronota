@@ -24,6 +24,7 @@ Todo cambio sigue siempre estos cuatro pasos, sin saltarse ninguno:
 Cambios que lleva (se van añadiendo según salen):
 
 - [x] **Calendario · sugerencia de pegar**: «Ctrl+V pegar aquí» sale una sola vez por cada cosa copiada; se va al pegar, con una x o a los 10 s sin pegar. Ctrl+V sigue pegando donde hiciste clic. *(hecho, pendiente de probar en la beta)*
+- [x] **Repositorio y carpeta con el nombre Cronota** (12-11-2026): el repositorio pasa de `roblesgg/imputa-me` a `roblesgg/cronota` y el proyecto a `Documents\Mios\Cronota`. Las apps ya instaladas siguen actualizándose por la redirección de GitHub, comprobada con los dos nombres antiguos; las compilaciones nuevas apuntan ya a `cronota`. *En el paso 5, cambiar en la ficha la URL de privacidad por `https://github.com/roblesgg/cronota/blob/main/PRIVACIDAD.md`.*
 
 El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que se aprenda):
 

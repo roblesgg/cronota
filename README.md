@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/roblesgg/imputa-me/releases/latest"><img src="https://img.shields.io/github/v/release/roblesgg/imputa-me?style=for-the-badge&label=descargar&color=818CF8" alt="Descargar la última versión"></a>
+  <a href="https://github.com/roblesgg/cronota/releases/latest"><img src="https://img.shields.io/github/v/release/roblesgg/cronota?style=for-the-badge&label=descargar&color=818CF8" alt="Descargar la última versión"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-1C1C2A?style=for-the-badge&logo=windows&logoColor=A69EDB" alt="Windows 10 y 11">
   <img src="https://img.shields.io/badge/%E2%97%8F-en%20marcha-F53F4C?style=for-the-badge" alt="En marcha">
 </p>
@@ -31,7 +31,7 @@ Vive en la bandeja del sistema y no molesta.
 
 ## Descárgala
 
-En la [última versión](https://github.com/roblesgg/imputa-me/releases/latest):
+En la [última versión](https://github.com/roblesgg/cronota/releases/latest):
 
 | Archivo | Para quién |
 |---|---|

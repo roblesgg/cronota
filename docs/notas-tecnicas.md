@@ -4,6 +4,8 @@ Lo que hay que saber para trabajar en la app y que no está a la vista en el có
 
 ## Arrancar en desarrollo
 
+- **En un PC nuevo**: `npm ci`. Desde npm 11.20 los scripts de instalación solo se ejecutan si están aprobados en `allowScripts` de `package.json`; ya lo están `electron` y `koffi` (si se sube su versión, volver a aprobarlos con `npm install-scripts approve electron koffi`).
+  - Con Node 26, el script de Electron descarga el zip pero no lo descomprime, y no da error; `npx electron --version` responde «Electron failed to install correctly». Arreglo: descomprimir `%LOCALAPPDATA%\electron\Cache\<carpeta>\electron-v<versión>-win32-x64.zip` en `node_modules/electron/dist` con el 7za de `7zip-bin` y escribir `electron.exe` en `node_modules/electron/path.txt`.
 - `npm start`, o doble clic en `tools/iniciar-dev.vbs`.
 - **Desde la terminal de Claude Code o VS Code no arranca tal cual**: ponen `ELECTRON_RUN_AS_NODE=1`, y Electron se comporta como Node puro (falla al usar `ipcMain`). No basta con dejar la variable vacía: hay que quitarla (`env -u ELECTRON_RUN_AS_NODE electron .` en bash). El `.vbs` ya lo hace.
 - Capturas de cualquier pantalla sin abrir ventanas: `electron tools/snap.js <pagina.html> <salida.png> [tema] [ancho] [alto] [js-antes]`. Usa los datos reales en solo lectura; para no enseñar datos reales, apunta `APPDATA` a una carpeta con datos inventados.
@@ -34,7 +36,7 @@ El proceso completo (planificar → beta → estable → Microsoft Store) está 
 
 ## Las dos notas de una tarea
 
-ImputaMe tiene **dos modos de nota**, que no se mezclan:
+Cronota tiene **dos modos de nota**, que no se mezclan:
 
 ### 1. Nota de sesión — `entry.note` (máx. 500)
 

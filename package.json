@@ -43,7 +43,7 @@
       {
         "provider": "github",
         "owner": "roblesgg",
-        "repo": "ImputaMe"
+        "repo": "cronota"
       }
     ],
     "win": {
@@ -88,5 +88,9 @@
       "addAutoLaunchExtension": false,
       "artifactName": "imputame-store.${ext}"
     }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true,
+    "koffi@2.16.3": true
   }
 }

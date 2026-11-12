@@ -5,18 +5,18 @@
   "redirects": [
     {
       "source": "/imputame-latest.exe",
-      "destination": "https://github.com/roblesgg/ImputaMe/releases/latest/download/imputame-setup.exe",
+      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/imputame-setup.exe",
       "permanent": false
     },
     {
       "source": "/imputame-portable.exe",
-      "destination": "https://github.com/roblesgg/ImputaMe/releases/latest/download/imputame-portable.exe",
+      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/imputame-portable.exe",
       "permanent": false
     },
     { "source": "/exe", "destination": "/imputame-latest.exe", "permanent": false },
     {
       "source": "/imputame.apk",
-      "destination": "https://github.com/roblesgg/ImputaMe/releases/download/v1.1.0/imputame.apk",
+      "destination": "https://github.com/roblesgg/cronota/releases/download/v1.1.0/imputame.apk",
       "permanent": false
     },
     { "source": "/apk", "destination": "/imputame.apk", "permanent": false },
