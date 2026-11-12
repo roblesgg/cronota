@@ -1,0 +1,36 @@
+name: Paquete para la Microsoft Store
+
+# Compila el paquete .appx de la Microsoft Store en una máquina Windows de GitHub. En los
+# portátiles de la empresa no se puede: la protección retira makeappx.exe al usarlo.
+#
+# Se lanza a mano: Actions → «Paquete para la Microsoft Store» → Run workflow, o
+#   gh workflow run paquete-store.yml --ref main
+# El .appx sale como artefacto descargable de la ejecución (cronota-store), listo para subirlo
+# en Partner Center → Paquetes. La versión es la de package.json.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  appx:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 20: con Node 26 el script de instalación de Electron no descomprime el binario.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx electron-builder --win appx --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cronota-store
+          path: dist/*.appx
+          if-no-files-found: error
