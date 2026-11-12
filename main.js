@@ -2566,20 +2566,17 @@ function pasarALaStore(paquete) {
     setTimeout(() => { migracionCambiando = false; openMigracion({ modo: 'bienvenida', traidas: false }); }, 2800);
     return;
   }
-  // La versión vieja deja de arrancar con Windows (la de la Store tiene su propia tarea de
-  // inicio). El desinstalador no quita esa entrada del registro.
-  try { app.setLoginItemSettings({ openAtLogin: false, args: ['--hidden'] }); } catch {}
+  // 2.9.3: sin nada en segundo plano. Esta versión no se desinstala sola (ver migracion-store.js):
+  // abre la de la Store como cualquier programa y se cierra. Antes se suelta el bloqueo de
+  // instancia única, por si las dos versiones lo comparten y la nueva no llegara a abrirse.
   setTimeout(() => {
-    if (!migracion.cambiarALaStore(paquete)) {
-      migracionCambiando = false;
-      openMigracion({ modo: 'esperando', aviso: 'No se ha podido cambiar solo. Cierra Cronota desde la bandeja y abre la de la Store desde el menú Inicio.' });
-      return;
-    }
     saliendo = true;
     try { if (dockHitTimer) { clearInterval(dockHitTimer); dockHitTimer = null; } } catch {}
     try { if (tray) { tray.destroy(); tray = null; } } catch {}
     BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} });
-    setTimeout(() => { try { app.exit(0); } catch {} }, 300);
+    try { app.releaseSingleInstanceLock(); } catch {}
+    migracion.abrirLaDeLaStore(paquete);
+    setTimeout(() => { try { app.exit(0); } catch {} }, 500);
   }, 2400);
 }
 

@@ -228,12 +228,12 @@ const MODOS = {
     <ul class="ventajas">
       <li class="entra" ${retraso(3)}><div class="ic">${ICONOS.maleta}</div><div><b>Tus tareas se vienen contigo</b><span>${datos.tareas ? `Las ${plural(datos.tareas, 'tarea', 'tareas')}${datos.grupos ? ` y sus ${plural(datos.grupos, 'sección', 'secciones')}` : ''}, sin exportar nada.` : 'Sin exportar ni importar nada.'}</span></div></li>
       <li class="entra" ${retraso(4)}><div class="ic">${ICONOS.flechas}</div><div><b>Se actualiza sola</b><span>Desde la Store, sin descargas ni avisos de Windows.</span></div></li>
-      <li class="entra" ${retraso(5)}><div class="ic">${ICONOS.escoba}</div><div><b>Esta versión se quita sola</b><span>En cuanto instales la nueva, esta se desinstala.</span></div></li>
+      <li class="entra" ${retraso(5)}><div class="ic">${ICONOS.escudo}</div><div><b>Tus datos, a salvo</b><span>Antes de cambiar se guarda una copia en Documentos › Cronota.</span></div></li>
     </ul>
     <div class="acciones">
       ${botonStore()}
       <button class="btn-texto entra" ${retraso(7)} onclick="enviar('migracion-mas-tarde')">Más tarde</button>
-      <div class="nota entra" ${retraso(8)}>Antes de cambiar se guarda una copia en Documentos › Cronota.</div>
+      <div class="nota entra" ${retraso(8)}>Esta versión puedes quitarla después desde Configuración › Aplicaciones.</div>
     </div>`,
 
   esperando: () => `
@@ -243,7 +243,7 @@ const MODOS = {
     <ol class="pasos">
       <li class="entra" ${retraso(2)}>En la Microsoft Store, pulsa «Obtener» o «Instalar».</li>
       <li class="entra" ${retraso(3)}>Espera a que termine. No hace falta que la abras.</li>
-      <li class="entra" ${retraso(4)}>Esta versión se cierra, se desinstala y se abre la nueva con tus ${plural(datos.tareas, 'tarea', 'tareas')}.</li>
+      <li class="entra" ${retraso(4)}>Esta versión se cierra y se abre la nueva con tus ${plural(datos.tareas, 'tarea', 'tareas')}.</li>
     </ol>
     ${mensaje()}
     <div class="acciones">
@@ -258,7 +258,7 @@ const MODOS = {
   listo: () => `
     ${escena(false, `<div class="hecho">${ICONOS.hecho}</div>`)}
     <div class="titulo entra" ${retraso(0)}>¡Listo!</div>
-    <div class="sub entra" ${retraso(1)}>Guardando tus datos, quitando esta versión y abriendo Cronota de la Microsoft Store…</div>
+    <div class="sub entra" ${retraso(1)}>Guardando tus datos y abriendo Cronota de la Microsoft Store…</div>
     <div class="barra entra" ${retraso(2)}><i></i></div>
     <div class="acciones"><div class="nota entra" ${retraso(3)}>Tarda unos segundos. No hace falta que hagas nada.</div></div>`,
 
@@ -276,6 +276,7 @@ const MODOS = {
     </ul>
     <div class="acciones">
       <div class="fila entra" ${retraso(6)}><button class="btn-primary" onclick="enviar('migracion-cerrar')">¡Genial!</button></div>
+      <div class="nota entra" ${retraso(7)}>La versión antigua, la del instalador, puedes quitarla desde Configuración › Aplicaciones.</div>
     </div>`,
 };
 

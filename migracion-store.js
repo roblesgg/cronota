@@ -4,18 +4,18 @@
 // Cómo pasa alguien del instalador a la Store pulsando un solo botón:
 //   1. La versión del instalador enseña el aviso (src/migrar.html). El botón guarda una copia
 //      completa en Documentos\Cronota\cronota-traspaso.json y abre la ficha de la Store.
-//   2. En cuanto ve instalada la de la Store (Get-AppxPackage), guarda, se cierra y deja un
-//      PowerShell suelto, sin ventana, que la desinstala en silencio y abre la de la Store.
-//      También lo hace sola al arrancar, o si alguien intenta abrir la de la Store con esta
-//      abierta. El desinstalador no borra la carpeta de datos (%APPDATA%\imputa-me).
-//   3. La de la Store ve esa misma carpeta: Windows enseña a las apps de la Store los ficheros
-//      que ya había en AppData. Si aun así arranca vacía, se trae el traspaso de Documentos.
-//      La primera vez da la bienvenida diciendo cuántas tareas tiene.
+//   2. En cuanto ve instalada la de la Store (Get-AppxPackage), guarda, abre la de la Store
+//      como cualquier programa y se cierra. También al arrancar, o si alguien intenta abrir la
+//      de la Store con esta abierta: así nunca están las dos abiertas tocando los mismos datos.
+//   3. La de la Store ve la misma carpeta de datos (%APPDATA%\imputa-me): Windows enseña a las
+//      apps de la Store los ficheros que ya había en AppData. Si aun así arranca vacía, se trae
+//      el traspaso de Documentos. La primera vez da la bienvenida diciendo cuántas tareas tiene.
 //
-// Es la del instalador la que se aparta y abre la otra, y no al revés: así nunca están las
-// dos abiertas tocando los mismos datos, y el desinstalador lo lanza un programa normal. Lo
-// que lanza una app de la Store hereda su registro virtualizado y no podría borrar bien las
-// entradas de la versión vieja (accesos directos, «Aplicaciones instaladas»).
+// 2.9.3: la versión del instalador NO se desinstala sola. En la 2.9.2 lo hacía un proceso
+// suelto en segundo plano y el antivirus de los portátiles de la empresa no lo dejaba correr: la
+// app se cerraba y no pasaba nada más. Ahora no hay nada oculto. La vieja se queda instalada,
+// cada uno la quita cuando quiera desde Configuración → Aplicaciones y, mientras siga, abrirla
+// lleva a la de la Store.
 //
 // Copias automáticas: los datos de la versión de la Store viven dentro de su paquete y Windows
 // los borra si se desinstala. Por eso cada día se deja una copia en Documentos\Cronota\Copias
@@ -98,64 +98,31 @@ function leerTraspaso() {
   } catch { return null; }
 }
 
-function powershell(script) {
-  return ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')];
-}
-
-// ¿Está instalada la de la Store? Get-AppxPackage es lo único fiable: la carpeta del paquete
-// puede quedarse después de desinstalar. Tarda alrededor de un segundo, así que nunca se lanzan
-// dos a la vez. Devuelve { familia, version } o null.
+// ¿Está instalada la de la Store? Windows apunta cada app de la Store instalada para el usuario
+// en esta clave del registro, con su nombre completo (p. ej.
+// lvaroRoblesGonzlezDripDev.Cronota_2.9.1.0_x64__v2tdvvj5ej2c0), y la quita al desinstalarla.
+// Se lee con reg.exe. Hasta la 2.9.2 se usaba PowerShell (Get-AppxPackage), que en los
+// portátiles de la empresa no siempre se puede usar. Devuelve { familia, version } o null.
+const CLAVE_PAQUETES = 'HKCU\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages';
 let mirando = null;
 function paqueteStore() {
   if (process.platform !== 'win32') return Promise.resolve(null);
   if (mirando) return mirando;
-  const script = `$p = Get-AppxPackage -Name '${PAQUETE}' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($p) { $p.PackageFamilyName + '|' + $p.Version }`;
   mirando = new Promise((resolve) => {
-    execFile('powershell.exe', powershell(script), { windowsHide: true, timeout: 20000 }, (err, salida) => {
-      const linea = String(salida || '').trim().split(/\r?\n/).pop() || '';
-      const [familia, version] = linea.split('|').map((s) => (s || '').trim());
-      resolve(!err && familia && version ? { familia, version } : null);
+    execFile('reg.exe', ['query', CLAVE_PAQUETES, '/f', `${PAQUETE}_`, '/k'], { windowsHide: true, timeout: 15000 }, (err, salida) => {
+      // Nombre completo: <nombre>_<versión>_<arquitectura>_<recurso>_<editor>
+      const m = String(salida || '').match(new RegExp(`${PAQUETE.replace(/\./g, '\\.')}_([0-9.]+)_[^_\\s]*_[^_\\s]*_([a-z0-9]+)`, 'i'));
+      resolve(m ? { familia: `${PAQUETE}_${m[2]}`, version: m[1] } : null);
     });
   }).finally(() => { mirando = null; });
   return mirando;
 }
 
-// El PowerShell que hace el cambio cuando la app ya se ha ido. Va aparte para poder revisarlo
-// (y comprobar que PowerShell lo entiende) sin ejecutarlo.
-function scriptCambio({ pid, exe, desinstalador, familia }) {
-  const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
-  return [
-    `$ErrorActionPreference = 'SilentlyContinue'`,
-    `$exe = ${q(exe)}`,
-    `$desinstalador = ${q(desinstalador)}`,
-    // 1. Esperar a que la app se cierre y rematar lo que quede de ella. Solo los procesos de
-    //    esta carpeta: la de la Store tiene el mismo nombre de .exe.
-    `Wait-Process -Id ${Number(pid)} -Timeout 30`,
-    `Start-Sleep -Seconds 2`,
-    `Get-Process | Where-Object { $_.Path -eq $exe } | Stop-Process -Force`,
-    // 2. Desinstalar en silencio. El desinstalador de NSIS se copia a TEMP y sigue desde allí:
-    //    se espera a esa copia y a que desaparezca el .exe (como mucho minuto y medio).
-    `if (Test-Path -LiteralPath $desinstalador) {`,
-    `  Start-Process -FilePath $desinstalador -ArgumentList '/S','/currentuser'`,
-    `  Start-Sleep -Seconds 2`,
-    `  Get-Process -Name 'Un_A','Au_' | Wait-Process -Timeout 90`,
-    `  for ($i = 0; ($i -lt 30) -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }`,
-    `  Start-Sleep -Seconds 2`,
-    `}`,
-    // 3. Abrir la de la Store.
-    `Start-Process ${q(`shell:AppsFolder\\${familia}!${APLICACION}`)}`,
-  ].join('\n');
-}
-
-// Lanza el cambio y vuelve enseguida: quien llama tiene que cerrar la app justo después.
-// Devuelve false si no ha podido lanzarlo.
-function cambiarALaStore({ familia }) {
+// Abre la versión de la Store igual que si se pulsara en ella en el menú Inicio: lo hace el
+// Explorador de Windows con su identificador de aplicación. Devuelve false si no ha podido.
+function abrirLaDeLaStore({ familia }) {
   try {
-    const exe = process.execPath;
-    const desinstalador = path.join(path.dirname(exe), `Uninstall ${path.basename(exe, '.exe')}.exe`);
-    const script = scriptCambio({ pid: process.pid, exe, desinstalador, familia });
-    const hijo = spawn('powershell.exe', ['-WindowStyle', 'Hidden', ...powershell(script)], { detached: true, stdio: 'ignore', windowsHide: true });
-    hijo.unref();
+    spawn('explorer.exe', [`shell:AppsFolder\\${familia}!${APLICACION}`], { detached: true, stdio: 'ignore' }).unref();
     return true;
   } catch { return false; }
 }
@@ -194,5 +161,5 @@ function arranqueDeSesion() {
 module.exports = {
   FICHA_STORE, configurar, rutaTraspaso, carpetaCopias,
   copiaDelDia, guardarTraspaso, leerTraspaso, ajustesTraspasables,
-  paqueteStore, scriptCambio, cambiarALaStore, arranqueDeSesion,
+  paqueteStore, abrirLaDeLaStore, arranqueDeSesion,
 };
