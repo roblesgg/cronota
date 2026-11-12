@@ -2,6 +2,24 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, dialog, na
 const path = require('path');
 const fs = require('fs');
 
+// 2.9.2 · Simulacro del paso a la Microsoft Store, para ver el aviso sin cambiar nada de verdad:
+//   npx electron . --simular-paso-store      (o el .exe instalado con ese argumento)
+// Trabaja sobre una copia de los datos en una carpeta temporal, con su propio bloqueo de
+// instancia (puede ir a la vez que la Cronota de siempre). No desinstala nada, no cierra la
+// app, no toca el arranque con Windows ni busca actualizaciones.
+const SIMULACRO_STORE = process.argv.includes('--simular-paso-store');
+if (SIMULACRO_STORE) {
+  const caja = path.join(require('os').tmpdir(), 'cronota-simulacro');
+  try {
+    fs.mkdirSync(caja, { recursive: true });
+    const real = path.join(app.getPath('appData'), 'imputa-me');
+    ['imputa-tasks.json', 'imputa-settings.json'].forEach((f) => {
+      try { fs.copyFileSync(path.join(real, f), path.join(caja, f)); } catch {}
+    });
+  } catch {}
+  app.setPath('userData', caja);
+}
+
 // Instancia única: sin esto, cada vez que se relanzaba la app (acceso directo, inicio con
 // Windows, doble clic...) mientras ya había una corriendo, se abría un PROCESO NUEVO entero
 // -con su propio icono de bandeja y su propio panel- en vez de traer al frente el que ya
@@ -464,7 +482,7 @@ function saveSettings() {
 // Al arrancar por el login se le pasa "--hidden" para ir directo a la bandeja
 // sin abrir el panel. En desarrollo no se toca el registro (apuntaría a electron.exe).
 function applyLoginItem() {
-  if (!app.isPackaged || IS_STORE) return;
+  if (!app.isPackaged || IS_STORE || SIMULACRO_STORE) return;
   try {
     app.setLoginItemSettings({ openAtLogin: !!settings.openAtLogin, args: ['--hidden'] });
   } catch {}
@@ -531,7 +549,7 @@ let lastTrayTip = null, lastTrayTipAt = 0;
 function updateTrayTitle() {
   if (!tray) return;
   const active = getActiveTask();
-  const tip = `Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
+  const tip = `${SIMULACRO_STORE ? 'SIMULACRO · ' : ''}Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
   const now = Date.now();
   if (tip !== lastTrayTip || now - lastTrayTipAt > 60000) {
     lastTrayTip = tip; lastTrayTipAt = now; tray.setToolTip(tip);
@@ -2480,8 +2498,9 @@ let migracionSondeo = null;        // mientras se espera a que se instale la de 
 let migracionOtraVez = null;       // «Más tarde»: vuelve a salir pasadas unas horas
 let migracionCambiando = false;
 
-// Solo en la versión del instalador ya instalada (ni en la de la Store ni en desarrollo).
-function migracionActiva() { return process.platform === 'win32' && app.isPackaged && !IS_STORE; }
+// Solo en la versión del instalador ya instalada (ni en la de la Store ni en desarrollo), o en
+// el simulacro (ver SIMULACRO_STORE arriba del todo).
+function migracionActiva() { return process.platform === 'win32' && !IS_STORE && (app.isPackaged || SIMULACRO_STORE); }
 
 function datosMigracion() {
   return { ...migracionDatos, tareas: state.tasks.filter(t => !t.deleted).length, grupos: state.groups.length };
@@ -2518,7 +2537,8 @@ function cerrarMigracion() {
 // enseña el aviso.
 async function iniciarPasoAStore() {
   if (!migracionActiva()) return;
-  if (await comprobarPasoAStore()) return;
+  // En el simulacro se enseña el aviso aunque la de la Store ya esté instalada.
+  if (!SIMULACRO_STORE && await comprobarPasoAStore()) return;
   openMigracion({ modo: 'aviso' });
 }
 
@@ -2539,10 +2559,16 @@ function pasarALaStore(paquete) {
   // la tarea en marcha se para y se guarda.
   pauseActive(); saveData(); saveSettings();
   migracion.guardarTraspaso(state, settings);
+  openMigracion({ modo: 'listo' });
+  if (SIMULACRO_STORE) {
+    // Simulacro: ni se desinstala ni se cierra nada. Se enseña lo que verían después, ya en la
+    // versión de la Store.
+    setTimeout(() => { migracionCambiando = false; openMigracion({ modo: 'bienvenida', traidas: false }); }, 2800);
+    return;
+  }
   // La versión vieja deja de arrancar con Windows (la de la Store tiene su propia tarea de
   // inicio). El desinstalador no quita esa entrada del registro.
   try { app.setLoginItemSettings({ openAtLogin: false, args: ['--hidden'] }); } catch {}
-  openMigracion({ modo: 'listo' });
   setTimeout(() => {
     if (!migracion.cambiarALaStore(paquete)) {
       migracionCambiando = false;
@@ -3551,6 +3577,7 @@ function checkForUpdatesIfStale() {
 function setupAutoUpdate() {
   if (!app.isPackaged) return;          // en desarrollo no existe app-update.yml
   if (IS_STORE) return;                 // la actualiza la Store
+  if (SIMULACRO_STORE) return;          // el simulacro no se actualiza ni instala nada
   try {
     ({ autoUpdater } = require('electron-updater'));
   } catch {
@@ -3641,7 +3668,10 @@ app.whenReady().then(() => {
   DATA_FILE = path.join(app.getPath('userData'), 'imputa-tasks.json');
   SETTINGS_FILE = path.join(app.getPath('userData'), 'imputa-settings.json');
   loadData();
-  try { migracion.configurar({ documentos: app.getPath('documents') }); } catch {}
+  // 2.9.2: el simulacro deja sus copias dentro de su carpeta temporal, no en tus Documentos, y
+  // va sin barra flotante para que no se monte encima de la de tu Cronota de siempre.
+  try { migracion.configurar({ documentos: SIMULACRO_STORE ? path.join(app.getPath('userData'), 'Documentos') : app.getPath('documents') }); } catch {}
+  if (SIMULACRO_STORE) settings.dockMode = false;
   if (IS_STORE) recibirTraspaso();   // 2.9.2: la primera vez tras pasar del instalador a la Store
   pruneWeekOverrides();
   applySystemThemeSource();
