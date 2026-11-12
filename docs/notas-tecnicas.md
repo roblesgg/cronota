@@ -41,6 +41,18 @@ El proceso completo (planificar → beta → estable → Microsoft Store) está 
 - La app instala las actualizaciones en silencio (`quitAndInstall(true, true)`) y vuelve a abrirse sola.
 - Los cambios del instalador solo se notan **a partir de la versión que los trae**, porque el desinstalador que se ejecuta es el de la versión vieja.
 
+## Versión de la Store y paso desde el instalador (2.9.2)
+
+- **Cómo se sabe cuál es**: `IS_STORE = !!process.windowsStore`. La de la Store no usa el actualizador ni el registro de inicio. Arranca con Windows por la tarea de inicio del paquete (`addAutoLaunchExtension`); como esa tarea no pasa `--hidden`, `arranqueDeSesion()` lo deduce de cuánto lleva abierto el escritorio.
+- **Sus datos**: Windows le enseña la carpeta `%APPDATA%\imputa-me` de siempre, pero lo que escribe nuevo va a su carpeta del paquete (`%LOCALAPPDATA%\Packages\lvaroRoblesGonzlezDripDev.Cronota_v2tdvvj5ej2c0\LocalCache\Roaming\imputa-me`), que se borra al desinstalarla. Por eso hay copia diaria en `Documentos\Cronota\Copias automáticas`.
+- **El paso del instalador a la Store** está en `migracion-store.js`, con la ventana `src/migrar.html`. Lo hace la versión del instalador, nunca la de la Store: lo que lanza una app de la Store hereda su registro virtualizado y no podría desinstalar bien la vieja.
+- **Comprobar si está instalada la de la Store**: `Get-AppxPackage -Name lvaroRoblesGonzlezDripDev.Cronota`. Abrirla: `shell:AppsFolder\<familia>!imputame`; por eso el `applicationId` del paquete no se cambia.
+- **Capturas de la ventana sin la app**: `electron tools/snap.js "migrar.html?modo=aviso&tareas=57&grupos=10" salida.png noche 520 700 1`, con `SNAP_WAIT=2600` para que terminen las animaciones. Los modos son `aviso`, `esperando`, `listo` y `bienvenida` (este con `&traidas=1`).
+
+## Logo
+
+El original está en `docs/marca/cronota-logo.webp` y su PNG con transparencia (1080×1080) en `assets/icon.png`. Al cambiarlo hay que rehacer el `.ico`, los iconos de la Store, las imágenes del instalador y el de la web: los pasos están en `build-hooks/make-icon-ico.js`.
+
 ## Las dos notas de una tarea
 
 Cronota tiene **dos modos de nota**, que no se mezclan:

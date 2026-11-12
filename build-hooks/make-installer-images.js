@@ -4,6 +4,7 @@
 const Jimp = require('jimp');
 const path = require('path');
 const fs = require('fs');
+const { reducirLogo } = require('./reducir-logo');
 
 // Escribe un BMP de 24 bits BOTTOM-UP (formato clásico que NSIS/GDI espera).
 // jimp escribiría top-down (altura negativa), que algunos NSIS no renderizan.
@@ -93,7 +94,7 @@ async function main() {
   const sb = new Jimp(164, 314, 0x000000ff);
   paintBackground(sb, 82, 118, 150, 0.55);
   paintRing(sb, 82, 118, 62, 10, 0.5);
-  const logoS = logo.clone().resize(96, 96);
+  const logoS = reducirLogo(logo, 96);
   sb.composite(logoS, 82 - 48, 118 - 48);
   // Nombre centrado bajo el logo
   const name = 'Cronota';
@@ -108,7 +109,7 @@ async function main() {
   // ── Header 150x57 (banner superior de páginas internas) ──
   const hd = new Jimp(150, 57, 0x000000ff);
   paintBackground(hd, 26, 28, 90, 0.5);
-  const logoH = logo.clone().resize(38, 38);
+  const logoH = reducirLogo(logo, 38);
   hd.composite(logoH, 8, 10);
   hd.print(fontBig, 52, 12, 'Cronota');
   hd.print(fontSmall, 52, 34, 'Registra tus horas');

@@ -2,6 +2,7 @@
 // Sin ellos, electron-builder mete sus logos de ejemplo. Uso: node build-hooks/make-appx-assets.js
 const Jimp = require('jimp');
 const path = require('path');
+const { reducirLogo } = require('./reducir-logo');
 const raiz = path.join(__dirname, '..');
 const destino = path.join(raiz, 'build', 'appx');
 // [nombre, ancho, alto, cuánto ocupa el logo (0-1)]: los cuadrados con un poco de margen,
@@ -20,7 +21,7 @@ const PIEZAS = [
   for (const [nombre, w, h, cuanto] of PIEZAS) {
     const lado = Math.round(Math.min(w, h) * cuanto);
     const lienzo = new Jimp(w, h, 0x00000000);
-    lienzo.composite(logo.clone().resize(lado, lado, Jimp.RESIZE_BICUBIC), Math.round((w - lado) / 2), Math.round((h - lado) / 2));
+    lienzo.composite(reducirLogo(logo, lado), Math.round((w - lado) / 2), Math.round((h - lado) / 2));
     await lienzo.writeAsync(path.join(destino, nombre));
     console.log('  ' + nombre);
   }

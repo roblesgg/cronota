@@ -32,36 +32,44 @@ Cambios que lleva (se van añadiendo según salen):
   - web, README y política de privacidad.
 
   Lo que queda por dentro, y por qué, está en `docs/notas-tecnicas.md`. *En la beta: comprobar el nombre en el Administrador de tareas y que una copia antigua se restaura bien.*
-- [ ] **Imágenes con el logo y la interfaz nuevos** (los hace ChatGPT; cuando estén): fotos del README (`docs/readme/portada.png` y `capturas.png`), imágenes del instalador (`node build-hooks/make-installer-images.js`) y capturas de la Store, sin «imputame» y con datos inventados.
+- [x] **Logo nuevo** (12-11-2026): el cronómetro con «CRONOTA» (original en `docs/marca/cronota-logo.webp`). Está en el icono de la app y del `.exe`, en los iconos de la Store, en las imágenes del instalador y en la web. Se regenera con los scripts de `build-hooks/` (pasos en `make-icon-ico.js`).
+- [ ] **Fotos con la interfaz nueva** (la hace ChatGPT; cuando esté): fotos del README (`docs/readme/portada.png` y `capturas.png`) y capturas de la Store, sin «imputame» y con datos inventados.
 - [ ] **Ficha de la Store**: capturas nuevas, el vídeo (lo prepara ChatGPT con ESL) y la URL de privacidad nueva, en el envío de la 2.9.2.
-- [ ] **Pasar a la Store a los que usan el instalador**: plan justo debajo, pendiente del visto bueno de Álvaro.
+- [x] **Pasar a la Store a los que usan el instalador** (12-11-2026: aprobado y programado, falta probarlo). Detalle justo debajo.
 
-#### Plan · Pasar a la Store a los que usan el instalador (pendiente de visto bueno)
+#### Pasar a la Store a los que usan el instalador (aprobado el 12-11-2026)
 
-Son 3 compañeros con la versión del instalador (2.9.0). Objetivo: que pasen a la de la Store con un solo clic y sin perder nada.
+Son 3 compañeros con la versión del instalador (2.9.0). Objetivo: que pasen a la de la Store con un solo clic y sin perder nada. Código en `migracion-store.js` y ventana en `src/migrar.html`.
 
-1. **Aviso imposible de esquivar** (solo en la versión del instalador): al actualizarse sale una ventana grande, por encima de todo: «Buenas noticias: Cronota se muda a la Microsoft Store». Lleva el botón «Get it from Microsoft Store» que pasó Álvaro, con la letra de la app. No tiene «No»; como mucho «Más tarde», y vuelve a salir en el siguiente arranque.
-2. **Al pulsar el botón**: guarda una copia completa en `Documentos\Cronota\` como red de seguridad y abre la ficha de Cronota en la Store para pulsar «Obtener».
-3. **La primera vez que se abre la de la Store**:
-   - si no tiene datos propios, se trae sola los de la versión antigua, de la carpeta de datos de siempre (el desinstalador no la borra) o de la copia de `Documentos`;
-   - avisa con «Hemos traído tus N tareas»;
-   - cierra la versión antigua y la desinstala sin preguntar, con sus accesos directos y su arranque con Windows.
-4. **Orden de publicación**: primero la 2.9.2 de la Store, ya con el paso 3, certificada y publicada; después la 2.9.2 del instalador con el aviso. Así nadie llega a una Store que no sabe traerse sus datos.
+1. **Aviso imposible de esquivar** (solo en la versión del instalador): 5 s después de arrancar sale una ventana grande, por encima de todo: «Buenas noticias: Cronota se muda a la Microsoft Store». Lleva el logo animado y el botón de Microsoft que pasó Álvaro, con la letra de la app. No se cierra con Alt+F4: solo con «Más tarde», que la esconde 4 horas o hasta el siguiente arranque. También se abre desde la bandeja («Pasar a la Microsoft Store…»).
+2. **Al pulsar el botón**: guarda una copia completa en `Documentos\Cronota\cronota-traspaso.json` y abre la ficha de la Store. La ventana pasa a «Pulsa Obtener en la Store» y cada 6 s mira si ya está instalada (media hora como mucho).
+3. **En cuanto la de la Store está instalada**, la del instalador se aparta:
+   - para la tarea en marcha y lo guarda todo;
+   - quita su arranque con Windows;
+   - se cierra;
+   - un PowerShell sin ventana la desinstala en silencio y abre la de la Store.
 
-Antes de programarlo hay que resolver:
+   Lo hace también sola al arrancar, o cuando alguien intenta abrir la de la Store con esta abierta. Así nunca están las dos abiertas a la vez.
+4. **La primera vez que se abre la de la Store**: ve la carpeta de datos de siempre (el desinstalador no la borra). Si aun así arrancara vacía, se trae el traspaso de `Documentos`. Da la bienvenida con cuántas tareas tiene.
+5. **Orden de publicación**: primero la 2.9.2 de la Store, certificada y publicada; después la 2.9.2 estable del instalador, que es la que lleva el aviso. Así nadie llega a una Store sin la bienvenida ni el arranque con Windows. En la beta del instalador sale ya el aviso: que la pruebe Álvaro, o avisar a los «Betatester» de que no lo pulsen todavía.
 
-- **Arranque con Windows en la versión de la Store**: hoy no arranca sola. `applyLoginItem` se salta la Store y el paquete no lleva tarea de inicio. Hay que activarla (`addAutoLaunchExtension` en `build.appx`) para que nadie lo pierda al cambiar.
-- **Los datos de la versión de la Store viven dentro del paquete**: si se desinstala, Windows los borra. Hace falta una copia automática en `Documentos\Cronota\`.
-- **Portátiles de la empresa**: comprobar con un compañero que se puede instalar desde la Store.
-- **Prueba en un equipo real**, en un momento acordado: el traspaso de datos y la desinstalación de la versión antigua.
-- **Después**: ya no habrá usuarios del instalador. Decidir si las betas pasan a los paquetes de prueba de Partner Center o siguen en GitHub solo para quien las pruebe.
+Hecho además:
+
+- [x] **Arranque con Windows en la de la Store**: el paquete lleva tarea de inicio (`addAutoLaunchExtension`). Como no pasa `--hidden`, la app deduce que es el inicio de sesión si el escritorio arrancó hace menos de 3 minutos, y entonces no abre el panel.
+- [x] **Copia automática** cada día en `Documentos\Cronota\Copias automáticas` (las 14 últimas), en las dos versiones: los datos de la de la Store viven dentro del paquete y Windows los borra si se desinstala. Política de privacidad actualizada.
+
+Pendiente:
+
+- [ ] **Portátiles de la empresa**: comprobar con un compañero que se puede instalar desde la Store.
+- [ ] **Prueba en un equipo real**, en un momento acordado: el aviso, el cambio (desinstalar la antigua y abrir la nueva), los datos y el arranque con Windows de la nueva.
+- [ ] **Después**: ya no habrá usuarios del instalador. Decidir si las betas pasan a los paquetes de prueba de Partner Center o siguen en GitHub solo para quien las pruebe.
 
 El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que se aprenda):
 
 1. Cerrar la lista de arriba y subir la versión a `2.9.2` en `package.json` (también la del bloque `appx`; la Store exige que sea mayor que la publicada) y escribir las novedades en `WHATS_NEW` de `main.js`.
 2. `npm run check` y capturas en segundo plano.
 3. **Beta** `2.9.2-beta.1` en GitHub (prerelease) para los que tienen «Betatester». Unos días de uso; si sale algo, se arregla y `beta.2`.
-4. **Estable** `2.9.2` en GitHub («Latest»): la reciben solos los que usan el instalador.
+4. **Estable** `2.9.2` en GitHub («Latest»): la reciben solos los que usan el instalador. *En la 2.9.2, este paso va después del 5 (ver «Orden de publicación» arriba).*
 5. **Store**: `npm run store` → en Partner Center, *Actualizar* el envío → subir el `.appx` nuevo en Paquetes → poner las novedades en la ficha («Novedades de esta versión») → enviar a certificación (1–3 días). Los de la Store la reciben solos desde la propia Store.
 6. Comprobar en un equipo con la versión de la Store que se actualiza, y unir la rama a `main`.
 

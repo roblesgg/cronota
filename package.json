@@ -31,6 +31,7 @@
       "palettes.js",
       "desenfoque-windows.js",
       "capturas-windows.js",
+      "migracion-store.js",
       "src/**/*",
       "assets/**/*",
       "package.json",
@@ -85,7 +86,7 @@
       "languages": [
         "es-ES"
       ],
-      "addAutoLaunchExtension": false,
+      "addAutoLaunchExtension": true,
       "artifactName": "cronota-store.${ext}"
     }
   },

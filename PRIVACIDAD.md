@@ -1,6 +1,6 @@
 # Política de privacidad de Cronota
 
-_Última actualización: 11 de noviembre de 2026_
+_Última actualización: 12 de noviembre de 2026_
 
 Cronota es una aplicación para Windows que registra el tiempo que dedicas a cada tarea para que luego puedas imputarlo. Esta política explica qué datos maneja, dónde se guardan y qué control tienes sobre ellos.
 
@@ -11,6 +11,8 @@ Cronota es una aplicación para Windows que registra el tiempo que dedicas a cad
 ## Datos que se guardan en tu equipo
 
 Tus tareas, secciones, los ratos de tiempo registrados, sus notas y tus ajustes se guardan **solo en tu ordenador**, en la carpeta de datos de la aplicación de tu usuario de Windows. No salen de tu equipo salvo que actives la sincronización descrita abajo.
+
+Para que no los pierdas si desinstalas la app, Cronota guarda además **una copia de tus tareas y secciones cada día** en tu carpeta Documentos, en `Documentos\Cronota\Copias automáticas` (se quedan las 14 últimas). Al pasar de la versión del instalador a la de Microsoft Store también deja una copia en `Documentos\Cronota\cronota-traspaso.json`. Si tu carpeta Documentos se sincroniza con OneDrive u otro servicio, estas copias se sincronizan con ella como cualquier otro documento tuyo.
 
 ## Sincronización con una cuenta (opcional)
 
@@ -41,7 +43,7 @@ La versión de Microsoft Store se actualiza a través de la propia Store. La ver
 
 ## Tus derechos
 
-Los datos locales los borras al desinstalar Cronota o eliminando su carpeta de datos. Si usas una cuenta, puedes pedir en cualquier momento que te enviemos, corrijamos o borremos tus datos y tu cuenta escribiendo a **roblesgg16@gmail.com**. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es).
+Los datos locales los borras al desinstalar Cronota o eliminando su carpeta de datos, y las copias, borrando la carpeta `Documentos\Cronota`. Si usas una cuenta, puedes pedir en cualquier momento que te enviemos, corrijamos o borremos tus datos y tu cuenta escribiendo a **roblesgg16@gmail.com**. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es).
 
 ## Cambios en esta política
 

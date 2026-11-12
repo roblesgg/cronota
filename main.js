@@ -14,6 +14,9 @@ app.on('second-instance', () => {
   // Alguien ha vuelto a lanzar la app mientras ya estaba corriendo: solo la traemos al
   // frente (por donde se quedó), no dejamos que se abra un proceso duplicado.
   openLastView();
+  // 2.9.2: puede ser la versión de la Store, que no se abre mientras esta siga abierta. Si
+  // ya está instalada, esta versión del instalador se aparta y le deja paso.
+  comprobarPasoAStore();
 });
 
 const APP_ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
@@ -31,6 +34,8 @@ const USAR_DESENFOQUE_SISTEMA = false;
 // Versión de la Microsoft Store (paquete MSIX): la actualiza la Store, no nuestro actualizador, y
 // el arranque con Windows lo gestiona Windows (Configuración → Aplicaciones → Inicio).
 const IS_STORE = !!process.windowsStore;
+// 2.9.2: paso de la versión del instalador a la de la Store y copias diarias en Documentos\Cronota.
+const migracion = require('./migracion-store');
 const { GROUP_PALETTES, colorFromGroupPalette } = require('./palettes');
 // Versión de la interfaz: la 3 es el rediseño de la 2.8 (Noche cálida). Al pasar a ella se
 // estrena el tema nuevo una vez; después cada cual elige el que quiera en Ajustes.
@@ -380,6 +385,7 @@ let settings = {
   lastView: 'panel',    // última vista abierta: la app vuelve a abrirse por donde la dejaste
   archiveDays: 30,      // días sin usar una tarea antes de que pase al Archivador (0 = nunca)
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
+  traspasoVisto: null,  // 2.9.2, versión de la Store: fecha del traspaso desde el instalador ya recibido
 };
 
 function nextAutoColor() {
@@ -558,6 +564,7 @@ function buildTrayMenu() {
     // Si la barra se escondió desde su menú, esta es la forma de recuperarla.
     { label: 'Mostrar la barra ahora', click: () => hideDockFor(null), visible: !!settings.dockMode && dockIsHidden() },
     { label: 'Buscar actualizaciones…', click: () => checkForUpdates(true) },
+    { label: 'Pasar a la Microsoft Store…', click: () => openMigracion({ modo: 'aviso' }), visible: migracionActiva() },
     { label: 'Salir', click: () => { saveData(); app.quit(); } },
   ]);
 }
@@ -2457,8 +2464,128 @@ function maybeShowWhatsNew() {
   saveSettings();
   // Si la versión nueva cuenta exactamente lo mismo que la anterior, no se repite:
   // ya se leyó una vez y volver a soltarlo entero es justo lo que molestaba.
-  if (!notes || yaVisto) return;
+  // 2.9.2: en la versión del instalador manda el aviso de pasarse a la Store, no las novedades.
+  if (!notes || yaVisto || migracionActiva()) return;
   setTimeout(() => openWhatsNew(), 1200);   // tras el arranque, sin pisar al splash
+}
+
+// ── Paso a la Microsoft Store (2.9.2) ──────────────────────────────────────────
+// La lógica de fondo está en migracion-store.js; aquí la ventana (src/migrar.html) y el orden.
+// Modos de la ventana: 'aviso' y 'esperando' (versión del instalador), 'listo' (se está
+// cambiando) y 'bienvenida' (la primera vez en la versión de la Store).
+let migracionWin = null;
+let migracionDatos = { modo: 'aviso' };
+let migracionCerrable = false;     // el aviso no se cierra con Alt+F4: solo con «Más tarde»
+let migracionSondeo = null;        // mientras se espera a que se instale la de la Store
+let migracionOtraVez = null;       // «Más tarde»: vuelve a salir pasadas unas horas
+let migracionCambiando = false;
+
+// Solo en la versión del instalador ya instalada (ni en la de la Store ni en desarrollo).
+function migracionActiva() { return process.platform === 'win32' && app.isPackaged && !IS_STORE; }
+
+function datosMigracion() {
+  return { ...migracionDatos, tareas: state.tasks.filter(t => !t.deleted).length, grupos: state.groups.length };
+}
+
+function openMigracion(datos) {
+  migracionDatos = { ...migracionDatos, aviso: null, ...datos };
+  migracionCerrable = migracionDatos.modo === 'bienvenida';
+  if (migracionWin && !migracionWin.isDestroyed()) {
+    migracionWin.webContents.send('migracion', datosMigracion());
+    migracionWin.show(); migracionWin.focus();
+    try { migracionWin.moveTop(); } catch {}
+    return;
+  }
+  migracionWin = makeWindow('migrar.html', 520, 700, {
+    alwaysOnTop: true, resizable: false, minimizable: false, maximizable: false,
+    minWidth: 480, minHeight: 640, maxWidth: 560, maxHeight: 760,
+  });
+  migracionWin.on('close', (e) => { if (!migracionCerrable && !saliendo) e.preventDefault(); });
+  migracionWin.once('ready-to-show', () => {
+    migracionWin.show(); migracionWin.focus();
+    try { migracionWin.moveTop(); } catch {}
+  });
+  migracionWin.on('closed', () => { migracionWin = null; });
+}
+
+function cerrarMigracion() {
+  if (!migracionWin || migracionWin.isDestroyed()) return;
+  migracionCerrable = true;
+  migracionWin.close();
+}
+
+// Al arrancar la versión del instalador: si ya está la de la Store, se cambia sola; si no,
+// enseña el aviso.
+async function iniciarPasoAStore() {
+  if (!migracionActiva()) return;
+  if (await comprobarPasoAStore()) return;
+  openMigracion({ modo: 'aviso' });
+}
+
+// Si la de la Store ya está instalada, se cambia a ella. Devuelve true si se está cambiando.
+async function comprobarPasoAStore() {
+  if (!migracionActiva() || migracionCambiando) return false;
+  const paquete = await migracion.paqueteStore();
+  if (!paquete || migracionCambiando) return false;
+  pasarALaStore(paquete);
+  return true;
+}
+
+function pasarALaStore(paquete) {
+  migracionCambiando = true;
+  pararSondeoStore();
+  if (migracionOtraVez) { clearTimeout(migracionOtraVez); migracionOtraVez = null; }
+  // Todo guardado y el traspaso al día antes de irse. Como al instalar una actualización,
+  // la tarea en marcha se para y se guarda.
+  pauseActive(); saveData(); saveSettings();
+  migracion.guardarTraspaso(state, settings);
+  // La versión vieja deja de arrancar con Windows (la de la Store tiene su propia tarea de
+  // inicio). El desinstalador no quita esa entrada del registro.
+  try { app.setLoginItemSettings({ openAtLogin: false, args: ['--hidden'] }); } catch {}
+  openMigracion({ modo: 'listo' });
+  setTimeout(() => {
+    if (!migracion.cambiarALaStore(paquete)) {
+      migracionCambiando = false;
+      openMigracion({ modo: 'esperando', aviso: 'No se ha podido cambiar solo. Cierra Cronota desde la bandeja y abre la de la Store desde el menú Inicio.' });
+      return;
+    }
+    saliendo = true;
+    try { if (dockHitTimer) { clearInterval(dockHitTimer); dockHitTimer = null; } } catch {}
+    try { if (tray) { tray.destroy(); tray = null; } } catch {}
+    BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} });
+    setTimeout(() => { try { app.exit(0); } catch {} }, 300);
+  }, 2400);
+}
+
+function empezarSondeoStore() {
+  pararSondeoStore();
+  const hasta = Date.now() + 30 * 60 * 1000;   // media hora: de sobra para instalarla
+  migracionSondeo = setInterval(() => {
+    if (Date.now() > hasta) { pararSondeoStore(); return; }
+    comprobarPasoAStore();
+  }, 6000);
+}
+function pararSondeoStore() {
+  if (migracionSondeo) { clearInterval(migracionSondeo); migracionSondeo = null; }
+}
+
+// Versión de la Store: la primera vez tras el traspaso da la bienvenida. Si arranca vacía
+// (Windows no le ha enseñado los datos de siempre), se los trae del traspaso de Documentos.
+function recibirTraspaso() {
+  const t = migracion.leerTraspaso();
+  if (!t || settings.traspasoVisto === t.exportedAt) return;
+  let traidas = false;
+  if (!state.tasks.length && !state.groups.length && (t.tasks.length || t.groups.length)) {
+    state = { tasks: t.tasks, groups: t.groups, activeTaskId: null, activeSubId: null };
+    saveDataRaw();
+    Object.assign(settings, migracion.ajustesTraspasables(t.settings));
+    saveSettings();
+    loadData();   // para que pasen por las mismas comprobaciones que al arrancar
+    traidas = true;
+  }
+  settings.traspasoVisto = t.exportedAt;
+  saveSettings();
+  setTimeout(() => openMigracion({ modo: 'bienvenida', traidas }), 2500);
 }
 
 function sendUpdateState(state) {
@@ -3012,6 +3139,37 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'close-whats-new':
       if (whatsNewWin && !whatsNewWin.isDestroyed()) whatsNewWin.close();
       break;
+    // 2.9.2: ventana del paso a la Microsoft Store (src/migrar.html).
+    case 'get-migracion': event.reply('migracion', datosMigracion()); break;
+    case 'migracion-store':
+      // Primero quedarse a salvo: todo guardado y el traspaso en Documentos\Cronota.
+      saveData(); saveSettings();
+      migracion.guardarTraspaso(state, settings);
+      try { require('electron').shell.openExternal(migracion.FICHA_STORE); } catch {}
+      openMigracion({ modo: 'esperando' });
+      empezarSondeoStore();
+      break;
+    case 'migracion-abrir-store':
+      try { require('electron').shell.openExternal(migracion.FICHA_STORE); } catch {}
+      empezarSondeoStore();
+      break;
+    case 'migracion-ya-instalada':
+      comprobarPasoAStore().then((cambia) => {
+        if (!cambia) openMigracion({ modo: 'esperando', aviso: 'Todavía no la veo instalada. Espera a que la Store termine y vuelve a pulsar.' });
+      });
+      break;
+    case 'migracion-mas-tarde':   // desde el aviso: vuelve a salir dentro de 4 horas o al arrancar
+      pararSondeoStore();
+      cerrarMigracion();
+      if (migracionOtraVez) clearTimeout(migracionOtraVez);
+      migracionOtraVez = setTimeout(() => {
+        migracionOtraVez = null;
+        if (!migracionCambiando) openMigracion({ modo: 'aviso' });
+      }, 4 * 60 * 60 * 1000);
+      break;
+    case 'migracion-cerrar':      // bienvenida, o mientras se espera (se sigue mirando por detrás)
+      cerrarMigracion();
+      break;
     case 'set-theme':
       if (payload && payload.theme !== undefined) {
         settings.theme = THEMES[payload.theme] ? payload.theme : DEFAULT_THEME;
@@ -3483,6 +3641,8 @@ app.whenReady().then(() => {
   DATA_FILE = path.join(app.getPath('userData'), 'imputa-tasks.json');
   SETTINGS_FILE = path.join(app.getPath('userData'), 'imputa-settings.json');
   loadData();
+  try { migracion.configurar({ documentos: app.getPath('documents') }); } catch {}
+  if (IS_STORE) recibirTraspaso();   // 2.9.2: la primera vez tras pasar del instalador a la Store
   pruneWeekOverrides();
   applySystemThemeSource();
   // Instalación nueva: el recorrido va solo por las cuatro pantallas. En cualquier otro
@@ -3546,7 +3706,9 @@ app.whenReady().then(() => {
   // PERO en modo barra flotante la barrita ES la presencia de la app (ya es discreta de
   // por sí), así que hay que crearla igualmente: si no, arrancar con Windows dejaba la
   // app sin nada visible salvo el icono de la bandeja.
-  if (process.argv.includes('--hidden')) {
+  // 2.9.2: la versión de la Store arranca con Windows por su tarea de inicio, que no pasa
+  // "--hidden"; ahí se deduce mirando si la sesión acaba de empezar.
+  if (process.argv.includes('--hidden') || (IS_STORE && migracion.arranqueDeSesion())) {
     if (settings.dockMode) {
       createDock();
       // Arrancando con Windows, las pantallas todavía no son las definitivas: se recoloca
@@ -3559,6 +3721,14 @@ app.whenReady().then(() => {
   }
   setupAutoUpdate();
   maybeShowWhatsNew();
+  // 2.9.2: una copia al día en Documentos\Cronota\Copias automáticas. La versión de la Store
+  // guarda sus datos dentro del paquete, y Windows los borra si se desinstala.
+  if (app.isPackaged) {
+    migracion.copiaDelDia(state);
+    setInterval(() => migracion.copiaDelDia(state), 3 * 60 * 60 * 1000);
+  }
+  // 2.9.2: la versión del instalador invita a pasarse a la de la Store (o se cambia sola si ya está).
+  if (migracionActiva()) setTimeout(iniciarPasoAStore, 5000);
 });
 
 // Cierre a conciencia antes de instalar una actualización.
