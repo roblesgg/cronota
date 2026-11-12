@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 12 de noviembre de 2026 · Versiones publicadas: 2.9.0 (instalador, GitHub) y 2.9.1 (Microsoft Store, ya pública el 12-11-2026)
+Última revisión: 12 de noviembre de 2026 · Versiones publicadas: 2.9.2 (instalador, GitHub, 12-11-2026, con el aviso para pasarse a la Store) y 2.9.1 (Microsoft Store; la ficha nueva, en certificación)
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -76,6 +76,7 @@ El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que 
 
 Lo que se aprenda en esta primera vuelta (tiempos reales, pasos de Partner Center, sorpresas) se apunta aquí debajo:
 
+- **2.9.2 estable en GitHub** (12-11-2026, decisión de Álvaro): sin beta previa y antes que la 2.9.2 de la Store, para que todos pasen ya a la Store. Quien pulse el botón instala la 2.9.1 de la Store, que no arranca sola con Windows hasta que llegue la 2.9.2 allí. La versión de GitHub lleva también `imputame-setup.exe` e `imputame-portable.exe` (copias) para que la web y los enlaces antiguos sigan descargando; se pueden quitar cuando la web apunte a la Store.
 - **Cambiar solo la ficha** (12-11-2026, envío 2): Información general → «Iniciar actualización» → Descripciones de Store → Español (España). Cada recuadro de imagen admite un solo archivo. El de una captura que ya existe la sustituye; las nuevas van por el «+». Después, «Guardar» y «Enviar para certificación». Mientras se certifica no se puede abrir otro envío. *Apuntar aquí cuánto tardó en salir.*
 
 ### Fase 1 · La píldora entre pantallas (2.10)
