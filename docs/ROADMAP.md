@@ -34,7 +34,8 @@ Cambios que lleva (se van añadiendo según salen):
   Lo que queda por dentro, y por qué, está en `docs/notas-tecnicas.md`. *En la beta: comprobar el nombre en el Administrador de tareas y que una copia antigua se restaura bien.*
 - [x] **Logo nuevo** (12-11-2026): el cronómetro con «CRONOTA» (original en `docs/marca/cronota-logo.webp`). Está en el icono de la app y del `.exe`, en los iconos de la Store, en las imágenes del instalador y en la web. Se regenera con los scripts de `build-hooks/` (pasos en `make-icon-ico.js`).
 - [ ] **Fotos con la interfaz nueva** (la hace ChatGPT; cuando esté): fotos del README (`docs/readme/portada.png` y `capturas.png`) y capturas de la Store, sin «imputame» y con datos inventados.
-- [ ] **Ficha de la Store**: capturas nuevas, el vídeo (lo prepara ChatGPT con ESL) y la URL de privacidad nueva, en el envío de la 2.9.2. Los logotipos de la tienda con el logo nuevo ya están hechos (`docs/store/`, qué va dónde en `ficha-store.md`). Para que Claude los suba hay que conectar Claude in Chrome en el portátil nuevo.
+- [x] **Ficha de la Store, fotos y logo** (12-11-2026): envío 2, solo ficha y sin paquete nuevo. Lleva las cinco capturas de `docs/store/`, el póster, la caja, los iconos de 300, 150 y 71 y las novedades sin el nombre antiguo. Enviado a certificación el 12-11-2026 por la tarde; se publica solo al aprobarse. Claude in Chrome ya está conectado en el portátil nuevo.
+- [ ] **Ficha de la Store, lo que falta**: el vídeo (lo prepara ChatGPT con ESL) y la URL de privacidad nueva, en el envío de la 2.9.2. Ese envío no se puede abrir hasta que termine la certificación del envío 2.
 - [x] **Pasar a la Store a los que usan el instalador** (12-11-2026: aprobado y programado, falta probarlo). Detalle justo debajo.
 
 #### Pasar a la Store a los que usan el instalador (aprobado el 12-11-2026)
@@ -75,7 +76,7 @@ El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que 
 
 Lo que se aprenda en esta primera vuelta (tiempos reales, pasos de Partner Center, sorpresas) se apunta aquí debajo:
 
-- *(pendiente)*
+- **Cambiar solo la ficha** (12-11-2026, envío 2): Información general → «Iniciar actualización» → Descripciones de Store → Español (España). Cada recuadro de imagen admite un solo archivo. El de una captura que ya existe la sustituye; las nuevas van por el «+». Después, «Guardar» y «Enviar para certificación». Mientras se certifica no se puede abrir otro envío. *Apuntar aquí cuánto tardó en salir.*
 
 ### Fase 1 · La píldora entre pantallas (2.10)
 
