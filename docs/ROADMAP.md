@@ -10,8 +10,8 @@ Todo cambio sigue siempre estos cuatro pasos, sin saltarse ninguno:
 
 1. **Planificar**: antes de tocar código se escribe qué se va a hacer, cómo se va a probar y qué puede romperse. Álvaro lo revisa y da el visto bueno.
 2. **Implementar y comprobar**: `npm run check` en verde, capturas en segundo plano (`tools/snap.js`) y, cuando haga falta usar la app de verdad, prueba acordada con Álvaro (nunca moviéndole el ratón sin avisar).
-3. **Beta**: se publica como versión de prueba `X.Y.Z-beta.N` (prerelease en GitHub). Solo la reciben quienes tienen «Betatester» encendido. Se deja rodar y se corrigen los fallos que salgan.
-4. **Publicar**: cuando la beta va bien, versión estable `X.Y.Z` para todos (GitHub, «Latest») **y** envío del mismo código a la Microsoft Store (`npm run store` → subir `cronota-store.appx` en Partner Center).
+3. **Probar**: en modo pruebas (`tools/modo-pruebas.vbs`, ver `docs/notas-tecnicas.md`), con una copia de los datos y sin tocar la Cronota de verdad.
+4. **Publicar, solo en la Microsoft Store** (desde el 16-11-2026, decisión de Álvaro: ya no se sacan versiones en GitHub). Paquete compilado en GitHub Actions («Paquete para la Microsoft Store») → en Partner Center, actualizar el envío, subir `cronota-store.appx`, poner las novedades y enviar a certificación.
 
 ## Fases
 
