@@ -253,6 +253,10 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.9.5': { title: 'Novedades de Cronota 2.9.5', steps: [
+    { icon:'folder', title:'La copia de seguridad lo lleva todo',
+      text:'Ajustes → Exportar copia guarda ahora tus tareas con todo su historial y también todos tus ajustes. Al restaurarla puedes elegir si recuperar los ajustes; si dices que sí, Cronota se reinicia con ellos.' },
+  ] },
   '2.9.1': { title: 'imputa.me ahora se llama Cronota', steps: [
     { icon:'spark', title:'Nuevo nombre, la misma app',
       text:'imputa.me pasa a llamarse Cronota: cronómetro y nota, que es lo que hace. Tus tareas, tus horas y tus ajustes siguen exactamente igual.' },
