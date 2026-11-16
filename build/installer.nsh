@@ -126,3 +126,15 @@
     ${EndIf}
   ${EndIf}
 !macroend
+
+; Al desinstalar, quitar del inicio de Windows las entradas que apuntó la app (según la versión,
+; con un nombre u otro). Si no, se quedaban en «Aplicaciones de arranque» apuntando a un .exe
+; que ya no existe. Solo al desinstalar de verdad, no al actualizar (la app las vuelve a poner).
+!macro customUnInstall
+  ${ifNot} ${isUpdated}
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "electron.app.imputa.me"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "electron.app.Cronota"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "electron.app.imputa.me"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "electron.app.Cronota"
+  ${endIf}
+!macroend

@@ -512,10 +512,24 @@ function saveSettings() {
 // Registra (o quita) Cronota del arranque de Windows según el ajuste.
 // Al arrancar por el login se le pasa "--hidden" para ir directo a la bandeja
 // sin abrir el panel. En desarrollo no se toca el registro (apuntaría a electron.exe).
+// La versión del instalador se apunta al inicio de Windows en HKCU\...\Run. Según la versión,
+// con el nombre «electron.app.imputa.me» o «electron.app.Cronota», y una no borraba la de la
+// otra: había equipos con las dos, más la tarea de inicio de la de la Store, y Cronota se abría
+// dos o tres veces a la vez al encender. Al pasarse a la Store se quitan las dos (la de la Store
+// no puede: Windows le da su propia copia del registro), y desinstalar tampoco las quitaba.
+const NOMBRES_ARRANQUE = ['electron.app.imputa.me', 'electron.app.Cronota'];
+function quitarArranquesDelInstalador() {
+  if (IS_STORE || !app.isPackaged || MODO_PRUEBAS) return;
+  NOMBRES_ARRANQUE.forEach(name => { try { app.setLoginItemSettings({ openAtLogin: false, name }); } catch {} });
+}
+
 function applyLoginItem() {
   if (!app.isPackaged || IS_STORE || MODO_PRUEBAS) return;
   try {
     app.setLoginItemSettings({ openAtLogin: !!settings.openAtLogin, args: ['--hidden'] });
+    // Y que no quede la entrada con el otro nombre, que abriría la app otra vez.
+    const propio = 'electron.app.' + app.getName();
+    NOMBRES_ARRANQUE.filter(n => n !== propio).forEach(name => { try { app.setLoginItemSettings({ openAtLogin: false, name }); } catch {} });
   } catch {}
 }
 
@@ -2605,6 +2619,7 @@ function pasarALaStore(paquete) {
     try { if (dockHitTimer) { clearInterval(dockHitTimer); dockHitTimer = null; } } catch {}
     try { if (tray) { tray.destroy(); tray = null; } } catch {}
     BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} });
+    quitarArranquesDelInstalador();
     try { app.releaseSingleInstanceLock(); } catch {}
     migracion.abrirLaDeLaStore(paquete);
     setTimeout(() => { try { app.exit(0); } catch {} }, 500);
