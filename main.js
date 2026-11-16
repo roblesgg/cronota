@@ -3334,7 +3334,11 @@ ipcMain.handle('export-csv', async (_e, { content, defaultName }) => {
 // ── Copia de seguridad (export/import de tareas y grupos a un .json local) ────
 function deepEqual(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 
-ipcMain.handle('export-backup', async () => {
+// Ajustes que no se restauran desde una copia: dependen de este equipo (qué pantalla, si arranca
+// con Windows, qué versión hay instalada...). En el archivo van todos; al restaurar se saltan.
+const AJUSTES_DE_ESTE_EQUIPO = ['dockDisplayId', 'dockDisplayKey', 'dockHiddenUntil', 'dndUntil', 'uiVersion'];
+
+ipcMain.handle('export-backup', async (_e, extra) => {
   try {
     const parent = settingsWin && !settingsWin.isDestroyed() ? settingsWin : (mainWin || undefined);
     const baseDir = app.getPath('documents') || app.getPath('home') || app.getPath('desktop') || '';
@@ -3346,7 +3350,10 @@ ipcMain.handle('export-backup', async () => {
     if (canceled || !filePath) return { ok: false, canceled: true };
     // La marca del archivo es solo informativa: al restaurar basta con que traiga tasks y groups,
     // así que las copias antiguas (con la marca de antes) se siguen pudiendo restaurar.
-    const payload = { cronotaBackup: true, exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups };
+    // Copia completa: todas las tareas (con su historial de fichajes, también las archivadas y
+    // las borradas), los grupos, todos los ajustes y las preferencias que guardan las pantallas.
+    const local = extra && extra.local && typeof extra.local === 'object' ? extra.local : {};
+    const payload = { cronotaBackup: true, version: 2, appVersion: app.getVersion(), exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups, settings, local };
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
     return { ok: true, path: filePath };
   } catch (e) {
@@ -3392,7 +3399,8 @@ ipcMain.handle('import-backup', async () => {
       else conflicts.push({ kind: 'group', id: g.id, key: `group:${g.id}`, name: g.name, localName: local.name });
     });
     pendingImport = raw;
-    return { ok: true, newCount, sameCount, conflicts };
+    const hasSettings = !!(raw.settings && typeof raw.settings === 'object');
+    return { ok: true, newCount, sameCount, conflicts, hasSettings };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
   }
@@ -3416,7 +3424,21 @@ ipcMain.handle('apply-import-backup', async (_e, payload) => {
     if (res[`task:${t.id}`] === 'replace') state.tasks[idx] = t;
   });
   saveData(); broadcastState();
+  // Con los ajustes de la copia: se guardan y la app se reinicia para que todo (tema, barra,
+  // avisos...) arranque ya con ellos, igual que al abrirla.
+  if (payload && payload.withSettings && raw.settings && typeof raw.settings === 'object') {
+    const nuevos = migracion.ajustesTraspasables(raw.settings);
+    AJUSTES_DE_ESTE_EQUIPO.forEach(k => { delete nuevos[k]; });
+    Object.keys(nuevos).forEach(k => { if (!(k in settings)) delete nuevos[k]; });
+    Object.assign(settings, nuevos);
+    saveSettings();
+    return { ok: true, restart: true, local: raw.local && typeof raw.local === 'object' ? raw.local : {} };
+  }
   return { ok: true };
+});
+
+ipcMain.on('reiniciar-tras-copia', () => {
+  setTimeout(() => { try { app.relaunch(); } catch {} app.exit(0); }, 300);
 });
 
 // Foto de lo que hay DETRÁS del panel del dock (el escritorio y las demás apps), para su

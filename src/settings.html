@@ -1589,7 +1589,11 @@ function showWhatsNew() { ipcRenderer.send('action', { type:'show-whats-new' });
 
 // ---------- Copia de seguridad ----------
 async function exportBackup() {
-  const r = await ipcRenderer.invoke('export-backup');
+  // Las preferencias que guardan las pantallas (p. ej. horas en decimal del calendario) viven
+  // aquí, en el almacenamiento de la página, no en los ajustes: van también en la copia.
+  const local = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); local[k] = localStorage.getItem(k); } } catch {}
+  const r = await ipcRenderer.invoke('export-backup', { local });
   if (!r || r.canceled) return;
   if (!r.ok) { alert('No se pudo exportar la copia: ' + (r.error || '')); return; }
   showToast('Copia guardada');
@@ -1602,13 +1606,25 @@ async function importBackup() {
   const r = await ipcRenderer.invoke('import-backup');
   if (!r || r.canceled) return;
   if (!r.ok) { alert('No se pudo leer la copia: ' + (r.error || '')); return; }
+  importWithSettings = !!r.hasSettings && confirm('La copia trae también tus ajustes (tema, barra, avisos, hora de salida...).\n\n¿Quieres restaurarlos? Cronota se reiniciará para aplicarlos.\n\nAceptar: tareas, historial y ajustes · Cancelar: solo tareas e historial');
   if (!r.conflicts.length) {
-    const res = await ipcRenderer.invoke('apply-import-backup', { resolutions: {} });
-    if (res.ok) showToast(`Copia restaurada · ${r.newCount} nueva(s)`);
-    else alert('No se pudo restaurar: ' + (res.error || ''));
+    const res = await ipcRenderer.invoke('apply-import-backup', { resolutions: {}, withSettings: importWithSettings });
+    afterImport(res, `Copia restaurada · ${r.newCount} nueva(s)`);
     return;
   }
   openImportPopup(r);
+}
+
+let importWithSettings = false;
+function afterImport(res, msg) {
+  if (!res || !res.ok) { alert('No se pudo restaurar: ' + ((res && res.error) || '')); return; }
+  if (res.restart) {
+    try { Object.entries(res.local || {}).forEach(([k, v]) => { if (typeof v === 'string') localStorage.setItem(k, v); }); } catch {}
+    showToast('Copia restaurada · reiniciando…');
+    ipcRenderer.send('reiniciar-tras-copia');
+    return;
+  }
+  showToast(msg);
 }
 
 function openImportPopup(r) {
@@ -1665,10 +1681,9 @@ function closeImportPopup() {
 }
 
 async function confirmImport() {
-  const res = await ipcRenderer.invoke('apply-import-backup', { resolutions: importResolutions });
+  const res = await ipcRenderer.invoke('apply-import-backup', { resolutions: importResolutions, withSettings: importWithSettings });
   closeImportPopup();
-  if (res.ok) showToast('Copia restaurada');
-  else alert('No se pudo restaurar: ' + (res.error || ''));
+  afterImport(res, 'Copia restaurada');
 }
 
 // ---------- Cuenta / sincronización ----------
