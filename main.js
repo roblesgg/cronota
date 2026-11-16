@@ -37,6 +37,30 @@ app.on('second-instance', () => {
   comprobarPasoAStore();
 });
 
+// 2.9.4: a veces, justo al arrancar con Windows, una ventana (o un iframe del panel) recibe su
+// .html como texto plano y enseña el código en pantalla en vez de la interfaz: la barra
+// lateral, que ocupa toda la pantalla, la llenaba de texto. Cerrar y abrir lo arreglaba. Aquí
+// se comprueba cada carga y, si ha llegado como texto, se recarga (como mucho 3 veces).
+app.on('web-contents-created', (_e, wc) => {
+  const intentos = new Map();
+  const revisar = async (frame) => {
+    try {
+      if (!frame || !/^file:/i.test(frame.url || '')) return;
+      const tipo = await frame.executeJavaScript('document.contentType');
+      if (tipo === 'text/html') return;
+      const n = intentos.get(frame.url) || 0;
+      if (n >= 3) return;
+      intentos.set(frame.url, n + 1);
+      setTimeout(() => { try { frame.reload(); } catch {} }, 300 * (n + 1));
+    } catch {}
+  };
+  wc.on('did-finish-load', () => revisar(wc.mainFrame));
+  wc.on('did-frame-finish-load', (_ev, esPrincipal, procesoId, frameId) => {
+    if (esPrincipal) return;
+    try { revisar(require('electron').webFrameMain.fromId(procesoId, frameId)); } catch {}
+  });
+});
+
 const APP_ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
 // Para las ventanas, el .ico (16-256 px): el PNG es de 2000×2000 y se decodificaba
 // entero (~16 MB) cada vez que se creaba una ventana, como el recordatorio.
