@@ -16,6 +16,7 @@ Lo que hay que saber para trabajar en la app y que no está a la vista en el có
 - `npm start`, o doble clic en `tools/iniciar-dev.vbs`.
 - **Desde la terminal de Claude Code o VS Code no arranca tal cual**: ponen `ELECTRON_RUN_AS_NODE=1`, y Electron se comporta como Node puro (falla al usar `ipcMain`). No basta con dejar la variable vacía: hay que quitarla (`env -u ELECTRON_RUN_AS_NODE electron .` en bash). El `.vbs` ya lo hace.
 - Capturas de cualquier pantalla sin abrir ventanas: `electron tools/snap.js <pagina.html> <salida.png> [tema] [ancho] [alto] [js-antes]`. Usa los datos reales en solo lectura; para no enseñar datos reales, apunta `APPDATA` a una carpeta con datos inventados.
+- **Modo pruebas** (para probar lo del roadmap antes de sacar nada): doble clic en `tools/modo-pruebas.vbs`, o `electron . --pruebas`. Abre la app con el código tal y como está, con sus datos en `%TEMP%\cronota-pruebas` (la primera vez copia los reales; con `--datos-nuevos`, o arrastrando algo encima del `.vbs`, los vuelve a copiar). No toca los datos reales, no se apunta al inicio de Windows ni busca actualizaciones, y el icono de la bandeja pone «PRUEBAS». Puede ir a la vez que la Cronota de la Store; si las barras flotantes se pisan, cierra una.
 - Antes de publicar: `npm run check` (sintaxis, referencias y pintado de la pestaña Tareas). Tiene que decir «Todo en orden».
 
 ## Datos

@@ -7,13 +7,20 @@ const fs = require('fs');
 // Trabaja sobre una copia de los datos en una carpeta temporal, con su propio bloqueo de
 // instancia (puede ir a la vez que la Cronota de siempre). No desinstala nada, no cierra la
 // app, no toca el arranque con Windows ni busca actualizaciones.
+//
+// Modo pruebas (para los desarrollos del roadmap): lo mismo, pero sin el aviso de la Store.
+//   npx electron . --pruebas                 (o doble clic en tools\modo-pruebas.vbs)
+// Sus datos viven en %TEMP%\cronota-pruebas y se conservan entre pruebas; la primera vez (o con
+// --datos-nuevos) se copian los tuyos. Nada de lo que hagas ahí toca tus horas reales.
 const SIMULACRO_STORE = process.argv.includes('--simular-paso-store');
-if (SIMULACRO_STORE) {
-  const caja = path.join(require('os').tmpdir(), 'cronota-simulacro');
+const MODO_PRUEBAS = SIMULACRO_STORE || process.argv.includes('--pruebas');
+if (MODO_PRUEBAS) {
+  const caja = path.join(require('os').tmpdir(), SIMULACRO_STORE ? 'cronota-simulacro' : 'cronota-pruebas');
   try {
+    const copiar = SIMULACRO_STORE || process.argv.includes('--datos-nuevos') || !fs.existsSync(path.join(caja, 'imputa-tasks.json'));
     fs.mkdirSync(caja, { recursive: true });
     const real = path.join(app.getPath('appData'), 'imputa-me');
-    ['imputa-tasks.json', 'imputa-settings.json'].forEach((f) => {
+    if (copiar) ['imputa-tasks.json', 'imputa-settings.json'].forEach((f) => {
       try { fs.copyFileSync(path.join(real, f), path.join(caja, f)); } catch {}
     });
   } catch {}
@@ -506,7 +513,7 @@ function saveSettings() {
 // Al arrancar por el login se le pasa "--hidden" para ir directo a la bandeja
 // sin abrir el panel. En desarrollo no se toca el registro (apuntaría a electron.exe).
 function applyLoginItem() {
-  if (!app.isPackaged || IS_STORE || SIMULACRO_STORE) return;
+  if (!app.isPackaged || IS_STORE || MODO_PRUEBAS) return;
   try {
     app.setLoginItemSettings({ openAtLogin: !!settings.openAtLogin, args: ['--hidden'] });
   } catch {}
@@ -573,7 +580,7 @@ let lastTrayTip = null, lastTrayTipAt = 0;
 function updateTrayTitle() {
   if (!tray) return;
   const active = getActiveTask();
-  const tip = `${SIMULACRO_STORE ? 'SIMULACRO · ' : ''}Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
+  const tip = `${SIMULACRO_STORE ? 'SIMULACRO · ' : MODO_PRUEBAS ? 'PRUEBAS · ' : ''}Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
   const now = Date.now();
   if (tip !== lastTrayTip || now - lastTrayTipAt > 60000) {
     lastTrayTip = tip; lastTrayTipAt = now; tray.setToolTip(tip);
@@ -3598,7 +3605,7 @@ function checkForUpdatesIfStale() {
 function setupAutoUpdate() {
   if (!app.isPackaged) return;          // en desarrollo no existe app-update.yml
   if (IS_STORE) return;                 // la actualiza la Store
-  if (SIMULACRO_STORE) return;          // el simulacro no se actualiza ni instala nada
+  if (MODO_PRUEBAS) return;             // el simulacro y el modo pruebas no se actualizan ni instalan nada
   try {
     ({ autoUpdater } = require('electron-updater'));
   } catch {
@@ -3691,7 +3698,7 @@ app.whenReady().then(() => {
   loadData();
   // 2.9.2: el simulacro deja sus copias dentro de su carpeta temporal, no en tus Documentos, y
   // va sin barra flotante para que no se monte encima de la de tu Cronota de siempre.
-  try { migracion.configurar({ documentos: SIMULACRO_STORE ? path.join(app.getPath('userData'), 'Documentos') : app.getPath('documents') }); } catch {}
+  try { migracion.configurar({ documentos: MODO_PRUEBAS ? path.join(app.getPath('userData'), 'Documentos') : app.getPath('documents') }); } catch {}
   if (SIMULACRO_STORE) settings.dockMode = false;
   if (IS_STORE) recibirTraspaso();   // 2.9.2: la primera vez tras pasar del instalador a la Store
   pruneWeekOverrides();
