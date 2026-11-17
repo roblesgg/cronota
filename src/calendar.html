@@ -665,6 +665,7 @@
 </div>
 
 <script src="shared.js"></script>
+<script src="movimiento.js"></script>
 <script src="glass.js"></script>
 <script src="bocadillo.js"></script>
 <script src="radial.js"></script>
@@ -2646,8 +2647,10 @@ function deletePopupEntry() {
 }
 
 // ---------- Week nav ----------
-function prevWeek() { viewWeekStart = addDays(viewWeekStart,-7); renderWeek(); renderMiniCal(); }
-function nextWeek() { viewWeekStart = addDays(viewWeekStart,7); renderWeek(); renderMiniCal(); }
+// 2.11: la semana nueva entra deslizándose desde el lado hacia el que se va.
+function deslizarSemana(dir) { Mov.deslizar(document.getElementById('weekHeader'), dir); Mov.deslizar(document.getElementById('gridBody'), dir); }
+function prevWeek() { viewWeekStart = addDays(viewWeekStart,-7); renderWeek(); renderMiniCal(); deslizarSemana(-1); }
+function nextWeek() { viewWeekStart = addDays(viewWeekStart,7); renderWeek(); renderMiniCal(); deslizarSemana(1); }
 
 // ---------- Export ----------
 // Al pulsar "Exportar CSV" se abre un popup para elegir QUÉ días exportar; luego

@@ -464,6 +464,7 @@
 </div>
 
 <script src="shared.js"></script>
+<script src="movimiento.js"></script>
 <script src="glass.js"></script>
 <script src="bocadillo.js"></script>
 <script>
@@ -781,8 +782,15 @@ function renderGroups(forzar) {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
       </button>`}`;
     header.onclick = () => {
-      if (collapsedGroups.has(g.id)) collapsedGroups.delete(g.id); else collapsedGroups.add(g.id);
-      renderGroups();
+      // 2.11: la sección se abre y se pliega animando su alto.
+      const cuerpo = () => document.querySelector(`.group-card[data-group-id="${g.id}"] .group-tasks`);
+      if (collapsedGroups.has(g.id)) {
+        collapsedGroups.delete(g.id);
+        renderGroups();
+        Mov.plegar(cuerpo(), true);
+      } else {
+        Mov.plegar(cuerpo(), false, () => { collapsedGroups.add(g.id); renderGroups(); });
+      }
     };
     const btnPal = header.querySelector('.group-pal');
     if (btnPal) btnPal.onclick = (e) => { e.stopPropagation(); abrirPaletas(g.id, btnPal); };

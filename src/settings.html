@@ -874,6 +874,7 @@
 </div>
 
 <script src="shared.js"></script>
+<script src="movimiento.js"></script>
 <script src="glass.js"></script>
 <script src="bocadillo.js"></script>
 <script>
@@ -886,7 +887,10 @@ function irACat(cat, recordar = true) {
   if (!CATS.includes(cat)) cat = CATS[0];
   const app = document.querySelector('.app');
   const cambia = app.dataset.cat !== cat;
+  const antes = CATS.indexOf(app.dataset.cat);
   app.dataset.cat = cat;
+  // 2.11: la categoría nueva entra desde el lado de su pestaña.
+  if (cambia && antes >= 0) app.querySelectorAll(`.section[data-cat="${cat}"]`).forEach(s => Mov.deslizar(s, CATS.indexOf(cat) > antes ? 1 : -1));
   document.querySelectorAll('#cats button').forEach(b => {
     const on = b.dataset.cat === cat;
     b.classList.toggle('active', on);

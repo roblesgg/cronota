@@ -41,7 +41,7 @@ Lo aprendido:
 
 ### Fase 1 · La píldora entre pantallas (2.10)
 
-**Estado (17-11-2026):** programada (`dock-bar-cruza` en `main.js`, `quizaCambiaDePantalla` en `src/dock.html`), falta probarla con el ratón en modo pruebas.
+**Estado (17-11-2026):** hecha y probada por Álvaro en modo pruebas con 3 pantallas (`dock-bar-cruza` en `main.js`, `quizaCambiaDePantalla` en `src/dock.html`). Sale en la próxima versión de la Store.
 
 Hoy la píldora de la barra lateral solo se arrastra dentro de la pantalla en la que está, porque su ventana ocupa exactamente esa pantalla. Para llevarla a otra hay que ir a Ajustes → Barra → Pantalla.
 
@@ -50,6 +50,8 @@ Hoy la píldora de la barra lateral solo se arrastra dentro de la pantalla en la
 - Casos que probar: pantallas con distinta escala (100 % y 150 %), una pantalla encima de otra, desconectar la pantalla elegida y volver a conectarla.
 
 ### Fase 2 · Animar toda la app de punta a punta (2.11)
+
+**Estado (17-11-2026), primera tanda programada, falta verla en modo pruebas:** `src/movimiento.js` (común, con «reducir movimiento» y nada infinito). Panel: las recientes se deslizan a su sitio al reordenarse y la tarjeta de la tarea en marcha da un toque de muelle al cambiar. Tareas: las secciones se abren y pliegan animando el alto. Calendario: la semana entra deslizándose. Ajustes: la categoría entra desde el lado de su pestaña. **Falta**: arrastrar tareas entre secciones, crear y borrar en Tareas, ventanas y medir la CPU.
 
 Objetivo: que cada acción tenga una respuesta visual clara y agradable, sin hacer la app más lenta.
 

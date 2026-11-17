@@ -461,6 +461,7 @@
 </div>
 
 <script src="shared.js"></script>
+<script src="movimiento.js"></script>
 <script src="glass.js"></script>
 <script src="bocadillo.js"></script>
 
@@ -531,6 +532,7 @@ const SVG_PENCIL = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" 
 const SVG_SUB_DEL = `<svg width="11" height="11" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 
 let lastRenderedIds = null;
+let ultimoHeroId;   // undefined hasta el primer pintado: ese no se anima
 const MAX_RECIENTES = 8;   // cuántas tareas recientes caben en el Panel sin que estorbe
 let panelFilter = 'all'; // all | ongoing | oneShot
 
@@ -790,6 +792,12 @@ function renderHero(active) {
   const idle = document.getElementById('heroIdle');
   const live = document.getElementById('heroLive');
   if (!card) return;
+  // 2.11: al cambiar de tarea (o empezar/parar) la tarjeta da un toque de muelle.
+  const heroId = active ? active.id + ':' + (currentState.activeSubId || '') : null;
+  if (heroId !== ultimoHeroId) {
+    if (ultimoHeroId !== undefined) Mov.latido(card);
+    ultimoHeroId = heroId;
+  }
   card.classList.toggle('idle', !active);
   idle.style.display = active ? 'none' : 'block';
   live.style.display = active ? 'flex' : 'none';
@@ -997,6 +1005,7 @@ function render(state) {
   }
 
   lastRenderedIds = flatIds;
+  const antesFilas = Mov.fotos(list, 'data-task-id');   // 2.11: las que ya estaban se deslizan a su sitio nuevo
   list.innerHTML = '';
   const appendSection = (label, arr) => {
     if (!arr.length) return;
@@ -1014,6 +1023,7 @@ function render(state) {
   } else {
     restantes.forEach(t => list.appendChild(buildRow(t, state)));
   }
+  Mov.flip(list, 'data-task-id', antesFilas);
 }
 
 // Sin ticker propio: con una tarea en marcha el proceso principal ya manda el estado
