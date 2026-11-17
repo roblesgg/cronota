@@ -41,6 +41,8 @@ Lo aprendido:
 
 ### Fase 1 · La píldora entre pantallas (2.10)
 
+**Estado (17-11-2026):** programada (`dock-bar-cruza` en `main.js`, `quizaCambiaDePantalla` en `src/dock.html`), falta probarla con el ratón en modo pruebas.
+
 Hoy la píldora de la barra lateral solo se arrastra dentro de la pantalla en la que está, porque su ventana ocupa exactamente esa pantalla. Para llevarla a otra hay que ir a Ajustes → Barra → Pantalla.
 
 - Arrastrarla también **de una pantalla a otra**: mientras se arrastra, el proceso principal sigue el cursor (`screen.getCursorScreenPoint`) y, al cruzar a otra pantalla, mueve la ventana de la barra a esa pantalla y la píldora sigue bajo el dedo sin saltos.

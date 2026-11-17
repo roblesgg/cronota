@@ -290,7 +290,7 @@ function moveBarTo(x, y) {
 document.addEventListener('mousemove', (e) => {
   if (!barDrag) return;
   if (e.buttons === 0) { finishBarDrag(e.clientX, e.clientY); return; }   // se soltó fuera
-  if (barDrag.dragging) { moveBarTo(e.clientX, e.clientY); return; }
+  if (barDrag.dragging) { moveBarTo(e.clientX, e.clientY); quizaCambiaDePantalla(e); return; }
   if (Math.hypot(e.clientX - barDrag.startX, e.clientY - barDrag.startY) > CLICK_SLOP) {
     barDrag.moved = true;
     clearTimeout(barDrag.holdTimer);
@@ -308,7 +308,28 @@ function finishBarDrag(x, y) {
   if (!d.moved) expand();
 }
 document.addEventListener('mouseup', (e) => finishBarDrag(e.clientX, e.clientY));
-window.addEventListener('blur', () => { if (barDrag) finishBarDrag(barDrag.startX, barDrag.startY); });
+window.addEventListener('blur', () => {
+  // Al pasar de pantalla la ventana se mueve y puede perder el foco un momento: eso no suelta la píldora.
+  if (barDrag && (barDrag.cruzando || Date.now() - (barDrag.cruzadaEn || 0) < 800)) return;
+  if (barDrag) finishBarDrag(barDrag.startX, barDrag.startY);
+});
+
+// 2.10: arrastrar la píldora a OTRA pantalla. La ventana de la barra mide justo su pantalla;
+// mientras se arrastra, Windows sigue mandando el ratón a esta ventana aunque salga de ella.
+// Al salir, se pide al proceso principal que mueva la ventana a la pantalla que hay bajo el
+// cursor: la píldora sigue pegada al dedo y al soltarla se encaja en el borde de la nueva.
+function quizaCambiaDePantalla(e) {
+  if (!barDrag || barDrag.cruzando) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  if (e.clientX >= 0 && e.clientY >= 0 && e.clientX < W && e.clientY < H) return;
+  barDrag.cruzando = true;
+  ipcRenderer.send('action', { type:'dock-bar-cruza', payload:{ x: e.screenX, y: e.screenY } });
+}
+ipcRenderer.on('dock-bar-cruzada', () => {
+  if (!barDrag) return;
+  barDrag.cruzando = false;
+  barDrag.cruzadaEn = Date.now();
+});
 
 // Encaja la barrita en el borde más cercano, respetando la separación configurada.
 function snapBarToEdge(x, y) {

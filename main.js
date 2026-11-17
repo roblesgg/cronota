@@ -3158,6 +3158,23 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (dockWin && !dockWin.isDestroyed()) { try { dockWin.focus(); } catch {} }
       break;
     // Vista previa en vivo mientras se toquetea la barra en Ajustes (sin darle a Guardar).
+    // 2.10: la píldora se está arrastrando fuera de su pantalla. La ventana de la barra se
+    // muda a la pantalla que hay bajo el cursor (y se recuerda como la elegida, igual que
+    // desde Ajustes o el menú). El panel se recoloca al soltar, con 'set-dock-config'.
+    case 'dock-bar-cruza': {
+      const p = payload || {};
+      try {
+        const destino = screen.getDisplayNearestPoint({ x: Math.round(Number(p.x) || 0), y: Math.round(Number(p.y) || 0) });
+        if (destino && destino.id !== dockDisplay().id && dockWin && !dockWin.isDestroyed()) {
+          settings.dockDisplayId = destino.id;
+          settings.dockDisplayKey = displayKey(destino);
+          saveSettingsSoon();
+          dockWin.setBounds(computeDockBounds());
+        }
+      } catch {}
+      try { event.reply('dock-bar-cruzada'); } catch {}
+      break;
+    }
     case 'set-dock-config': {
       const { preview, ...vals } = payload || {};
       settings = { ...settings, ...vals };
@@ -3166,7 +3183,7 @@ ipcMain.on('action', (event, { type, payload }) => {
         settings.dockDisplayKey = elegida ? displayKey(elegida) : null;
       }
       saveSettingsSoon();   // los deslizadores disparan esto muchas veces por segundo
-      if (settings.dockMode) { createDock(); positionDock(); }
+      if (settings.dockMode) { createDock(); positionDock(); syncDockBounds(); }   // sync: el panel, por si la píldora cambió de pantalla
       // Con el panel abierto la barrita se oculta; al ajustarla hay que verla.
       if (preview && dockWin && !dockWin.isDestroyed()) {
         const now = Date.now();
