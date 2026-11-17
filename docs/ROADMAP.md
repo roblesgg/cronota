@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 16 de noviembre de 2026 · Versiones publicadas: 2.9.4 (Microsoft Store, publicada el 16-11-2026; también la última del instalador en GitHub) · 2.9.5 en certificación
+Última revisión: 17 de noviembre de 2026 · Publicada: 2.9.5 (Microsoft Store). Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -15,71 +15,29 @@ Todo cambio sigue siempre estos cuatro pasos, sin saltarse ninguno:
 
 ## Fases
 
-### Fase 0 · Primera actualización en la Microsoft Store (2.9.2) — EN CURSO
+### Fase 0 · Paso a la Microsoft Store (2.9.1 – 2.9.6) — CERRADA
 
-**Cuándo:** Microsoft ya publicó la 2.9.1 (12-11-2026), así que el ciclo se puede hacer en cuanto se cierre la lista de abajo. Mientras tanto no se publica nada: los cambios se van guardando en la rama `2.9.2-primera-actualizacion` y se apuntan aquí.
+Desde el 16-11-2026 Cronota **solo se publica en la Microsoft Store**. Hecho:
 
-**Para qué:** aprender el ciclo completo con algo pequeño y de poco riesgo (cambio → beta → estable + Store) antes de las fases grandes. Cuando esta actualización llegue bien a la Store, Álvaro empieza a **promocionar la app**.
+- [x] Nombre Cronota en todo lo que se ve, repositorio `roblesgg/cronota`, logo nuevo y ficha de la Store con fotos y logos.
+- [x] Paso de los usuarios del instalador a la Store (`migracion-store.js`, `src/migrar.html`), con arranque con Windows en la Store y copia diaria en `Documentos\Cronota\Copias automáticas`.
+- [x] 2.9.4 y 2.9.5 publicadas en la Store (la 2.9.5 trae la copia de seguridad completa y quita las entradas repetidas del inicio de Windows).
+- [x] 2.9.6 (sin publicar): sin ventana de bienvenida tras el traspaso.
+- Descartado (17-11-2026): fotos nuevas con ChatGPT, más versiones o arreglos para la versión del instalador, limpieza automática de la versión vieja desde la de la Store. Quien aún la tenga, que la desinstale desde Configuración → Aplicaciones.
 
-Cambios que lleva (se van añadiendo según salen):
+Pendiente que no es código:
 
-- [x] **Calendario · sugerencia de pegar**: «Ctrl+V pegar aquí» sale una sola vez por cada cosa copiada; se va al pegar, con una x o a los 10 s sin pegar. Ctrl+V sigue pegando donde hiciste clic. *(hecho, pendiente de probar en la beta)*
-- [x] **Repositorio y carpeta con el nombre Cronota** (12-11-2026): el repositorio pasa a llamarse `roblesgg/cronota` y el proyecto a `Documents\Mios\Cronota`. Las apps ya instaladas siguen actualizándose por la redirección de GitHub, comprobada con los dos nombres antiguos; las compilaciones nuevas apuntan ya a `cronota`. *En el paso 5, cambiar en la ficha la URL de privacidad por `https://github.com/roblesgg/cronota/blob/main/PRIVACIDAD.md`.*
-- [x] **Fuera «imputame» de todo lo que se ve** (12-11-2026):
-  - archivos que exporta la app (`cronota-horas-….csv`, `cronota-backup-FECHA.json`; las copias antiguas se siguen restaurando);
-  - archivos que se publican (`cronota-setup.exe`, `cronota-portable.exe`, `cronota-store.appx`);
-  - nombre en el Administrador de tareas y en las propiedades del `.exe`, y editor «DripDev» en «Aplicaciones instaladas»;
-  - web, README y política de privacidad.
+- [ ] **Vídeo de la ficha** (ChatGPT con ESL) y cambiar en la ficha la URL de privacidad por `https://github.com/roblesgg/cronota/blob/main/PRIVACIDAD.md`.
+- [ ] **Portátiles de la empresa**: comprobar con un compañero que se instala bien desde la Store.
 
-  Lo que queda por dentro, y por qué, está en `docs/notas-tecnicas.md`. *En la beta: comprobar el nombre en el Administrador de tareas y que una copia antigua se restaura bien.*
-- [x] **Logo nuevo** (12-11-2026): el cronómetro con «CRONOTA» (original en `docs/marca/cronota-logo.webp`). Está en el icono de la app y del `.exe`, en los iconos de la Store, en las imágenes del instalador y en la web. Se regenera con los scripts de `build-hooks/` (pasos en `make-icon-ico.js`).
-- [ ] **Fotos con la interfaz nueva** (la hace ChatGPT; cuando esté): fotos del README (`docs/readme/portada.png` y `capturas.png`) y capturas de la Store, sin «imputame» y con datos inventados.
-- [x] **Ficha de la Store, fotos y logo** (12-11-2026): envío 2, solo ficha y sin paquete nuevo. Lleva las cinco capturas de `docs/store/`, el póster, la caja, los iconos de 300, 150 y 71 y las novedades sin el nombre antiguo. Enviado a certificación el 12-11-2026 por la tarde; se publica solo al aprobarse. Claude in Chrome ya está conectado en el portátil nuevo.
-- [ ] **Ficha de la Store, lo que falta**: el vídeo (lo prepara ChatGPT con ESL) y la URL de privacidad nueva, en el envío de la 2.9.2. Ese envío no se puede abrir hasta que termine la certificación del envío 2.
-- [x] **Pasar a la Store a los que usan el instalador** (12-11-2026: aprobado y programado, falta probarlo). Detalle justo debajo.
+Lo aprendido:
 
-#### Pasar a la Store a los que usan el instalador (aprobado el 12-11-2026)
-
-Son 3 compañeros con la versión del instalador (2.9.0). Objetivo: que pasen a la de la Store con un solo clic y sin perder nada. Código en `migracion-store.js` y ventana en `src/migrar.html`.
-
-1. **Aviso imposible de esquivar** (solo en la versión del instalador): 5 s después de arrancar sale una ventana grande, por encima de todo: «Buenas noticias: Cronota se muda a la Microsoft Store». Lleva el logo animado y el botón de Microsoft que pasó Álvaro, con la letra de la app. No se cierra con Alt+F4: solo con «Más tarde», que la esconde 4 horas o hasta el siguiente arranque. También se abre desde la bandeja («Pasar a la Microsoft Store…»).
-2. **Al pulsar el botón**: guarda una copia completa en `Documentos\Cronota\cronota-traspaso.json` y abre la ficha de la Store. La ventana pasa a «Pulsa Obtener en la Store» y cada 6 s mira si ya está instalada (media hora como mucho).
-3. **En cuanto la de la Store está instalada**, la del instalador se aparta:
-   - para la tarea en marcha y lo guarda todo;
-   - quita su arranque con Windows;
-   - se cierra;
-   - un PowerShell sin ventana la desinstala en silencio y abre la de la Store.
-
-   Lo hace también sola al arrancar, o cuando alguien intenta abrir la de la Store con esta abierta. Así nunca están las dos abiertas a la vez.
-4. **La primera vez que se abre la de la Store**: ve la carpeta de datos de siempre (el desinstalador no la borra). Si aun así arrancara vacía, se trae el traspaso de `Documentos`. Da la bienvenida con cuántas tareas tiene.
-5. **Orden de publicación**: primero la 2.9.2 de la Store, certificada y publicada; después la 2.9.2 estable del instalador, que es la que lleva el aviso. Así nadie llega a una Store sin la bienvenida ni el arranque con Windows. En la beta del instalador sale ya el aviso: que la pruebe Álvaro, o avisar a los «Betatester» de que no lo pulsen todavía.
-
-Hecho además:
-
-- [x] **Arranque con Windows en la de la Store**: el paquete lleva tarea de inicio (`addAutoLaunchExtension`). Como no pasa `--hidden`, la app deduce que es el inicio de sesión si el escritorio arrancó hace menos de 3 minutos, y entonces no abre el panel.
-- [x] **Copia automática** cada día en `Documentos\Cronota\Copias automáticas` (las 14 últimas), en las dos versiones: los datos de la de la Store viven dentro del paquete y Windows los borra si se desinstala. Política de privacidad actualizada.
-
-Pendiente:
-
-- [ ] **Portátiles de la empresa**: comprobar con un compañero que se puede instalar desde la Store.
-- [ ] **Prueba en un equipo real**, en un momento acordado: el aviso, el cambio (desinstalar la antigua y abrir la nueva), los datos y el arranque con Windows de la nueva.
-- [ ] **Después**: ya no habrá usuarios del instalador. Decidir si las betas pasan a los paquetes de prueba de Partner Center o siguen en GitHub solo para quien las pruebe.
-
-El ciclo, paso a paso (la primera vez lo hacemos juntos y se anota aquí lo que se aprenda):
-
-1. Cerrar la lista de arriba y subir la versión a `2.9.2` en `package.json` (también la del bloque `appx`; la Store exige que sea mayor que la publicada) y escribir las novedades en `WHATS_NEW` de `main.js`.
-2. `npm run check` y capturas en segundo plano.
-3. **Beta** `2.9.2-beta.1` en GitHub (prerelease) para los que tienen «Betatester». Unos días de uso; si sale algo, se arregla y `beta.2`.
-4. **Estable** `2.9.2` en GitHub («Latest»): la reciben solos los que usan el instalador. *En la 2.9.2, este paso va después del 5 (ver «Orden de publicación» arriba).*
-5. **Store**: `npm run store` → en Partner Center, *Actualizar* el envío → subir el `.appx` nuevo en Paquetes → poner las novedades en la ficha («Novedades de esta versión») → enviar a certificación (1–3 días). Los de la Store la reciben solos desde la propia Store.
-6. Comprobar en un equipo con la versión de la Store que se actualiza, y unir la rama a `main`.
-
-Lo que se aprenda en esta primera vuelta (tiempos reales, pasos de Partner Center, sorpresas) se apunta aquí debajo:
 
 - **2.9.2 estable en GitHub** (12-11-2026, decisión de Álvaro): sin beta previa y antes que la 2.9.2 de la Store, para que todos pasen ya a la Store. Quien pulse el botón instala la 2.9.1 de la Store, que no arranca sola con Windows hasta que llegue la 2.9.2 allí. La versión de GitHub lleva también `imputame-setup.exe` e `imputame-portable.exe` (copias) para que la web y los enlaces antiguos sigan descargando; se pueden quitar cuando la web apunte a la Store.
 - **2.9.2 retirada a los pocos minutos** (12-11-2026): en el portátil de Álvaro, la app guardaba, se cerraba y no pasaba nada más. El antivirus de la empresa (SentinelOne) no deja correr el PowerShell suelto que desinstalaba la versión vieja, y las dos versiones comparten el bloqueo de instancia única. Se pasó a borrador y se quitó la etiqueta `v2.9.2`; GitHub vuelve a servir la 2.9.0. **2.9.3**: nada en segundo plano. La vieja abre la de la Store y se cierra, sin desinstalarse, y comprueba si está con `reg.exe` en vez de PowerShell. Probada en el portátil de Álvaro por la vía normal: publicada primero solo para «Betatester», se actualizó desde la app, guardó, abrió sola la de la Store y se cerró. **2.9.3 publicada como estable para todos el 12-11-2026 hacia las 16:30.** Una instalación lanzada a mano en silencio y con la app abierta falló (`cronota-setup.exe`, error en `System.dll`); la actualización normal desde la app no.
 - **Cambiar solo la ficha** (12-11-2026, envío 2): Información general → «Iniciar actualización» → Descripciones de Store → Español (España). Cada recuadro de imagen admite un solo archivo. El de una captura que ya existe la sustituye; las nuevas van por el «+». Después, «Guardar» y «Enviar para certificación». Mientras se certifica no se puede abrir otro envío. **Tiempos reales**: el envío 3 (paquete 2.9.4.0) estaba publicado en el catálogo el 16-11-2026 a las 09:03 (hora de España), el mismo día que se mandó. Para comprobar qué versión está publicada sin entrar en Partner Center: `https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=9NXSJVW6BXQF&market=ES&languages=es-es` (busca `PackageFullName`). A cada equipo le llega después, cuando la Store busca actualizaciones.
 - **2.9.5, solo en la Store** (16-11-2026): copia de seguridad completa (tareas, historial y todos los ajustes) y arreglo de las entradas repetidas de inicio con Windows. Sin versión en GitHub. Envío 4 mandado a certificación el 16-11-2026 hacia las 12:30. Partner Center se abre en el Chrome con el perfil donde está la cuenta personal (en Claude in Chrome sale como el segundo navegador conectado).
+- **Desinstalar la versión vieja** (17-11-2026): la de la Store no puede borrar nada fuera de su paquete (Windows le da su propia copia del registro y de AppData). Abriendo el desinstalador viejo con el Explorador se ejecuta de verdad, pero sin `/currentuser` deja los accesos directos y la entrada de «Aplicaciones instaladas». Además cierra también la de la Store, que se llama igual (`imputa.me.exe`).
 
 ### Fase 1 · La píldora entre pantallas (2.10)
 
@@ -119,7 +77,4 @@ Requisito previo: **preguntar a sistemas de Bitec** si permiten una app que lea 
 
 ### Pendientes sueltos
 
-- **Microsoft Store**: además de lo de la Fase 0, más capturas (tema claro, barra flotante, recordatorio, nueva tarea) e imágenes de portada (póster 720×1080 y cuadrada 1080×1080).
 - **«imputame» por dentro**: la app del móvil (paquete Android `me.imputa.app` y sus textos) y los dominios `imputame.dripdev.dev` e `imputame-app.dripdev.dev`, que piden cambios en Vercel, en el DNS y un APK nuevo. El ejecutable y las carpetas del instalador no hace falta cambiarlos si todos pasan a la Store.
-- **Instalador**: confirmar en un equipo real que la actualización silenciosa y la espera ante ficheros ocupados (SentinelOne) funcionan. Si sigue fallando, pedir a sistemas que excluyan la carpeta de la app.
-- **Primera instalación**: decidir si se hace silenciosa o con instalador propio (hoy sale la ventanita de Windows).
