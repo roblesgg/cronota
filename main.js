@@ -2658,7 +2658,9 @@ function recibirTraspaso() {
   }
   settings.traspasoVisto = t.exportedAt;
   saveSettings();
-  setTimeout(() => openMigracion({ modo: 'bienvenida', traidas }), 2500);
+  // 2.9.6: sin bienvenida. Salía cada vez que alguien abría la versión vieja (cada paso deja un
+  // traspaso nuevo) y molestaba más que ayudaba. Los datos se siguen trayendo en silencio.
+  void traidas;
 }
 
 function sendUpdateState(state) {
