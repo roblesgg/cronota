@@ -32,6 +32,8 @@
       "desenfoque-windows.js",
       "capturas-windows.js",
       "migracion-store.js",
+      "outlook-ics.js",
+      "en-llamada.js",
       "src/**/*",
       "assets/**/*",
       "package.json",

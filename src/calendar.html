@@ -233,6 +233,19 @@
   .day-col.today { background-color:color-mix(in srgb, var(--accent2) 8%, transparent); }
   .day-col.selected { box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--accent2) 38%, transparent); }
 
+  /* 2.12: reuniones de Outlook (enlace ICS). Debajo de las entradas, a rayas, y un clic las imputa. */
+  .reunion-block {
+    position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 7px;box-sizing:border-box;
+    font-size:11px;line-height:1.25;color:var(--text2);overflow:hidden;cursor:pointer;-webkit-app-region:no-drag;
+    border:1.5px dashed color-mix(in srgb, var(--text3) 70%, transparent);
+    background:color-mix(in srgb, var(--text3) 9%, transparent);
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .reunion-block:hover { background:color-mix(in srgb, var(--accent2) 14%, transparent); border-color:var(--accent2); color:var(--text); }
+  .reunion-block .rb-titulo { font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .reunion-block .rb-hora { opacity:.75; white-space:nowrap; }
+  .reunion-block .rb-imputar { display:none; font-weight:650; color:var(--accent2); }
+  .reunion-block:hover .rb-imputar { display:inline; }
   .task-block {
     position:absolute;left:2px;right:2px;border-radius:6px;padding:8px 7px;
     font-size:12px;color:#fff;overflow:hidden;cursor:pointer;
@@ -1323,13 +1336,56 @@ function refrescarMenuDias() {
 }
 
 // ---------- Week grid ----------
-let forceNextRenderWeek = false;   // ver closePopup(): el popup tapaba el bloque, el próximo refresco no se debe saltar
+let forceNextRenderWeek = false;
+
+// 2.12: reuniones de Outlook de la semana que se ve (las lee el proceso principal del enlace ICS).
+let reunionesSemana = [], reunionesClave = '';
+function cargarReuniones() {
+  const desde = viewWeekStart.getTime(), hasta = desde + 7 * 86400000;
+  ipcRenderer.invoke('reuniones', { desde, hasta }).then((r) => {
+    const lista = Array.isArray(r) ? r : [];
+    const clave = desde + ':' + JSON.stringify(lista);
+    if (clave === reunionesClave) return;
+    reunionesClave = clave; reunionesSemana = lista;
+    forceNextRenderWeek = true; renderWeek();
+  }).catch(() => {});
+}
+ipcRenderer.on('reuniones-cambiadas', () => cargarReuniones());
+
+function pintarReuniones(col, date) {
+  const dayStart = startOfDay(date).getTime(), dayEnd = dayStart + 86400000;
+  reunionesSemana.forEach((r) => {
+    if (r.fin <= dayStart || r.inicio >= dayEnd) return;
+    const from = Math.max(r.inicio, dayStart), to = Math.min(r.fin, dayEnd);
+    const startH = (from - dayStart) / 3600000, endH = (to - dayStart) / 3600000;
+    const b = document.createElement('div');
+    b.className = 'reunion-block';
+    b.style.top = (startH * ROW_H) + 'px';
+    b.style.height = Math.max(14, (endH - startH) * ROW_H - 2) + 'px';
+    const hora = `${hourToHHMM(startH)}–${hourToHHMM(endH)}`;
+    b.title = `${r.titulo}${r.lugar ? ' · ' + r.lugar : ''}
+${hora} · Reunión de Outlook. Clic para imputarla.`;
+    const t = document.createElement('div'); t.className = 'rb-titulo'; t.textContent = r.titulo;
+    const h = document.createElement('div'); h.className = 'rb-hora'; h.textContent = hora + ' ';
+    const i = document.createElement('span'); i.className = 'rb-imputar'; i.textContent = '· Imputar';
+    h.appendChild(i); b.appendChild(t); b.appendChild(h);
+    b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      abrirNuevaEntrada(date, startH, endH);
+      const nota = document.getElementById('popupNote');
+      if (nota) { nota.value = r.titulo.slice(0, 500); try { autoGrowTextarea(nota); } catch {} }
+    });
+    col.appendChild(b);
+  });
+}   // ver closePopup(): el popup tapaba el bloque, el próximo refresco no se debe saltar
 function renderWeek() {
   // No reconstruir la rejilla mientras hay un arrastre/resize/move activo (destruiría el DOM en uso).
   // Ya NO se salta el render por :hover: los ticks de tarea en curso se atienden con
   // updateRunningBlocksLive() sin tirar abajo la rejilla (ver handler de "state").
   if (dragState || resizeState || moveState || calDnDBusy) return;
   forceNextRenderWeek = false;
+  cargarReuniones();   // 2.12: si cambian (u otra semana), vuelve a pintar una vez
   const weekEndDay = addDays(viewWeekStart, 6);
   const sameMonth = viewWeekStart.getMonth() === weekEndDay.getMonth();
   const label = sameMonth
@@ -1449,6 +1505,7 @@ function tpElegirPrimero() {
 
 function renderDayEntries(col, date) {
   if (!currentState) return;
+  pintarReuniones(col, date);
   const dayStart = startOfDay(date).getTime();
   const dayEnd = dayStart + 86400000;
   currentState.tasks.forEach(task => {

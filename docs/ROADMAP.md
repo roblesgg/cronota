@@ -65,20 +65,18 @@ Objetivo: que cada acción tenga una respuesta visual clara y agradable, sin hac
 - Respetar «reducir movimiento» de Windows y no tener animaciones infinitas (ya se quitaron por consumo de CPU).
 - Medir antes y después: que no suba el uso de CPU con el panel abierto ni plegado.
 
-### Fase 3 · Outlook y Teams, solo lectura (2.12)
+### Fase 3 · Outlook y llamadas, sin registrar ninguna app (2.12)
 
-Requisito previo: **preguntar a sistemas de Bitec** si permiten una app que lea el calendario y el estado de Teams (suele hacer falta el consentimiento del administrador).
+Decidido el 18-11-2026: nada de Microsoft Graph ni apps registradas en Azure (habría que pedir permiso a sistemas). Se hace con lo estándar:
 
-- Iniciar sesión con la cuenta de Microsoft (MSAL, flujo con PKCE y el navegador del sistema; tokens cifrados con `safeStorage`).
-- **Calendario de Outlook** en el calendario de Cronota: las reuniones como bloques aparte, con un clic para imputarlas.
-- **Estado de Teams**: si estás en «No molestar» o en una llamada, Cronota silencia sus avisos.
-- Actualizar la política de privacidad (`PRIVACIDAD.md` y `web/privacidad.html`) antes de publicar.
+- **Reuniones de Outlook por enlace ICS** (`outlook-ics.js`): en Outlook, Configuración → Calendario → Calendarios compartidos → **Publicar un calendario** (permiso «Puede ver títulos y ubicaciones») y se pega el vínculo ICS en Ajustes → Calendario. Cronota lo descarga cada 15 min; las reuniones salen en el calendario a rayas y un clic abre «Nueva entrada» con sus horas y su título como nota. Entiende reuniones periódicas, excepciones y movidas. Solo lectura.
+- **Sin avisos en llamadas** (`en-llamada.js`): si alguna app tiene el micrófono abierto (Teams, Meet, Zoom...), Windows lo apunta en el registro; Cronota lo lee con `reg.exe` cada 20 s y no saca avisos (como No molestar). Ajustes → Avisos dice qué app está en llamada.
+- Política de privacidad actualizada.
+- **Estado (18-11-2026):** programado, falta que Álvaro lo pruebe en modo pruebas con su vínculo ICS y en una llamada de Teams.
 
-### Fase 4 · Outlook y Teams, más allá (2.13)
+### Fase 4 · Descartada por ahora
 
-- Cambiar el estado de Teams desde Cronota (por ejemplo, «Ocupado» al empezar una tarea de concentración).
-- Al empezar una reunión del calendario, proponer cambiar a su tarea.
-- Opcional: llevar los ratos de Cronota a Outlook como eventos.
+Cambiar el estado de Teams o crear eventos en Outlook desde Cronota necesita una app registrada en Azure (Microsoft Graph). Solo si algún día sistemas lo aprueba.
 
 ### Pendientes sueltos
 

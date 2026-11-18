@@ -513,6 +513,18 @@
     <div class="section-label">Avisos</div>
     <div class="card">
       <div class="row">
+        <span class="ico" data-ico="campana" style="--ic:#5e5ce6"></span>
+        <div class="row-text">
+          <span class="row-title">Sin avisos en llamadas</span>
+          <span class="row-desc" id="llamadaEstado">Mientras alguna app use el micrófono (Teams, Meet, Zoom…)</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="silenciarEnLlamada">
+          <span class="switch-track"></span>
+          <span class="switch-knob"></span>
+        </label>
+      </div>
+      <div class="row">
         <span class="ico" data-ico="campana" style="--ic:#ff5a52"></span>
         <div class="row-text">
           <span class="row-title">Recordatorio</span>
@@ -659,6 +671,20 @@
             Añadir enlace
           </button>
           <button class="btn-ghost" onclick="probarImpute()" style="white-space:nowrap;padding:9px 14px">Probar</button>
+        </div>
+      </div>
+      <div class="row col">
+        <div class="row-head">
+          <span class="ico" data-ico="calendario" style="--ic:#0f6cbd"></span>
+          <div class="row-text">
+            <span class="row-title">Reuniones de Outlook</span>
+            <span class="row-desc" id="outlookEstado">Pega el vínculo ICS de Outlook → Configuración → Calendario → Calendarios compartidos → Publicar un calendario</span>
+          </div>
+        </div>
+        <input type="text" id="outlookIcsUrl" maxlength="2000" placeholder="https://outlook.office365.com/owa/calendar/…/calendar.ics" autocomplete="off" spellcheck="false" style="width:100%;box-sizing:border-box">
+        <div style="display:flex;gap:8px">
+          <button class="btn-ghost" onclick="conectarOutlook()" style="white-space:nowrap;padding:9px 14px">Conectar</button>
+          <button class="btn-ghost" onclick="quitarOutlook()" id="outlookQuitar" style="white-space:nowrap;padding:9px 14px">Quitar</button>
         </div>
       </div>
       <div class="row">
@@ -1445,6 +1471,42 @@ document.getElementById('blurEnabled').addEventListener('change', (e) => {
   ipcRenderer.send('action', { type:'set-blur', payload:{ enabled: e.target.checked } });
 });
 
+// ---------- Outlook y llamadas (2.12) ----------
+document.getElementById('silenciarEnLlamada').addEventListener('change', (e) => {
+  ipcRenderer.send('action', { type:'set-setting', payload:{ key:'silenciarEnLlamada', value: e.target.checked } });
+  pintarLlamada();
+});
+async function pintarLlamada() {
+  const el = document.getElementById('llamadaEstado');
+  if (!document.getElementById('silenciarEnLlamada').checked) { el.textContent = 'Mientras alguna app use el micrófono (Teams, Meet, Zoom…)'; return; }
+  let apps = [];
+  try { apps = await ipcRenderer.invoke('en-llamada'); } catch {}
+  el.textContent = apps && apps.length ? `Ahora: en llamada (${apps.join(', ')}) · avisos en silencio` : 'Mientras alguna app use el micrófono (Teams, Meet, Zoom…)';
+}
+setInterval(() => { if (!document.hidden && document.querySelector('.app').dataset.cat === 'avisos') pintarLlamada(); }, 5000);
+
+async function pintarEstadoOutlook(probar) {
+  const el = document.getElementById('outlookEstado');
+  let e = null;
+  try { e = await ipcRenderer.invoke('outlook-estado', { probar: !!probar }); } catch {}
+  document.getElementById('outlookQuitar').style.display = e && e.conectado ? '' : 'none';
+  if (!e || !e.conectado) { el.textContent = 'Pega el vínculo ICS de Outlook → Configuración → Calendario → Calendarios compartidos → Publicar un calendario'; return; }
+  if (e.error && !e.ok) { el.textContent = 'No se pudo leer: ' + e.error; return; }
+  el.textContent = `Conectado · ${e.estaSemana} reunión(es) esta semana` + (e.error ? ' · la última vez falló, se usa la copia' : '') + ' · se ven en el Calendario; clic en una para imputarla';
+}
+async function conectarOutlook() {
+  const url = document.getElementById('outlookIcsUrl').value.trim();
+  if (!/^(https|webcal)://S+$/i.test(url)) { alert('Pega el vínculo ICS completo (empieza por https:// y acaba en .ics).'); return; }
+  ipcRenderer.send('action', { type:'set-setting', payload:{ key:'outlookIcsUrl', value: url } });
+  document.getElementById('outlookEstado').textContent = 'Leyendo el calendario…';
+  setTimeout(() => pintarEstadoOutlook(true), 300);
+}
+function quitarOutlook() {
+  document.getElementById('outlookIcsUrl').value = '';
+  ipcRenderer.send('action', { type:'set-setting', payload:{ key:'outlookIcsUrl', value: '' } });
+  setTimeout(() => pintarEstadoOutlook(), 200);
+}
+
 // ---------- Carga de ajustes ----------
 ipcRenderer.on('settings', (_, s) => {
   document.getElementById('reminderMinutes').value = s.reminderMinutes || 10;
@@ -1483,6 +1545,9 @@ ipcRenderer.on('settings', (_, s) => {
   pintarImpute();
 
   document.getElementById('eyeCareEnabled').checked = !!s.eyeCareEnabled;
+  document.getElementById('silenciarEnLlamada').checked = s.silenciarEnLlamada !== false;
+  if (document.activeElement !== document.getElementById('outlookIcsUrl')) document.getElementById('outlookIcsUrl').value = s.outlookIcsUrl || '';
+  pintarEstadoOutlook();
   document.getElementById('eyeCareEvery').value = s.eyeCareEvery || 20;
   document.getElementById('eyeCareEveryLabel').textContent = (s.eyeCareEvery || 20) + ' min';
   document.getElementById('eyeCareRest').value = s.eyeCareRest || 20;

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, dialog, nativeTheme, Notification, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, dialog, nativeTheme, Notification, desktopCapturer, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -85,6 +85,8 @@ const USAR_DESENFOQUE_SISTEMA = false;
 const IS_STORE = !!process.windowsStore;
 // 2.9.2: paso de la versión del instalador a la de la Store y copias diarias en Documentos\Cronota.
 const migracion = require('./migracion-store');
+const outlookIcs = require('./outlook-ics');     // 2.12: reuniones de Outlook por enlace ICS
+const enLlamada = require('./en-llamada');       // 2.12: ¿micrófono en uso? → avisos en silencio
 const { GROUP_PALETTES, colorFromGroupPalette } = require('./palettes');
 // Versión de la interfaz: la 3 es el rediseño de la 2.8 (Noche cálida). Al pasar a ella se
 // estrena el tema nuevo una vez; después cada cual elige el que quiera en Ajustes.
@@ -444,6 +446,8 @@ let settings = {
   lastView: 'panel',    // última vista abierta: la app vuelve a abrirse por donde la dejaste
   archiveDays: 30,      // días sin usar una tarea antes de que pase al Archivador (0 = nunca)
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
+  outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
+  silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
   traspasoVisto: null,  // 2.9.2, versión de la Store: fecha del traspaso desde el instalador ya recibido
 };
 
@@ -1122,7 +1126,7 @@ function resetReminderTimer() {
 
 function showReminder() {
   if (!state.activeTaskId) return;
-  if (dndActive()) { reminderTimer = setTimeout(showReminder, getReminderMs()); return; }
+  if (silenciado()) { reminderTimer = setTimeout(showReminder, getReminderMs()); return; }
   if (widgetWin && !widgetWin.isDestroyed()) { sendStateToWindow(widgetWin); widgetWin.showInactive(); scheduleWidgetAutoHide(); }
   else createWidgetWindow();
   reminderTimer = setTimeout(showReminder, getReminderMs());
@@ -1140,6 +1144,13 @@ function dndActive() {
   if (d > Date.now()) return true;
   if (d !== 0) { settings.dndUntil = 0; saveSettings(); broadcastState(); }   // ya venció
   return false;
+}
+
+// 2.12: además de No molestar, en una llamada (alguna app con el micrófono abierto) tampoco
+// sale ningún aviso encima.
+let appsEnLlamada = [];
+function silenciado() {
+  return dndActive() || (settings.silenciarEnLlamada !== false && appsEnLlamada.length > 0);
 }
 
 // minutos = 0 lo deja puesto hasta que se quite; null lo quita.
@@ -1204,7 +1215,7 @@ function checkLeaveTime() {
   // Con No molestar puesto no se avisa, pero si se para: parar no interrumpe nada, y es
   // justo lo que se ha pedido que pase. Sin parada automatica, se deja sin marcar para
   // que el aviso llegue en cuanto se quite el silencio.
-  if (dndActive() && !settings.leaveAutoStop) return;
+  if (silenciado() && !settings.leaveAutoStop) return;
   leaveNotifiedOn = corte;
 
   if (settings.leaveAutoStop) {
@@ -1215,14 +1226,14 @@ function checkLeaveTime() {
     state.activeTaskId = null;
     state.activeSubId = null;
     saveData(); broadcastState(); updateTrayTitle(); resetReminderTimer();
-    if (!dndActive()) notifyLeaveTime(task, true, corte);
+    if (!silenciado()) notifyLeaveTime(task, true, corte);
     return;
   }
 
   // Solo aviso: aqui si tiene sentido rendirse si ya es tarde. Un recordatorio de que
   // pares la tarea saltando a las tres de la madrugada no le sirve a nadie.
   if (Date.now() - corte > 60 * 60000) return;
-  if (!dndActive()) notifyLeaveTime(task, false, corte);
+  if (!silenciado()) notifyLeaveTime(task, false, corte);
 }
 
 function notifyLeaveTime(task, parada, corte) {
@@ -1561,7 +1572,7 @@ function createEyeCareWindow() {
 
 function showEyeCare(segundos, forzar) {
   // forzar = la vista previa de Ajustes, que la pide el usuario a propósito.
-  if (dndActive() && !forzar) return;
+  if (silenciado() && !forzar) return;
   const win = createEyeCareWindow();
   if (!win || win.isDestroyed()) return;
   const secs = Math.max(1, Number(segundos) || Number(settings.eyeCareRest) || 20);
@@ -2677,6 +2688,7 @@ function sendUpdateState(state) {
 // ── IPC ───────────────────────────────────────────────────────────────────────
 function getSerializableState() {
   return {
+    enLlamada: appsEnLlamada,   // 2.12: apps con el micrófono abierto (Ajustes lo enseña)
     tasks: state.tasks.map(t => {
       const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
       return {
@@ -2988,6 +3000,8 @@ ipcMain.on('action', (event, { type, payload }) => {
       saveSettingsSoon();
       if (key === 'reminderMinutes' || key === 'widgetAutoHide' || key === 'widgetAutoHideSeconds') resetReminderTimer();
       if (key === 'openAtLogin') applyLoginItem();
+      if (key === 'outlookIcsUrl' && outlook) outlook.configurar(payload.value);
+      if (key === 'silenciarEnLlamada' && vigiaLlamadas) { if (payload.value) vigiaLlamadas.encender(); else vigiaLlamadas.apagar(); }
       if (key === 'widgetScale') widgetBounds = null;   // el sitio guardado era del tamaño de antes
       if (key === 'liquidGlass') { broadcastTheme(); sendDockConfig(); }   // estilo: cristal o plano, al momento
       broadcastState();   // p. ej. colorMode lo usan los selectores de color
@@ -3726,7 +3740,7 @@ function setupAutoUpdate() {
 }
 
 function notifyUpdateAvailable(version) {
-  if (dndActive()) return;   // el botón del panel sigue estando; el aviso encima, no
+  if (silenciado()) return;   // el botón del panel sigue estando; el aviso encima, no
   try {
     if (!Notification.isSupported()) return;
     const n = new Notification({
@@ -3757,6 +3771,33 @@ function checkForUpdates(manual) {
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
+// ── Outlook (enlace ICS) y llamadas (2.12) ─────────────────────────────────────
+let outlook = null, vigiaLlamadas = null;
+function avisarReuniones() {
+  BrowserWindow.getAllWindows().forEach(w => { try { if (!w.isDestroyed()) sendToAllFrames(w, 'reuniones-cambiadas'); } catch {} });
+}
+function arrancarOutlookYLlamadas() {
+  try {
+    outlook = outlookIcs.crear({ carpeta: app.getPath('userData'), alCambiar: avisarReuniones, fetchFn: (u, o) => net.fetch(u, o) });
+    outlook.configurar(settings.outlookIcsUrl);
+  } catch {}
+  try {
+    vigiaLlamadas = enLlamada.vigilar((apps) => { appsEnLlamada = apps; broadcastState(); });
+    if (settings.silenciarEnLlamada !== false) vigiaLlamadas.encender();
+  } catch {}
+}
+ipcMain.handle('reuniones', (_e, r) => {
+  try { return outlook ? outlook.reuniones(Number(r && r.desde) || 0, Number(r && r.hasta) || 0) : []; } catch { return []; }
+});
+ipcMain.handle('en-llamada', () => appsEnLlamada);
+ipcMain.handle('outlook-estado', async (_e, opts) => {
+  if (!outlook) return { conectado: false };
+  if (opts && opts.probar) await outlook.descargar();
+  const lunes = new Date(); lunes.setHours(0, 0, 0, 0); lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
+  const n = outlook.reuniones(lunes.getTime(), lunes.getTime() + 7 * 86400000).length;
+  return { ...outlook.estado(), estaSemana: n };
+});
+
 app.whenReady().then(() => {
   // El vigilante de capturas arranca solo cuando alguna ventana se excluye (ver fuente-dxgi).
   DATA_FILE = path.join(app.getPath('userData'), 'imputa-tasks.json');
@@ -3775,6 +3816,7 @@ app.whenReady().then(() => {
   if (!(settings.tutorialSeenSteps || []).length) tourActive = true;
   startLeaveWatcher();
   startEyeCareTimer();
+  arrancarOutlookYLlamadas();
   // No molestar se apaga solo al vencer: dndActive() lo caduca y avisa a las vistas.
   setInterval(() => { if (settings.dndUntil) dndActive(); }, 30000);
 

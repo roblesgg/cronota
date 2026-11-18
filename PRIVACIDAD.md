@@ -1,6 +1,6 @@
 # Política de privacidad de Cronota
 
-_Última actualización: 12 de noviembre de 2026_
+_Última actualización: 18 de noviembre de 2026_
 
 Cronota es una aplicación para Windows que registra el tiempo que dedicas a cada tarea para que luego puedas imputarlo. Esta política explica qué datos maneja, dónde se guardan y qué control tienes sobre ellos.
 
@@ -26,6 +26,14 @@ Sin cuenta, la aplicación funciona igual, solo que en local.
 ## Lectura de la pantalla para el efecto de cristal
 
 Con el estilo «Cristal líquido», Cronota lee la imagen de la pantalla que queda detrás de sus paneles para dibujar el efecto de cristal desenfocado. Esa imagen se usa **solo en memoria, en tu equipo**: no se guarda en disco ni se envía a ningún sitio. Si prefieres que no se lea la pantalla, elige el estilo «Plano» en Ajustes → Apariencia.
+
+## Calendario de Outlook (opcional)
+
+Si pegas en Ajustes el vínculo ICS de un calendario que has publicado en Outlook, Cronota lo descarga desde Microsoft cada 15 minutos para enseñarte tus reuniones en su calendario. El vínculo y la última copia del calendario se guardan solo en tu equipo y no se envían a nadie más. Cronota solo lee ese calendario: no puede crear, cambiar ni borrar reuniones. Para dejar de usarlo, pulsa «Quitar» en Ajustes, y si quieres que el vínculo deje de funcionar, deja de publicar el calendario en Outlook.
+
+## Llamadas (opcional)
+
+Si tienes encendido «Sin avisos en llamadas», Cronota mira cada 20 segundos en el registro de Windows qué aplicaciones están usando el micrófono, solo para saber si estás en una llamada y no interrumpirte con avisos. Cronota no usa el micrófono, no escucha nada y no guarda esa información.
 
 ## Portapapeles
 
