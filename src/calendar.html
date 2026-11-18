@@ -335,6 +335,9 @@
 
   /* Al añadirla, la gota se convierte en la tarjeta: la gota se ensancha y se disuelve mientras
      la tarjeta nueva sale de ella (de redonda y borrosa a su forma de siempre). */
+  /* Al descartarla, la gota se encoge y se evapora. */
+  .reunion-block.gota-evapora { animation:gotaEvapora .3s cubic-bezier(.4,0,1,1) both !important; }
+  @keyframes gotaEvapora { to { opacity:0; transform:scale(.85); filter:blur(5px); } }
   .gota-fantasma { pointer-events:none !important; animation:gotaSeVa .55s cubic-bezier(.4,0,.2,1) both !important; z-index:6 !important; }
   @keyframes gotaSeVa { 0% { opacity:1; transform:none; filter:none; } 100% { opacity:0; transform:scale(1.06,1.02); filter:blur(6px); } }
   .task-block.de-gota { animation:deGota .65s cubic-bezier(.34,1.56,.64,1) both; }
@@ -883,6 +886,7 @@ function calendarStructuralSignature(state) {
     });
   });
   const st = state.settings || {};
+  parts.push('d:' + (state.outlookDescartadas || []).join(','));   // 2.12: descartar / Ctrl+Z repinta al momento
   parts.push(JSON.stringify(st.weekOverrides || {}));
   parts.push(JSON.stringify(st.weekDays || {}));
   return parts.join("|");
@@ -1466,7 +1470,16 @@ function marcaOutlook() {
   return m;
 }
 
-function descartarReunion(id) {
+// Las que se acaban de descartar se esconden ya, sin esperar a que el proceso principal
+// conteste; en cuanto llega el estado con ellas dentro, este apaño sobra.
+const descartandoAhora = new Set();
+function descartarReunion(id, el) {
+  descartandoAhora.add(id);
+  if (el) {
+    el.style.pointerEvents = 'none';
+    el.classList.add('gota-evapora');
+    setTimeout(() => el.remove(), 320);
+  }
   // Va al estado de las tareas (no a los ajustes) para que Ctrl+Z la vuelva a traer.
   ipcRenderer.send('action', { type:'descartar-reunion', payload:{ id } });
 }
@@ -1476,7 +1489,9 @@ function pintarReuniones(col, date) {
   const ahora = Date.now();
   // Ya no son sugerencias: las añadidas (la entrada guarda de qué reunión viene; se ve la
   // entrada y basta) y las descartadas.
-  const fuera = new Set(currentState.outlookDescartadas || []);
+  const confirmadas = currentState.outlookDescartadas || [];
+  confirmadas.forEach(id => descartandoAhora.delete(id));
+  const fuera = new Set([...confirmadas, ...descartandoAhora]);
   (currentState.tasks || []).forEach(t => { if (!t.deleted) t.entries.forEach(e => { if (e.outlookId) fuera.add(e.outlookId); }); });
   reunionesSemana.forEach((r) => {
     if (r.fin <= dayStart || r.inicio >= dayEnd) return;
@@ -1498,7 +1513,7 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
     b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook());
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
-    x.addEventListener('click', (e) => { e.stopPropagation(); descartarReunion(r.id); });
+    x.addEventListener('click', (e) => { e.stopPropagation(); descartarReunion(r.id, b); });
     if (!gotasVistas.has(r.id)) { gotasVistas.add(r.id); b.classList.add('gota-nueva'); }
     b.addEventListener('click', (e) => {
       gotaCandidata = { id: r.id, top: b.style.top, height: b.style.height, html: b.innerHTML };
