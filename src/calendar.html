@@ -293,6 +293,9 @@
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), 0 1px 3px rgba(0,0,0,.3);
   }
   .outlook-marca svg { display:block; width:100%; height:100%; }
+  /* En las tarjetas añadidas se puede pulsar: abre el calendario de Outlook. */
+  .outlook-marca.abre { pointer-events:auto; cursor:pointer; transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .15s ease; }
+  .outlook-marca.abre:hover { transform:scale(1.18); background:#0f6cbd; }
   .reunion-block.bajita .outlook-marca, .task-block.mini .outlook-marca { bottom:auto; top:50%; transform:translateY(-50%); }
   .reunion-block.bajita { padding-right:42px; }
   .reunion-block.bajita .rb-descartar { top:50%; right:22px; margin-top:-8px; }
@@ -1739,7 +1742,18 @@ function renderDayEntries(col, date) {
         block.appendChild(bottomHandle);
       }
 
-      if (entry.outlookId) block.appendChild(marcaOutlook());   // 2.12: viene de una reunión de Outlook
+      if (entry.outlookId) {
+        // 2.12: viene de una reunión de Outlook. 2.13: el iconito abre el calendario de Outlook en ese día.
+        const m = marcaOutlook();
+        m.classList.add('abre');
+        m.title = 'Abrir el calendario de Outlook';
+        m.addEventListener('mousedown', (e) => e.stopPropagation());   // no es arrastrar la tarjeta
+        m.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ipcRenderer.send('action', { type:'abrir-outlook', payload:{ que:'calendario', dia: entry.start } });
+        });
+        block.appendChild(m);
+      }
       col.appendChild(block);
       // 2.12: la tarjeta nueva de una reunión sale de su gota (la gota se disuelve encima).
       if (gotaPendiente && entry.outlookId === gotaPendiente.id && Date.now() - gotaPendiente.t < 6000) {
