@@ -95,7 +95,7 @@ Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
 - «Pararla automáticamente a esa hora» en Ajustes → Avisos.
 - 12 temas nuevos (6 con brillo, 6 clásicos) y 9 colores de acento más, entre ellos «Outlook».
 
-**Sobra ahora que solo se publica en la Store (quitar en la próxima versión, junto con la cuenta y el móvil):**
+**Quitado el 18-11-2026 (sale en la próxima versión):** actualizador y canal beta, paso del instalador a la Store, arranque del instalador, compilación del instalador, cuenta y sincronización con Supabase, app del móvil (`movil/`), `desenfoque-windows.js` y código suelto, pasos del tutorial viejos; web, README, privacidad y notas técnicas al día. «Ver las N» en el Panel cuando hay tareas fuera de Recientes. Detalle de lo que se quitó:
 - Actualizador de GitHub y canal beta: `setupAutoUpdate`, `checkForUpdatesIfStale`, `installUpdateNow`, la ventana `src/update.html`, la barra roja de «Actualizar» del Panel, el interruptor «Betatester» y «Volver a la estable», y `electron-updater`.
 - Paso del instalador a la Store: `src/migrar.html`, casi todo `migracion-store.js` (quedan `copiaDelDia`, `ajustesTraspasables` y `arranqueDeSesion`, mejor en un `copias.js`), `SIMULACRO_STORE`, «Pasar a la Microsoft Store…» de la bandeja, `tools/simular-paso-store.vbs`.
 - Arranque con Windows del instalador (`applyLoginItem`, `quitarArranquesDelInstalador`).
