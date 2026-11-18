@@ -1442,7 +1442,7 @@ const ICONO_OUTLOOK = '<svg class="rb-ico" viewBox="0 0 16 16" aria-hidden="true
 // Gotas ya vistas (solo caen con animación la primera vez) y la que se está añadiendo, para
 // convertirla en tarjeta en cuanto llegue la entrada nueva (ver renderDayEntries).
 const gotasVistas = new Set();
-let gotaCandidata = null, gotaPendiente = null;
+let gotaCandidata = null, gotaPendiente = null, gotaOculta = null;
 
 function descartarReunion(id) {
   // Va al estado de las tareas (no a los ajustes) para que Ctrl+Z la vuelva a traer.
@@ -1480,6 +1480,9 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     if (!gotasVistas.has(r.id)) { gotasVistas.add(r.id); b.classList.add('gota-nueva'); }
     b.addEventListener('click', (e) => {
       gotaCandidata = { id: r.id, top: b.style.top, height: b.style.height, html: b.innerHTML };
+      // Mientras se elige la tarea, el borrador de la entrada ocupa ese hueco: la gota se aparta
+      // para que no se pisen los textos. Si se cancela, vuelve (closePopup).
+      gotaOculta = b; b.style.visibility = 'hidden';
       e.stopPropagation();
       abrirNuevaEntrada(date, startH, endH);
       popupCtx.reunionId = r.id;   // savePopup lo manda: el proceso principal recorta solapes y evita repetirla
@@ -2778,6 +2781,7 @@ function showPopup(ancla, alMostrar) {
 function reapuntarPopup(ancla) { bocadilloEntrada.reapuntar(ancla); }
 
 function closePopup() {
+  if (gotaOculta) { if (gotaOculta.isConnected) gotaOculta.style.visibility = ''; gotaOculta = null; }
   document.getElementById('popupBackdrop').style.display = 'none';
   bocadilloEntrada.cerrar();
   popupMode = null; popupCtx = null;
