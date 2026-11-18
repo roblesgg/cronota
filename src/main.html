@@ -834,7 +834,7 @@ function render(state) {
   const visibleTasks = state.tasks.filter(t => !t.archived && !t.deleted && !t.inactive);
   const active = state.tasks.find(t => t.id === state.activeTaskId);
   document.getElementById('totalTime').textContent = fmt(state.todayTotal);
-  document.getElementById('subtitle').textContent = `${visibleTasks.length} tarea(s)`;
+  document.getElementById('subtitle').textContent = `${state.tasks.filter(t => !t.deleted).length} tarea(s)`;   // 2.13: todas, también las guardadas (como «ver las N»)
 
   renderHero(active);
 
@@ -891,8 +891,17 @@ function render(state) {
     .filter(t => panelFilter === 'all' || taskTypeOf(t) === panelFilter)
     .sort((a, b) => ultimoUso(b) - ultimoUso(a));
   const restantes = todas.slice(0, MAX_RECIENTES);
+  // 2.13: «ver todas» sale siempre que haya tareas que no se ven aquí: las de más de 8, pero
+  // también las guardadas en una sección y las archivadas por no usarse, que antes no contaban
+  // y parecía que faltaban tareas. Dice cuántas hay en total.
   const verTodas = document.getElementById('verTodasBtn');
-  if (verTodas) verTodas.classList.toggle('visible', visibleTasks.filter(t => t.id !== state.activeTaskId).length > restantes.length);
+  if (verTodas) {
+    const totalTareas = state.tasks.filter(t => !t.deleted).length;
+    const aLaVista = restantes.length + (active ? 1 : 0);
+    verTodas.classList.toggle('visible', totalTareas > aLaVista);
+    verTodas.textContent = `ver las ${totalTareas}`;
+    verTodas.title = `Aquí salen las que has usado hace poco. Las ${totalTareas} (también las guardadas en secciones) están en Tareas.`;
+  }
   if (!restantes.length) {
     const vacio = panelFilter === 'oneShot' ? 'No hay tareas puntuales recientes.'
       : panelFilter === 'ongoing' ? 'No hay tareas en curso recientes.'
