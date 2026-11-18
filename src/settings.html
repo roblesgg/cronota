@@ -1494,9 +1494,15 @@ async function pintarEstadoOutlook(probar) {
   if (e.error && !e.ok) { el.textContent = 'No se pudo leer: ' + e.error; return; }
   el.textContent = `Conectado · ${e.estaSemana} reunión(es) esta semana` + (e.error ? ' · la última vez falló, se usa la copia' : '') + ' · se ven en el Calendario; clic en una para imputarla';
 }
+// Sin expresión regular a propósito: una regex con barras se estropeó al escribirla y dejaba
+// «Conectar» y «Aplicar» sin hacer nada.
+function esVinculoIcs(u) {
+  const v = String(u || '').trim().toLowerCase();
+  return (v.startsWith('https://') || v.startsWith('webcal://')) && v.length > 12 && !v.includes(' ');
+}
 async function conectarOutlook() {
   const url = document.getElementById('outlookIcsUrl').value.trim();
-  if (!/^(https|webcal)://S+$/i.test(url)) { alert('Pega el vínculo ICS completo (empieza por https:// y acaba en .ics).'); return; }
+  if (!esVinculoIcs(url)) { alert('Pega el vínculo ICS completo (empieza por https:// y acaba en .ics).'); return; }
   ipcRenderer.send('action', { type:'set-setting', payload:{ key:'outlookIcsUrl', value: url } });
   document.getElementById('outlookEstado').textContent = 'Leyendo el calendario…';
   setTimeout(() => pintarEstadoOutlook(true), 300);
@@ -1606,7 +1612,7 @@ function save() {
   const sel = document.getElementById('dockDisplay').value;
   // 2.12: el vínculo de Outlook también se guarda con «Aplicar» (no solo con «Conectar»).
   const ics = document.getElementById('outlookIcsUrl').value.trim();
-  const icsValido = !ics || /^(https|webcal)://S+$/i.test(ics);
+  const icsValido = !ics || esVinculoIcs(ics);
   if (!icsValido) { alert('El vínculo de Outlook no es válido: pega el vínculo ICS completo (empieza por https:// y acaba en .ics).'); return; }
   if (ics) setTimeout(() => pintarEstadoOutlook(true), 400);
   ipcRenderer.send('action', { type:'save-settings', payload:{
