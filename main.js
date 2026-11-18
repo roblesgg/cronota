@@ -448,8 +448,7 @@ let settings = {
   archiveDays: 30,      // días sin usar una tarea antes de que pase al Archivador (0 = nunca)
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
   outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
-  silenciarEnLlamada: true,
-  outlookDescartadas: [],   // 2.12: reuniones sugeridas que se descartaron (ids, las 500 últimas)   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
+  silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
   traspasoVisto: null,  // 2.9.2, versión de la Store: fecha del traspaso desde el instalador ya recibido
 };
 
@@ -1117,7 +1116,8 @@ function addCalendarEntry(taskId, newTaskName, newTaskColor, startMs, endMs, not
 }
 
 // 2.12: añadir una reunión de Outlook (decidido con Álvaro el 18-11-2026):
-//   - futura: no se puede (aún no ha pasado);
+//   - futura: se apunta ya con sus horas; cuando llegue, si hay otra tarea en marcha se corta
+//     al empezar la reunión y vuelve a ponerse en marcha al acabar (vigilarReunionesPlaneadas);
 //   - ya añadida (misma reunión, entry.outlookId): no se repite;
 //   - la reunión manda: lo que otras entradas tengan en ese rato se recorta (recortar-solapes.js);
 //   - si está pasando ahora, la tarea en marcha se corta al empezar la reunión y la de la
@@ -1125,7 +1125,7 @@ function addCalendarEntry(taskId, newTaskName, newTaskColor, startMs, endMs, not
 function anadirReunion(p) {
   const ahora = Date.now();
   const startMs = Number(p.startMs), endMs = p.endMs == null ? null : Number(p.endMs);
-  if (!startMs || startMs >= ahora) return;
+  if (!startMs) return;
   if (state.tasks.some(t => !t.deleted && t.entries.some(e => e.outlookId === p.reunionId))) return;
   let task = state.tasks.find(t => t.id === p.taskId);
   if (!task && p.newTaskName) {
@@ -1134,7 +1134,9 @@ function anadirReunion(p) {
     task.entries = [];
   }
   if (!task) return;
-  const enCurso = endMs == null || endMs > ahora;
+  const futura = startMs > ahora;
+  const enCurso = !futura && (endMs == null || endMs > ahora);
+  if (futura && !(endMs > startMs)) return;
   const { paroLaActiva } = recortarSolapes(state.tasks, startMs, enCurso ? null : endMs, ahora);
   if (paroLaActiva) { state.activeTaskId = null; state.activeSubId = null; }
   const entry = { start: startMs, end: enCurso ? null : endMs, nameAtTime: task.name, outlookId: String(p.reunionId).slice(0, 300) };
@@ -2729,6 +2731,7 @@ function sendUpdateState(state) {
 function getSerializableState() {
   return {
     enLlamada: appsEnLlamada,   // 2.12: apps con el micrófono abierto (Ajustes lo enseña)
+    outlookDescartadas: state.outlookDescartadas || [],   // 2.12: sugerencias de Outlook descartadas
     tasks: state.tasks.map(t => {
       const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
       return {
@@ -2846,6 +2849,7 @@ const ACCIONES_DESHACIBLES = new Set([
   'set-active-note', 'archive-task', 'unarchive-task', 'create-group', 'rename-group', 'delete-group',
   'move-task-to-group', 'set-group-palette', 'recolor-group-tasks', 'reorder-groups',
   'restore-and-start-task', 'edit-entry', 'delete-entry', 'add-calendar-entry', 'archive-purge',
+  'descartar-reunion', 'restaurar-descartadas',
 ]);
 const pilaDeshacer = [], pilaRehacer = [];
 let ultimaFoto = { type: null, t: 0 };
@@ -3011,6 +3015,19 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'restore-and-start-task': restoreAndStartTask(payload.taskId, payload.backMinutes, payload.subId, payload.note); break;
     case 'edit-entry':    editEntry(payload.taskId, payload.entryIndex, payload.startMs, payload.endMs, payload.note, payload.name, payload.subId); break;
     case 'delete-entry':  deleteEntry(payload.taskId, payload.entryIndex); break;
+    // 2.12: descartar una sugerencia de Outlook. Va en el estado (no en los ajustes) para que
+    // Ctrl+Z la recupere como cualquier otro cambio.
+    case 'descartar-reunion': {
+      const id = payload && String(payload.id || '').slice(0, 300);
+      if (!id) break;
+      state.outlookDescartadas = [...new Set([...(state.outlookDescartadas || []), id])].slice(-500);
+      saveData(); broadcastState();
+      break;
+    }
+    case 'restaurar-descartadas':
+      state.outlookDescartadas = [];
+      saveData(); broadcastState();
+      break;
     case 'add-calendar-entry':
       if (payload && payload.reunionId) { anadirReunion(payload); break; }   // 2.12: desde Outlook
       addCalendarEntry(payload.taskId, payload.newTaskName, payload.newTaskColor, payload.startMs, payload.endMs, payload.note, payload.subId, payload.newTaskGroupId);
@@ -3813,6 +3830,37 @@ function checkForUpdates(manual) {
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
+// ── Reuniones apuntadas antes de tiempo (2.12) ──────────────────────────────────
+// Una reunión de Outlook añadida antes de que empiece ya está en el calendario. Cuando llega su
+// hora, si sigue en marcha otra tarea, esa tarea se corta justo al empezar la reunión (para no
+// contar doble) y se vuelve a poner en marcha sola al acabar, desde la hora de fin. Si mientras
+// tanto pones otra en marcha, ya no se reanuda nada.
+let reanudarTrasReunion = null;   // { taskId, subId, en }
+function vigilarReunionesPlaneadas() {
+  const ahora = Date.now();
+  const activa = getActiveTask();
+  const enMarcha = activa && activa.entries[activa.entries.length - 1];
+  if (enMarcha && enMarcha.end == null) {
+    let reunion = null;
+    state.tasks.forEach(t => { if (!t.deleted) t.entries.forEach(e => {
+      if (e.outlookId && e !== enMarcha && e.end != null && e.start > enMarcha.start && e.start <= ahora && (!reunion || e.start < reunion.start)) reunion = e;
+    }); });
+    if (reunion) {
+      fotoAntesDe('reunion-planeada');
+      enMarcha.end = reunion.start;
+      reanudarTrasReunion = { taskId: activa.id, subId: state.activeSubId, en: reunion.end };
+      state.activeTaskId = null; state.activeSubId = null;
+      saveData(); broadcastState(); resetReminderTimer();
+    }
+  }
+  if (reanudarTrasReunion && Date.now() >= reanudarTrasReunion.en) {
+    const r = reanudarTrasReunion; reanudarTrasReunion = null;
+    if (!state.activeTaskId && state.tasks.some(t => t.id === r.taskId && !t.deleted)) {
+      startTask(r.taskId, Math.max(0, (Date.now() - r.en) / 60000), r.subId);
+    }
+  }
+}
+
 // ── Outlook (enlace ICS) y llamadas (2.12) ─────────────────────────────────────
 let outlook = null, vigiaLlamadas = null;
 function avisarReuniones() {
@@ -3859,6 +3907,7 @@ app.whenReady().then(() => {
   startLeaveWatcher();
   startEyeCareTimer();
   arrancarOutlookYLlamadas();
+  setInterval(vigilarReunionesPlaneadas, 20000);   // 2.12
   // No molestar se apaga solo al vencer: dndActive() lo caduca y avisa a las vistas.
   setInterval(() => { if (settings.dndUntil) dndActive(); }, 30000);
 

@@ -234,32 +234,26 @@
   .day-col.selected { box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--accent2) 38%, transparent); }
 
   /* 2.12: sugerencias de reuniones de Outlook (enlace ICS). Van POR ENCIMA de las entradas, a
-     rayas y casi opacas, para decidir: «Añadir» (lo de debajo se parte) o «Descartar». */
+     rayas. Clic: añadirla (lo de debajo se parte). La × de la esquina: descartarla. */
   .reunion-block {
-    position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 7px;box-sizing:border-box;z-index:5;
+    position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 20px 4px 7px;box-sizing:border-box;z-index:5;
     font-size:11px;line-height:1.25;color:var(--text2);overflow:hidden;cursor:pointer;-webkit-app-region:no-drag;
     border:1.5px dashed color-mix(in srgb, var(--text3) 75%, transparent);
-    background:color-mix(in srgb, var(--surface, var(--bg2)) 88%, transparent);
+    background:color-mix(in srgb, var(--surface, var(--bg2)) 85%, transparent);
     transition:background .15s ease, border-color .15s ease;
-    display:flex;flex-direction:column;gap:3px;
   }
-  .reunion-block.futura { cursor:default; }
-  .reunion-block:not(.futura):hover { background:color-mix(in srgb, var(--accent2) 18%, var(--surface, var(--bg2))); border-color:var(--accent2); color:var(--text); }
+  .reunion-block:hover { background:color-mix(in srgb, var(--accent2) 16%, var(--surface, var(--bg2))); border-color:var(--accent2); color:var(--text); }
   .reunion-block .rb-titulo { font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .reunion-block .rb-hora { opacity:.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .reunion-block .rb-botones { display:flex; gap:5px; flex-wrap:wrap; }
-  .reunion-block .rb-btn {
-    border:none;border-radius:999px;padding:2px 9px;font:inherit;font-size:10.5px;font-weight:650;cursor:pointer;
-    background:var(--accent2);color:#fff;
+  .reunion-block .rb-imputar { display:none; font-weight:650; color:var(--accent2); }
+  .reunion-block:hover .rb-imputar { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .reunion-block .rb-descartar {
+    position:absolute;top:2px;right:2px;width:16px;height:16px;border:none;border-radius:50%;padding:0;
+    display:none;align-items:center;justify-content:center;cursor:pointer;font-size:12px;line-height:1;
+    background:color-mix(in srgb, var(--text3) 25%, transparent);color:var(--text);
   }
-  .reunion-block .rb-btn.descartar { background:color-mix(in srgb, var(--text3) 22%, transparent); color:var(--text); }
-  .reunion-block .rb-btn:hover { filter:brightness(1.1); }
-  /* Si es bajita, solo cabe una línea: el título, y los botones al pasar el ratón. */
-  .reunion-block.bajita { flex-direction:row; align-items:center; gap:6px; padding:1px 6px; }
-  .reunion-block.bajita .rb-hora { display:none; }
-  .reunion-block.bajita .rb-titulo { flex:1; min-width:0; }
-  .reunion-block.bajita .rb-botones { display:none; flex-wrap:nowrap; }
-  .reunion-block.bajita:hover .rb-botones { display:flex; }
+  .reunion-block:hover .rb-descartar { display:flex; }
+  .reunion-block .rb-descartar:hover { background:var(--danger, #e5484d); color:#fff; }
   .task-block {
     position:absolute;left:2px;right:2px;border-radius:6px;padding:8px 7px;
     font-size:12px;color:#fff;overflow:hidden;cursor:pointer;
@@ -1366,15 +1360,11 @@ function cargarReuniones() {
 }
 ipcRenderer.on('reuniones-cambiadas', () => cargarReuniones());
 
-// Descartar una sugerencia: deja de verse (se recuerda en los ajustes, como mucho las 500 últimas).
-// En Ajustes → Calendario se pueden volver a ver todas.
-const descartadasAqui = new Set();
+// Descartar una sugerencia: deja de verse (las 500 últimas). Se deshace con Ctrl+Z y en
+// Ajustes → Calendario se pueden volver a ver todas.
 function descartarReunion(id) {
-  descartadasAqui.add(id);
-  const antes = (currentState.settings && currentState.settings.outlookDescartadas) || [];
-  const lista = [...new Set([...antes, id])].slice(-500);
-  ipcRenderer.send('action', { type:'set-setting', payload:{ key:'outlookDescartadas', value: lista } });
-  forceNextRenderWeek = true; renderWeek();
+  // Va al estado de las tareas (no a los ajustes) para que Ctrl+Z la vuelva a traer.
+  ipcRenderer.send('action', { type:'descartar-reunion', payload:{ id } });
 }
 
 function pintarReuniones(col, date) {
@@ -1382,7 +1372,7 @@ function pintarReuniones(col, date) {
   const ahora = Date.now();
   // Ya no son sugerencias: las añadidas (la entrada guarda de qué reunión viene; se ve la
   // entrada y basta) y las descartadas.
-  const fuera = new Set([...((currentState.settings && currentState.settings.outlookDescartadas) || []), ...descartadasAqui]);
+  const fuera = new Set(currentState.outlookDescartadas || []);
   (currentState.tasks || []).forEach(t => { if (!t.deleted) t.entries.forEach(e => { if (e.outlookId) fuera.add(e.outlookId); }); });
   reunionesSemana.forEach((r) => {
     if (r.fin <= dayStart || r.inicio >= dayEnd) return;
@@ -1390,33 +1380,27 @@ function pintarReuniones(col, date) {
     const from = Math.max(r.inicio, dayStart), to = Math.min(r.fin, dayEnd);
     // Una que cruza la medianoche se corta a las 23:59 (el «24:00» no es una hora válida).
     const startH = (from - dayStart) / 3600000, endH = Math.min((to - dayStart) / 3600000, 23 + 59 / 60);
-    const futura = r.inicio > ahora;
-    const alto = Math.max(16, (endH - startH) * ROW_H - 2);
     const b = document.createElement('div');
-    b.className = 'reunion-block' + (futura ? ' futura' : '') + (alto < 52 ? ' bajita' : '');
+    b.className = 'reunion-block';
     b.style.top = (startH * ROW_H) + 'px';
-    b.style.height = alto + 'px';
+    b.style.height = Math.max(16, (endH - startH) * ROW_H - 2) + 'px';
     const hora = `${hourToHHMM(startH)}–${hourToHHMM(endH)}`;
-    b.title = `${r.titulo}${r.lugar ? ' · ' + r.lugar : ''}\n${hora} · Reunión de Outlook. ${futura ? 'Se podrá añadir cuando empiece.' : 'Añádela a tus horas o descártala.'}`;
+    b.title = `${r.titulo}${r.lugar ? ' · ' + r.lugar : ''}
+${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     const t = document.createElement('div'); t.className = 'rb-titulo'; t.textContent = r.titulo;
-    const h = document.createElement('div'); h.className = 'rb-hora'; h.textContent = hora + (futura ? ' · aún no ha empezado' : ' · de Outlook');
-    const botones = document.createElement('div'); botones.className = 'rb-botones';
-    const anadir = document.createElement('button'); anadir.type = 'button'; anadir.className = 'rb-btn'; anadir.textContent = 'Añadir';
-    const descartar = document.createElement('button'); descartar.type = 'button'; descartar.className = 'rb-btn descartar'; descartar.textContent = 'Descartar';
-    if (!futura) botones.appendChild(anadir);
-    botones.appendChild(descartar);
-    b.appendChild(t); b.appendChild(h); b.appendChild(botones);
+    const h = document.createElement('div'); h.className = 'rb-hora'; h.textContent = hora + ' ';
+    const i = document.createElement('span'); i.className = 'rb-imputar'; i.textContent = 'Añadir desde Outlook';
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
+    b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x);
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
-    descartar.addEventListener('click', (e) => {
-      e.stopPropagation();
-      descartarReunion(r.id);
-    });
+    x.addEventListener('click', (e) => { e.stopPropagation(); descartarReunion(r.id); });
     b.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (futura) return;
       abrirNuevaEntrada(date, startH, endH);
       popupCtx.reunionId = r.id;   // savePopup lo manda: el proceso principal recorta solapes y evita repetirla
-      document.getElementById('popupTitle').textContent = r.fin > Date.now() ? 'Añadir desde Outlook · está pasando ahora' : 'Añadir desde Outlook';
+      const ya = Date.now();
+      document.getElementById('popupTitle').textContent = r.inicio > ya ? 'Añadir desde Outlook · aún no ha empezado'
+        : r.fin > ya ? 'Añadir desde Outlook · está pasando ahora' : 'Añadir desde Outlook';
       const nota = document.getElementById('popupNote');
       if (nota) { nota.value = r.titulo.slice(0, 500); try { autoGrowTextarea(nota); } catch {} }
     });

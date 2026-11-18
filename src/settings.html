@@ -1491,6 +1491,7 @@ async function pintarEstadoOutlook(probar) {
   let e = null;
   try { e = await ipcRenderer.invoke('outlook-estado', { probar: !!probar }); } catch {}
   document.getElementById('outlookQuitar').style.display = e && e.conectado ? '' : 'none';
+  document.getElementById('outlookDescartadas').style.display = e && e.conectado ? '' : 'none';
   if (!e || !e.conectado) { el.textContent = 'Pega el vínculo ICS de Outlook → Configuración → Calendario → Calendarios compartidos → Publicar un calendario'; return; }
   if (e.error && !e.ok) { el.textContent = 'No se pudo leer: ' + e.error; return; }
   el.textContent = `Conectado · ${e.estaSemana} reunión(es) esta semana` + (e.error ? ' · la última vez falló, se usa la copia' : '') + ' · se ven en el Calendario; clic en una para añadirla';
@@ -1509,8 +1510,7 @@ async function conectarOutlook() {
   setTimeout(() => pintarEstadoOutlook(true), 300);
 }
 function verDescartadas() {
-  ipcRenderer.send('action', { type:'set-setting', payload:{ key:'outlookDescartadas', value: [] } });
-  document.getElementById('outlookDescartadas').style.display = 'none';
+  ipcRenderer.send('action', { type:'restaurar-descartadas' });
   showToast('Las reuniones descartadas vuelven a salir');
 }
 function quitarOutlook() {
@@ -1560,7 +1560,6 @@ ipcRenderer.on('settings', (_, s) => {
   document.getElementById('silenciarEnLlamada').checked = s.silenciarEnLlamada !== false;
   if (document.activeElement !== document.getElementById('outlookIcsUrl')) document.getElementById('outlookIcsUrl').value = s.outlookIcsUrl || '';
   pintarEstadoOutlook();
-  document.getElementById('outlookDescartadas').style.display = (s.outlookDescartadas || []).length ? '' : 'none';
   document.getElementById('eyeCareEvery').value = s.eyeCareEvery || 20;
   document.getElementById('eyeCareEveryLabel').textContent = (s.eyeCareEvery || 20) + ' min';
   document.getElementById('eyeCareRest').value = s.eyeCareRest || 20;
