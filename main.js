@@ -256,6 +256,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.13.0': { title: 'Novedades de Cronota 2.13', steps: [
+    { icon:'calendar', title:'Lleva tus horas a Outlook',
+      text:'Haz clic en una entrada del calendario y pulsa «Crear en Outlook»: se abre un evento ya relleno con sus horas y su nota, y solo tienes que guardarlo.' },
+    { icon:'enlace', title:'Conectar Outlook, más fácil',
+      text:'En Ajustes → Calendario, «Sacar el vínculo en Outlook» te lleva directo a donde se publica el calendario. Y el botón «Añadir» de las reuniones ahora es más discreto.' },
+  ] },
   '2.12.0': { title: 'Novedades de Cronota 2.12', steps: [
     { icon:'calendar', title:'Tus reuniones de Outlook, en el calendario',
       text:'Publica tu calendario en Outlook y pega el vínculo ICS en Ajustes → Calendario. Tus reuniones salen como sugerencias: un clic las añade a tus horas y lo que se solape se recorta solo.' },
@@ -301,7 +307,6 @@ const WHATS_NEW = {
 // 2.12.1 es un arreglo pequeño: mismas novedades (el mismo objeto), así quien ya vio las de la
 // 2.12 no las vuelve a ver y quien venga de la 2.11 sí.
 WHATS_NEW['2.12.1'] = WHATS_NEW['2.12.0'];
-WHATS_NEW['2.12.2'] = WHATS_NEW['2.12.0'];   // solo cambia el aspecto del botón «Añadir»
 
 const TRASH_RETENTION_DAYS = 30;   // cuánto tiempo se puede restaurar una tarea desde la papelera
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
