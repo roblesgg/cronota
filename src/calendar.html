@@ -278,8 +278,22 @@
   .reunion-block.bajita { display:flex; align-items:center; gap:6px; padding-top:2px; padding-bottom:2px; }
   .reunion-block.bajita .rb-hora { display:none; }
   .reunion-block.bajita .rb-titulo { flex:1; min-width:0; }
-  .reunion-block.bajita .rb-imputar { margin-top:0; flex:none; }
+  .reunion-block.bajita .rb-imputar { margin-top:0; flex:none; display:none; }
+  .reunion-block.bajita:hover .rb-imputar { display:inline-flex; animation:rbEntra .4s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes rbEntra { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:none; } }
   .reunion-block.bajita .rb-imputar .rb-largo { display:none; }
+  /* El icono de Outlook, fijo abajo a la derecha: en las sugerencias y en las tarjetas que vienen
+     de una reunión (entry.outlookId). En las bajitas va centrado a la derecha y la × a su lado. */
+  .outlook-marca {
+    position:absolute;right:4px;bottom:4px;width:15px;height:15px;padding:1px;box-sizing:border-box;
+    border-radius:4px;background:rgba(255,255,255,.92);pointer-events:none;z-index:2;
+    box-shadow:0 1px 3px rgba(0,0,0,.25);
+  }
+  .outlook-marca svg { display:block; width:100%; height:100%; }
+  .reunion-block.bajita .outlook-marca, .task-block.mini .outlook-marca { bottom:auto; top:50%; transform:translateY(-50%); }
+  .reunion-block.bajita { padding-right:42px; }
+  .reunion-block.bajita .rb-descartar { top:50%; right:22px; margin-top:-8px; }
+  .reunion-block:not(.bajita) { padding-bottom:8px; }
   .reunion-block .rb-hora { color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* «Añadir»: pastilla con el icono de Outlook. Entra con un muelle al pasar el ratón, un brillo
@@ -287,7 +301,7 @@
   .reunion-block .rb-imputar {
     position:relative;overflow:hidden;
     display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;box-sizing:border-box;
-    margin-top:4px;padding:3px 10px 3px 4px;border-radius:999px;white-space:nowrap;
+    margin-top:4px;padding:3px 10px;border-radius:999px;white-space:nowrap;
     font-weight:700;font-size:10.5px;letter-spacing:.01em;color:#fff;
     background:linear-gradient(180deg, color-mix(in srgb, var(--accent2) 80%, #fff), var(--accent2));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 3px 10px -3px color-mix(in srgb, var(--accent2) 80%, transparent);
@@ -1444,6 +1458,13 @@ const ICONO_OUTLOOK = '<svg class="rb-ico" viewBox="0 0 16 16" aria-hidden="true
 const gotasVistas = new Set();
 let gotaCandidata = null, gotaPendiente = null, gotaOculta = null;
 
+function marcaOutlook() {
+  const m = document.createElement('span');
+  m.className = 'outlook-marca'; m.title = 'De una reunión de Outlook';
+  m.innerHTML = ICONO_OUTLOOK;
+  return m;
+}
+
 function descartarReunion(id) {
   // Va al estado de las tareas (no a los ajustes) para que Ctrl+Z la vuelva a traer.
   ipcRenderer.send('action', { type:'descartar-reunion', payload:{ id } });
@@ -1472,9 +1493,9 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     const t = document.createElement('div'); t.className = 'rb-titulo'; t.textContent = r.titulo;
     const h = document.createElement('div'); h.className = 'rb-hora'; h.textContent = hora + ' ';
     const i = document.createElement('span'); i.className = 'rb-imputar';
-    i.innerHTML = ICONO_OUTLOOK + '<span>Añadir</span><span class="rb-largo">desde Outlook</span>';
+    i.innerHTML = '<span>+ Añadir</span><span class="rb-largo">desde Outlook</span>';
     const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
-    b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x);
+    b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook());
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
     x.addEventListener('click', (e) => { e.stopPropagation(); descartarReunion(r.id); });
     if (!gotasVistas.has(r.id)) { gotasVistas.add(r.id); b.classList.add('gota-nueva'); }
@@ -1711,6 +1732,7 @@ function renderDayEntries(col, date) {
         block.appendChild(bottomHandle);
       }
 
+      if (entry.outlookId) block.appendChild(marcaOutlook());   // 2.12: viene de una reunión de Outlook
       col.appendChild(block);
       // 2.12: la tarjeta nueva de una reunión sale de su gota (la gota se disuelve encima).
       if (gotaPendiente && entry.outlookId === gotaPendiente.id && Date.now() - gotaPendiente.t < 6000) {
