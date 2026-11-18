@@ -84,4 +84,6 @@ Cambiar el estado de Teams o crear eventos en Outlook desde Cronota necesita una
 
 ### Pendientes sueltos
 
+- **Próxima versión · tutoriales y novedades bien hechos** (pedido por Álvaro el 18-11-2026): ahora van raros, como si solo salieran una vez. Lo que tiene que pasar: al entrar después de una actualización salen las novedades de esa versión (y el recorrido de lo nuevo, si lo hay), una sola vez por versión; el botón de cada paso te lleva de verdad a la pantalla y al sitio que explica; y desde Ajustes («Ver tutorial», «Ver novedades») se pueden volver a ver siempre. Revisar `lastSeenVersion`, `lastSeenWhatsNew`, `tutorialSeenSteps`, `TUTORIAL_STEPS` (shared.js) y el recorrido entre vistas (`tourActive`, `tutorial-next`). Probar con versiones seguidas (2.12 → 2.13) y con una instalación nueva.
+
 - **«imputame» por dentro**: la app del móvil (paquete Android `me.imputa.app` y sus textos) y los dominios `imputame.dripdev.dev` e `imputame-app.dripdev.dev`, que piden cambios en Vercel, en el DNS y un APK nuevo. El ejecutable y las carpetas del instalador no hace falta cambiarlos si todos pasan a la Store.
