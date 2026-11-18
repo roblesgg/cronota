@@ -51,7 +51,7 @@ Hoy la píldora de la barra lateral solo se arrastra dentro de la pantalla en la
 
 ### Fase 2 · Animar toda la app de punta a punta (2.11)
 
-**Estado (17-11-2026), primera tanda programada, falta verla en modo pruebas:** `src/movimiento.js` (común, con «reducir movimiento» y nada infinito). Panel: las recientes se deslizan a su sitio al reordenarse y la tarjeta de la tarea en marcha da un toque de muelle al cambiar. Tareas: las secciones se abren y pliegan animando el alto. Calendario: la semana entra deslizándose. Ajustes: la categoría entra desde el lado de su pestaña. **Falta**: arrastrar tareas entre secciones, crear y borrar en Tareas, ventanas y medir la CPU.
+**Estado (18-11-2026): hecha, vista por Álvaro en modo pruebas.** `src/movimiento.js` (común, con «reducir movimiento» y nada infinito). Panel: las recientes se deslizan a su sitio al reordenarse y la tarjeta de la tarea en marcha da un toque de muelle al cambiar. Tareas: las secciones se abren y pliegan animando el alto, y al mover una tarea de sección, crearla o borrarla las demás se deslizan a su sitio. Calendario: la semana entra deslizándose. Ajustes: la categoría entra desde el lado de su pestaña. Ventanas: ya tenían su entrada (recordatorio, novedades, ojos); no se tocan. CPU: no se añade nada que corra solo (ni bucles ni animaciones infinitas), todo arranca con una acción y dura menos de 0,4 s; sin medición en vivo.
 
 Objetivo: que cada acción tenga una respuesta visual clara y agradable, sin hacer la app más lenta.
 

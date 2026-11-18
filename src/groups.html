@@ -731,6 +731,8 @@ function renderGroups(forzar) {
   if (lbl) lbl.textContent = etiquetas[currentSort()] || 'Ordenar';
   const dirIcon = document.getElementById('sortDirIcon');
   if (dirIcon) dirIcon.style.transform = currentSortDir() === 'desc' ? '' : 'rotate(180deg)';
+  // 2.11: al mover una tarea de sección, crearla o borrarla, las demás se deslizan a su sitio.
+  const antesFilas = Mov.fotos(list, 'data-mov-id');
   list.innerHTML = '';
   if (!currentState) return;
 
@@ -825,6 +827,7 @@ function renderGroups(forzar) {
     filtered.forEach(t => {
       const nodo = document.createElement('div');
       nodo.className = 'archived-item';
+      nodo.dataset.movId = t.id;
       const nSubs = (t.subtasks || []).length;
       const abierta = subsAbiertas.has(t.id);
 
@@ -1007,6 +1010,7 @@ El calendario NO se toca: todo el tiempo que ya has registrado con ella se sigue
 
   renderArchiver(list);
   renderTrash(list);
+  Mov.flip(list, 'data-mov-id', antesFilas);
 }
 
 // Última vez que se usó la tarea: la entrada más reciente, o si nunca se ha usado,
