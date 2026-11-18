@@ -38,6 +38,25 @@ const THEMES = {
   arena:      { name:'Arena', base:'247,241,232', accent:'#8f520f', accent2:'#d98a2b', surface:'#fffdf9', scheme:'light',
                 glass:'255,253,249', glassTint:0.65,
                 glow1:'rgba(255,200,130,.44)', glow2:'rgba(255,165,145,.28)', glow3:'rgba(195,225,175,.28)' },
+  // 2.13: más con brillo, oscuros y claros.
+  nebulosa:   { name:'Nebulosa', base:'18,12,28', accent:'#e2b6ff', accent2:'#b46cff', surface:'#21182f', scheme:'dark',
+                glass:'21,15,31', glassTint:0.72,
+                glow1:'rgba(180,108,255,.19)', glow2:'rgba(255,110,190,.12)', glow3:'rgba(110,140,255,.07)' },
+  brasa:      { name:'Brasa', base:'26,12,10', accent:'#ffb08a', accent2:'#ff6a3d', surface:'#2a1714', scheme:'dark',
+                glass:'29,15,13', glassTint:0.72,
+                glow1:'rgba(255,90,40,.18)', glow2:'rgba(255,190,70,.11)', glow3:'rgba(200,60,90,.07)' },
+  tormenta:   { name:'Tormenta', base:'13,18,24', accent:'#9fe3ff', accent2:'#3fb6e8', surface:'#17202a', scheme:'dark',
+                glass:'16,21,27', glassTint:0.72,
+                glow1:'rgba(60,180,235,.16)', glow2:'rgba(130,120,255,.12)', glow3:'rgba(180,230,255,.05)' },
+  glaciar:    { name:'Glaciar', base:'240,246,251', accent:'#0b5d8f', accent2:'#2f9bd8', surface:'#ffffff', scheme:'light',
+                glass:'255,255,255', glassTint:0.65,
+                glow1:'rgba(150,210,255,.44)', glow2:'rgba(190,200,255,.32)', glow3:'rgba(170,240,230,.30)' },
+  algodon:    { name:'Algodón', base:'251,242,246', accent:'#a3245f', accent2:'#e5578f', surface:'#ffffff', scheme:'light',
+                glass:'255,255,255', glassTint:0.65,
+                glow1:'rgba(255,170,205,.44)', glow2:'rgba(200,180,255,.32)', glow3:'rgba(255,215,170,.28)' },
+  salvia:     { name:'Salvia', base:'242,245,240', accent:'#3d6b3a', accent2:'#6fa86a', surface:'#ffffff', scheme:'light',
+                glass:'255,255,255', glassTint:0.65,
+                glow1:'rgba(180,220,170,.44)', glow2:'rgba(230,220,170,.30)', glow3:'rgba(170,215,230,.28)' },
   indigo:   { name:'Índigo',   base:'18,18,28',    accent:'#818cf8', accent2:'#6366f1', surface:'#1c1c2a', scheme:'dark' },
   grafito:  { name:'Grafito',  base:'16,16,18',    accent:'#a1a1aa', accent2:'#71717a', surface:'#1b1b1e', scheme:'dark' },
   pizarra:  { name:'Pizarra',  base:'24,28,36',    accent:'#94a3b8', accent2:'#64748b', surface:'#212733', scheme:'dark' },
@@ -46,6 +65,13 @@ const THEMES = {
   vino:     { name:'Vino',     base:'28,14,20',    accent:'#fb7185', accent2:'#e11d48', surface:'#291520', scheme:'dark' },
   ambar:    { name:'Ámbar',    base:'28,20,10',    accent:'#fbbf24', accent2:'#d97706', surface:'#2a1f12', scheme:'dark' },
   claro:    { name:'Claro',    base:'244,244,249', accent:'#4f46e5', accent2:'#4338ca', surface:'#ffffff', scheme:'light' },
+  // 2.13: más clásicos (lisos, sin brillos).
+  negro:    { name:'Negro',    base:'6,6,7',       accent:'#e4e4e7', accent2:'#a1a1aa', surface:'#111113', scheme:'dark' },
+  cobalto:  { name:'Cobalto',  base:'10,16,36',    accent:'#7aa2ff', accent2:'#2f5bd8', surface:'#121c3a', scheme:'dark' },
+  ciruela:  { name:'Ciruela',  base:'24,12,28',    accent:'#d6a2ff', accent2:'#9b4fd8', surface:'#26152c', scheme:'dark' },
+  teja:     { name:'Teja',     base:'28,15,11',    accent:'#f2a27c', accent2:'#d0612d', surface:'#2b1a14', scheme:'dark' },
+  papel:    { name:'Papel',    base:'248,245,238', accent:'#7a4a12', accent2:'#b8743d', surface:'#fffdf8', scheme:'light' },
+  niebla:   { name:'Niebla',   base:'238,241,245', accent:'#2f4a6b', accent2:'#5b7a9e', surface:'#ffffff', scheme:'light' },
 };
 const DEFAULT_THEME = 'noche';
 
@@ -72,6 +98,16 @@ const ACCENTS = {
   lavanda:  { name:'Lavanda',  accent:'#c9b8ff', accent2:'#9073ff' },
   fucsia:   { name:'Fucsia',   accent:'#f5a3ff', accent2:'#c13bdb' },
   cereza:   { name:'Cereza',   accent:'#ff9db0', accent2:'#e23a5f' },
+  // 2.13
+  terracota:{ name:'Terracota',accent:'#f0a07a', accent2:'#d0612d' },
+  cobre:    { name:'Cobre',    accent:'#e8b48a', accent2:'#b8743d' },
+  magenta:  { name:'Magenta',  accent:'#ff8fd1', accent2:'#d6249a' },
+  uva:      { name:'Uva',      accent:'#c4a3ff', accent2:'#6d3fd8' },
+  marino:   { name:'Marino',   accent:'#93b4ff', accent2:'#2f5bd8' },
+  outlook:  { name:'Outlook',  accent:'#6cb8f6', accent2:'#0f6cbd' },
+  petroleo: { name:'Petróleo', accent:'#7fd6d9', accent2:'#0f8a8f' },
+  esmeralda:{ name:'Esmeralda',accent:'#6ee7a8', accent2:'#10a35a' },
+  oliva:    { name:'Oliva',    accent:'#d9d98a', accent2:'#9a9a2e' },
 };
 
 // El blur (acrílico) está SIEMPRE puesto. El deslizador controla la opacidad del
