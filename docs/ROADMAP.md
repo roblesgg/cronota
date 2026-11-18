@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 17 de noviembre de 2026 · Publicada: 2.12.0 (Microsoft Store). Solo se publica en la Store.
+Última revisión: 17 de noviembre de 2026 · Publicada: 2.12.0 (Microsoft Store); 2.12.1 en certificación. Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -39,6 +39,7 @@ Lo aprendido:
 - **2.9.5, solo en la Store** (16-11-2026): copia de seguridad completa (tareas, historial y todos los ajustes) y arreglo de las entradas repetidas de inicio con Windows. Sin versión en GitHub. Envío 4 mandado a certificación el 16-11-2026 hacia las 12:30. Partner Center se abre en el Chrome con el perfil donde está la cuenta personal (en Claude in Chrome sale como el segundo navegador conectado).
 - **2.11.0, Fases 1 y 2** (18-11-2026): barra entre pantallas, animaciones y sin bienvenida. Envío 5 mandado a certificación el 18-11-2026 por la mañana.
 - **2.11.0 publicada** en la Store el 18-11-2026 (el mismo día que se mandó). **2.12.0, Fase 3** (Outlook por ICS y sin avisos en llamadas): envío 6, mandado y publicado el 18-11-2026 (ya en el catálogo de la Store a la media hora más o menos).
+- **2.12.1** (18-11-2026): al descartar una sugerencia se va al momento y Ctrl+Z la devuelve en el acto. Envío 7.
 - **Desinstalar la versión vieja** (17-11-2026): la de la Store no puede borrar nada fuera de su paquete (Windows le da su propia copia del registro y de AppData). Abriendo el desinstalador viejo con el Explorador se ejecuta de verdad, pero sin `/currentuser` deja los accesos directos y la entrada de «Aplicaciones instaladas». Además cierra también la de la Store, que se llama igual (`imputa.me.exe`).
 
 ### Fase 1 · La píldora entre pantallas (2.10)

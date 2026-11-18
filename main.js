@@ -298,6 +298,9 @@ const WHATS_NEW = {
   '2.5.5': NOVEDADES_2_5,
   '2.5.6': NOVEDADES_2_5,
 };
+// 2.12.1 es un arreglo pequeño: mismas novedades (el mismo objeto), así quien ya vio las de la
+// 2.12 no las vuelve a ver y quien venga de la 2.11 sí.
+WHATS_NEW['2.12.1'] = WHATS_NEW['2.12.0'];
 
 const TRASH_RETENTION_DAYS = 30;   // cuánto tiempo se puede restaurar una tarea desde la papelera
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
