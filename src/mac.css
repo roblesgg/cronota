@@ -455,10 +455,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
 .quick-btn:disabled:hover { background: var(--bg2); }
 
 .new-task-area { border-top: none; padding-top: 4px; }
-.update-bar {
-  background: var(--danger-soft); color: var(--danger); border-radius: 999px; font-weight: 650;
-}
-.update-bar:hover { background: color-mix(in srgb, var(--danger) 28%, transparent); color: var(--danger); }
 .playing-badge { background: var(--success-soft); border: none; color: var(--success); }
 .empty-state { color: var(--text3); }
 

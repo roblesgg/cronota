@@ -359,7 +359,6 @@ let eyeCareHideTimer = null;
 let leaveNotifiedOn = null;   // 'YYYY-MM-DD' del último aviso, para no repetirlo
 let tickTimer = null;
 let syncWin = null;
-let updateWin = null;
 let whatsNewWin = null;
 let dockWin = null;              // ventana transparente de la BARRITA (click-through)
 let dockPanelWin = null;         // ventana del PANEL: sin transparencia y con acrílico
@@ -375,8 +374,6 @@ let dockBarNear = null;
 let dockHitTimer = null;
 let dockIgnoring = null;
 let saliendo = false;            // la app se está cerrando (salir, o instalar una actualización)
-let pendingUpdateState = null;   // último estado enviado a la ventana de actualización
-let updateInfo = null;           // { version } si hay una actualización disponible (para el botón del panel)
 let syncStatus = { loggedIn: false, email: null };
 
 // Módulo de sincronización opcional (Supabase). Si falla el require, la app sigue local.
@@ -452,10 +449,6 @@ let settings = {
   dockCloseMode: 'button',  // 'button' | 'clickOutside' | 'mouseLeave'
   dockCloseSeconds: 3,      // con 'mouseLeave', segundos fuera antes de esconderse (admite decimales y 0)
   blurEnabled: true,        // difuminado del fondo (acrílico de Windows) sí/no
-  // Canal de actualizaciones. Con betaUpdates, llegan TODAS las versiones que se publican
-  // (las de prueba van marcadas como "prerelease" en GitHub); sin él, solo las marcadas
-  // como estables.
-  betaUpdates: false,
   lastSeenVersion: null,    // última versión cuyas novedades ya se han visto
   lastSeenWhatsNew: null,   // y de qué hablaban, para no repetir el mismo recorrido
   dockCalendarWidth: 1180, // el calendario se abre bastante más ancho (y se puede estirar)
@@ -870,7 +863,6 @@ function updateTaskMeta(taskId, patch) {
 function setTaskMemo(taskId, memo) {
   updateTaskMeta(taskId, { memo: memo == null ? '' : memo });
 }
-
 
 // Borrado "suave": la tarea desaparece del panel, de Guardadas y de los selectores,
 // pero sus entradas SIGUEN en el calendario (con su nombre, nota y horas de siempre),
@@ -1726,7 +1718,7 @@ function applyTranslucencyAll() {
   applySystemThemeSource();
   // Ni la barrita ni (desde la 2.8) el panel del dock ni (2.8.3) el recordatorio llevan
   // material: son transparentes a propósito, y applyTranslucency les haría setOpacity.
-  [mainWin, calendarWin, groupsWin, settingsWin, syncWin, updateWin]
+  [mainWin, calendarWin, groupsWin, settingsWin, syncWin]
     .forEach(w => applyTranslucency(w));
   broadcastTheme();
 }
@@ -1738,7 +1730,7 @@ function themeVars() {
 
 function broadcastTheme() {
   const vars = themeVars();
-  [mainWin, calendarWin, groupsWin, settingsWin, widgetWin, syncWin, updateWin, dockWin, splashWin]
+  [mainWin, calendarWin, groupsWin, settingsWin, widgetWin, syncWin, dockWin, splashWin]
     .forEach(w => sendToAllFrames(w, 'theme', vars));
   sendToAllFrames(dockPanelWin, 'theme', vars);
 }
@@ -1836,7 +1828,6 @@ function makeWindow(file, w, h, opts = {}) {
     webPreferences: { nodeIntegration: true, contextIsolation: false },
   });
   win.__sizeSpec = { minWidth: designMinW, minHeight: designMinH, maxWidth: designMaxW, maxHeight: designMaxH };
-  win.on('focus', () => checkForUpdatesIfStale());   // volver a la app = buen momento para mirar
   win.on('show', () => sendStateToWindow(win));      // escondida no recibe el tic de cada segundo
   win.on('move', debounce(() => adaptWindowToItsDisplay(win), 200));
   win.loadFile(path.join(__dirname, 'src', file));
@@ -2435,7 +2426,6 @@ function rememberView(view) {
 
 // Abre la app por donde se quedó la última vez (panel, calendario o guardadas).
 function openLastView() {
-  checkForUpdatesIfStale();
   const v = settings.lastView;   // se lee ANTES: openMain() lo sobrescribe con 'panel'
   if (settings.dockMode) { dockNavigate(v && v !== 'settings' ? v : 'panel'); return; }
   // En modo ventanas el panel se abre SIEMPRE: es el único sitio con los botones para
@@ -2456,7 +2446,6 @@ function ensureSomeWindowVisible() {
 
 // Enseña una vista dentro del dock (en vez de abrir una ventana suelta).
 function dockNavigate(view) {
-  checkForUpdatesIfStale();
   rememberView(view);
   if (!dockWin || dockWin.isDestroyed()) createDock();
   dockPanelView = view;
@@ -2482,7 +2471,6 @@ function applyDockMode(wasDock) {
 }
 
 function openMain() {
-  checkForUpdatesIfStale();   // aprovecha que el usuario vuelve a la app para refrescar, sin esperar al temporizador
   if (settings.dockMode) { dockNavigate('panel'); return; }
   rememberView('panel');
   if (mainWin && !mainWin.isDestroyed()) { mainWin.show(); mainWin.focus(); sendStateToWindow(mainWin); return; }
@@ -2533,7 +2521,6 @@ function showSplashThenMain() {
 
 function openCalendar() {
   if (settings.dockMode) { dockNavigate('calendar'); return; }
-  checkForUpdatesIfStale();
   rememberView('calendar');
   if (calendarWin && !calendarWin.isDestroyed()) { calendarWin.show(); calendarWin.focus(); sendStateToWindow(calendarWin); return; }
   calendarWin = makeWindow('calendar.html', 1280, 760, {
@@ -2557,7 +2544,6 @@ function openSettings() {
 
 function openGroups() {
   if (settings.dockMode) { dockNavigate('groups'); return; }
-  checkForUpdatesIfStale();
   rememberView('groups');
   if (groupsWin && !groupsWin.isDestroyed()) { groupsWin.show(); groupsWin.focus(); sendStateToWindow(groupsWin); return; }
   groupsWin = makeWindow('groups.html', 420, 620, {
@@ -2573,23 +2559,6 @@ function openSync() {
   syncWin = makeWindow('sync.html', 400, 520, { minWidth: 360, minHeight: 460, maxWidth: 520, maxHeight: 680 });
   syncWin.once('ready-to-show', () => { syncWin.show(); syncWin.webContents.send('sync-status', syncStatus); });
   syncWin.on('closed', () => { syncWin = null; });
-}
-
-// Ventana de actualización con el estilo de la app (sustituye a los diálogos nativos,
-// que quedaban ocultos tras el splash). Su contenido cambia según el estado que le
-// envía el auto-updater vía 'update-state'.
-function openUpdateWindow() {
-  if (updateWin && !updateWin.isDestroyed()) { updateWin.show(); updateWin.focus(); return; }
-  updateWin = makeWindow('update.html', 400, 320, {
-    alwaysOnTop: true, resizable: false,
-    minWidth: 360, minHeight: 280, maxWidth: 460, maxHeight: 380,
-  });
-  updateWin.once('ready-to-show', () => {
-    updateWin.show(); updateWin.focus();
-    try { updateWin.moveTop(); } catch {}
-    if (pendingUpdateState) updateWin.webContents.send('update-state', pendingUpdateState);
-  });
-  updateWin.on('closed', () => { updateWin = null; });
 }
 
 // ── Novedades al actualizar ───────────────────────────────────────────────────
@@ -2760,11 +2729,6 @@ function recibirTraspaso() {
   void traidas;
 }
 
-function sendUpdateState(state) {
-  pendingUpdateState = state;
-  if (updateWin && !updateWin.isDestroyed()) updateWin.webContents.send('update-state', state);
-}
-
 // ── IPC ───────────────────────────────────────────────────────────────────────
 function getSerializableState() {
   return {
@@ -2793,7 +2757,6 @@ function getSerializableState() {
     activeSubId: state.activeSubId || null,
     todayTotal: totalTodaySeconds(),
     settings,
-    updateAvailable: updateInfo,
     trashRetentionDays: TRASH_RETENTION_DAYS,
   };
 }
@@ -3291,7 +3254,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       })));
       break;
     case 'dock-focus':
-      checkForUpdatesIfStale();
       if (dockWin && !dockWin.isDestroyed()) { try { dockWin.focus(); } catch {} }
       break;
     // Vista previa en vivo mientras se toquetea la barra en Ajustes (sin darle a Guardar).
@@ -3425,33 +3387,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       break;
     case 'open-sync':     openSync(); break;
     case 'close-sync':    if (syncWin && !syncWin.isDestroyed()) syncWin.close(); break;   // se recrea al abrirla (openSync)
-    case 'open-update-window': openUpdateWindow(); break;   // desde el botón rojo del panel
-    case 'update-download': if (autoUpdater) autoUpdater.downloadUpdate(); break;
-    case 'update-install':  installUpdateNow(); break;
-    case 'close-update':    if (updateWin && !updateWin.isDestroyed()) updateWin.close(); break;
-    case 'check-for-updates': checkForUpdates(true); break;   // botón "Buscar actualizaciones" de Ajustes
-    case 'set-beta-updates':
-      settings.betaUpdates = !!(payload && payload.enabled);
-      saveSettings();
-      if (autoUpdater) {
-        autoUpdater.allowPrerelease = settings.betaUpdates;
-        lastAutoCheckAt = 0;              // que la próxima comprobación no la frene el límite
-        checkForUpdates(true);            // mirar ya en el canal nuevo
-      }
-      break;
-    // 2.8.5: botón "Volver a la estable" de Ajustes (solo con una beta instalada). Deja el canal
-    // estable y baja ya la última estable, aunque sea más antigua que la beta.
-    case 'volver-estable':
-      settings.betaUpdates = false;
-      saveSettings();
-      if (autoUpdater) {
-        autoUpdater.allowPrerelease = false;
-        autoUpdater.allowDowngrade = true;
-        volviendoEstable = true;
-        lastAutoCheckAt = 0;
-        checkForUpdates(true);
-      } else checkForUpdates(true);
-      break;
+    case 'check-for-updates': checkForUpdates(true); break;   // «Buscar actualizaciones» de Ajustes: abre la Store
     case 'get-state':     event.reply('state', getSerializableState()); break;
   }
 });
@@ -3779,112 +3715,11 @@ function startTick() {
   }, 1000);
 }
 
-// ── Auto-actualización (electron-updater + GitHub Releases) ───────────────────
-// Comprueba al arrancar si hay una versión más nueva publicada en GitHub Releases.
-// Si la hay, avisa con un diálogo nativo y, con un botón, la descarga e instala.
-// No necesita ninguna ventana de la app (funciona aunque el panel esté cerrado).
-let autoUpdater = null;
-let manualCheck = false;   // true cuando el usuario pulsa "Buscar actualizaciones…"
-let lastAutoCheckAt = 0;
-let volviendoEstable = false;   // el beta ha pedido volver a la estable: se descarga sin preguntar
-const AUTO_CHECK_THROTTLE_MS = 60 * 1000;   // como mucho una comprobación automática cada minuto
-
-// Comprueba actualizaciones si ha pasado un rato desde la última vez (se llama al
-// volver al panel): así, si estaba abierta de fondo cuando salió una versión nueva,
-// no hay que esperar al temporizador de 1h ni acordarse de pulsar "Buscar
-// actualizaciones" a mano — basta con volver a la app.
-function checkForUpdatesIfStale() {
-  if (!autoUpdater) return;
-  if (Date.now() - lastAutoCheckAt < AUTO_CHECK_THROTTLE_MS) return;
-  checkForUpdates(false);
-}
-
-function setupAutoUpdate() {
-  if (!app.isPackaged) return;          // en desarrollo no existe app-update.yml
-  if (IS_STORE) return;                 // la actualiza la Store
-  if (MODO_PRUEBAS) return;             // el simulacro y el modo pruebas no se actualizan ni instalan nada
-  try {
-    ({ autoUpdater } = require('electron-updater'));
-  } catch {
-    autoUpdater = null;                 // dependencia no instalada aún
-    return;
-  }
-  // Nada se descarga ni se instala sin permiso: al detectar una versión nueva solo se
-  // avisa, y el usuario decide si descargarla ("Descargar ahora") o dejarlo para luego.
-  autoUpdater.autoDownload = false;
-  // Si ya se descargó y la app se cierra por su cuenta, se aprovecha para instalarla
-  // (no interrumpe nada, porque el usuario ya estaba saliendo).
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.allowPrerelease = !!settings.betaUpdates;   // canal betatester
-
-  autoUpdater.on('update-available', (info) => {
-    manualCheck = false;
-    const isNew = !updateInfo || updateInfo.version !== info.version;
-    updateInfo = { version: info.version };
-    broadcastState();                    // muestra el botón rojo "Actualizar" en el panel
-    openUpdateWindow();
-    sendUpdateState({ phase: 'available', current: app.getVersion(), version: info.version });
-    // Notificación del sistema, para enterarse aunque se esté en otra aplicación. Solo la
-    // primera vez que se detecta esa versión, para no repetirla en cada comprobación.
-    if (volviendoEstable) { volviendoEstable = false; autoUpdater.downloadUpdate(); return; }
-    if (isNew) notifyUpdateAvailable(info.version);
-  });
-
-  autoUpdater.on('download-progress', (p) => {
-    sendUpdateState({ phase: 'downloading', percent: Math.max(0, Math.min(100, Math.round(p.percent || 0))) });
-  });
-
-  autoUpdater.on('update-not-available', () => {
-    volviendoEstable = false;
-    if (manualCheck) { openUpdateWindow(); sendUpdateState({ phase: 'uptodate', current: app.getVersion() }); }
-    manualCheck = false;
-  });
-
-  autoUpdater.on('update-downloaded', (info) => {
-    // Descargada, pero NO se instala sola: se avisa y el usuario elige cuándo reiniciar.
-    openUpdateWindow();
-    sendUpdateState({ phase: 'downloaded', version: info.version });
-  });
-
-  autoUpdater.on('error', (err) => {
-    if (manualCheck) { openUpdateWindow(); sendUpdateState({ phase: 'error', message: String((err && err.message) || err) }); }
-    manualCheck = false;
-  });
-
-  checkForUpdates(false);                              // al arrancar
-  setTimeout(() => checkForUpdates(false), 15000);     // reintento por si la red aún no estaba lista (p.ej. arranque con Windows)
-  setInterval(() => checkForUpdates(false), 5 * 60 * 1000);   // y cada 5 min mientras esté abierta
-}
-
-function notifyUpdateAvailable(version) {
-  if (silenciado()) return;   // el botón del panel sigue estando; el aviso encima, no
-  try {
-    if (!Notification.isSupported()) return;
-    const n = new Notification({
-      title: 'Cronota · actualización disponible',
-      body: `Versión ${version} lista para descargar. Tú decides cuándo.`,
-      icon: APP_ICON_PATH,
-      silent: false,
-    });
-    n.on('click', () => { openUpdateWindow(); });
-    n.show();
-  } catch {}
-}
-
+// ── Actualizaciones (2.13: solo Microsoft Store) ──────────────────────────────────
+// La app solo se publica en la Store, que la actualiza sola. «Buscar actualizaciones…» (bandeja
+// y Ajustes) abre su ficha en la Store, donde sale «Actualizar» si hay una versión nueva.
 function checkForUpdates(manual) {
-  // En la Store, "Buscar actualizaciones" abre la página de descargas y actualizaciones de la Store.
-  if (IS_STORE) { if (manual) { try { require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {} } return; }
-  if (!autoUpdater) {
-    if (manual) { openUpdateWindow(); sendUpdateState({ phase: 'unavailable' }); }
-    return;
-  }
-  lastAutoCheckAt = Date.now();
-  manualCheck = manual;
-  if (manual) { openUpdateWindow(); sendUpdateState({ phase: 'checking' }); }
-  autoUpdater.checkForUpdates().catch((err) => {
-    if (manualCheck) { openUpdateWindow(); sendUpdateState({ phase: 'error', message: String((err && err.message) || err) }); }
-    manualCheck = false;
-  });
+  if (manual) { try { require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {} }
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
@@ -4036,7 +3871,6 @@ app.whenReady().then(() => {
   } else {
     showSplashThenMain();
   }
-  setupAutoUpdate();
   maybeShowWhatsNew();
   // 2.9.2: una copia al día en Documentos\Cronota\Copias automáticas. La versión de la Store
   // guarda sus datos dentro del paquete, y Windows los borra si se desinstala.
@@ -4047,34 +3881,6 @@ app.whenReady().then(() => {
   // 2.9.2: la versión del instalador invita a pasarse a la de la Store (o se cambia sola si ya está).
   if (migracionActiva()) setTimeout(iniciarPasoAStore, 5000);
 });
-
-// Cierre a conciencia antes de instalar una actualización.
-// El instalador intenta cerrar la app por su cuenta y no siempre puede: las ventanas
-// de Cronota no salen en la barra de tareas, varias no tienen marco y alguna ni
-// acepta el foco, así que el "cierra la aplicación y reintenta" salía una y otra vez.
-// destroy() se salta cualquier manejador de cierre y garantiza que se van; la bandeja
-// también, porque es lo último que mantiene la app en pie.
-function installUpdateNow() {
-  if (!autoUpdater) return;
-  saliendo = true;
-  pauseActive(); saveData(); saveSettings();
-  try { if (dockHitTimer) { clearInterval(dockHitTimer); dockHitTimer = null; } } catch {}
-  try { if (tray) { tray.destroy(); tray = null; } } catch {}
-  BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} });
-  // setImmediate para dejar que el ciclo de eventos procese las destrucciones antes
-  // de lanzar el instalador.
-  setImmediate(() => {
-    // 2.8.5: en silencio (sin la ventana de instalación de Windows) y volviendo a abrir la app.
-    try { autoUpdater.quitAndInstall(true, true); } catch {}
-    // Salida a la fuerza si en unos segundos seguimos vivos. quitAndInstall lanza el
-    // instalador y PIDE salir, pero si algo se resiste (un temporizador, una ventana
-    // que no se fue, otro proceso de la app) el instalador se encuentra la aplicación
-    // en marcha: enseña el aviso de que no se puede cerrar la app, y si ahí se cancela, ya ha
-    // borrado los ficheros viejos y la instalación se queda inservible. Es justo lo que
-    // pasó: la carpeta acabó con un icono suelto y sin ejecutable.
-    setTimeout(() => { try { app.exit(0); } catch {} }, 2500);   // 2.8.5: antes 4 s; el instalador espera 6 antes de forzar
-  });
-}
 
 app.on('window-all-closed', e => e.preventDefault());
 // saveSettings() explícito: saveSettingsSoon puede tener un guardado pendiente (p. ej.

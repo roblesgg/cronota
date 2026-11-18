@@ -244,15 +244,6 @@
   .task-meta-line { display:flex; align-items:center; gap:6px; min-width:0; flex:1; }
   .panel-filter-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
 
-  /* Barra roja de actualización (solo visible si hay una versión nueva) */
-  .update-bar {
-    display:none;align-items:center;justify-content:center;gap:8px;width:100%;
-    background:var(--danger);color:#1a1a24;font-size:13px;font-weight:700;padding:11px 12px;
-    border-radius:var(--radius-sm);cursor:pointer;-webkit-app-region:no-drag;border:none;
-    animation:updatePulse 2s ease-in-out 3;
-  }
-  .update-bar:hover { background:color-mix(in srgb, var(--danger) 82%, #000);color:#fff; }
-  @keyframes updatePulse { 0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent)} 70%{box-shadow:0 0 0 7px transparent} }
 
   /* Popup de confirmación con el estilo de la app (en vez del confirm() nativo de Windows). */
   .confirm-backdrop { z-index:51; }
@@ -360,11 +351,6 @@
       </div>
     </div>
   </div>
-
-  <button class="update-bar" id="updateBtn" onclick="openUpdate()">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
-    <span id="updateBarText">Hay una actualización disponible</span>
-  </button>
 
   <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
@@ -904,15 +890,6 @@ function render(state) {
   document.getElementById('totalTime').textContent = fmt(state.todayTotal);
   document.getElementById('subtitle').textContent = `${visibleTasks.length} tarea(s)`;
 
-  const upBtn = document.getElementById('updateBtn');
-  if (upBtn) {
-    if (state.updateAvailable) {
-      upBtn.style.display = 'flex';
-      document.getElementById('updateBarText').textContent = `Actualizar a la versión ${state.updateAvailable.version}`;
-    } else {
-      upBtn.style.display = 'none';
-    }
-  }
   renderHero(active);
 
   const resumeBtn = document.getElementById('quickResume');
@@ -1139,7 +1116,6 @@ function switchTask(taskId, subId) {
   document.getElementById('startBackMin').value = '';
   document.getElementById('startBackTime').value = '';
 }
-function openUpdate() { ipcRenderer.send('action', { type:'open-update-window' }); }
 function openCalendar() { ipcRenderer.send('action', { type:'open-calendar' }); }
 function openSettings() { ipcRenderer.send('action', { type:'open-settings' }); }
 function openGroups() { ipcRenderer.send('action', { type:'open-groups' }); }

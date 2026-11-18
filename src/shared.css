@@ -552,7 +552,7 @@ select option { background: var(--surface); color: var(--text); }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .hero-dot, .playing-badge .dot, .update-bar { animation: none !important; }
+  .hero-dot, .playing-badge .dot { animation: none !important; }
 }
 
 /* ── Vistas estrechas (ver el bloque del mismo nombre en shared.js) ──────────
