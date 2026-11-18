@@ -1492,7 +1492,7 @@ async function pintarEstadoOutlook(probar) {
   document.getElementById('outlookQuitar').style.display = e && e.conectado ? '' : 'none';
   if (!e || !e.conectado) { el.textContent = 'Pega el vínculo ICS de Outlook → Configuración → Calendario → Calendarios compartidos → Publicar un calendario'; return; }
   if (e.error && !e.ok) { el.textContent = 'No se pudo leer: ' + e.error; return; }
-  el.textContent = `Conectado · ${e.estaSemana} reunión(es) esta semana` + (e.error ? ' · la última vez falló, se usa la copia' : '') + ' · se ven en el Calendario; clic en una para imputarla';
+  el.textContent = `Conectado · ${e.estaSemana} reunión(es) esta semana` + (e.error ? ' · la última vez falló, se usa la copia' : '') + ' · se ven en el Calendario; clic en una para añadirla';
 }
 // Sin expresión regular a propósito: una regex con barras se estropeó al escribirla y dejaba
 // «Conectar» y «Aplicar» sin hacer nada.
