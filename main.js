@@ -256,6 +256,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.12.0': { title: 'Novedades de Cronota 2.12', steps: [
+    { icon:'calendar', title:'Tus reuniones de Outlook, en el calendario',
+      text:'Publica tu calendario en Outlook y pega el vínculo ICS en Ajustes → Calendario. Tus reuniones salen como sugerencias: un clic las añade a tus horas y lo que se solape se recorta solo.' },
+    { icon:'bell', title:'Sin avisos en llamadas',
+      text:'Si Teams, Meet o Zoom están usando el micrófono, Cronota no te interrumpe con avisos. Se puede apagar en Ajustes → Avisos.' },
+  ] },
   '2.11.0': { title: 'Novedades de Cronota 2.11', steps: [
     { icon:'bar', title:'Lleva la barra a otra pantalla',
       text:'Mantén pulsada la barrita del borde y arrástrala a otra pantalla: se muda contigo y se queda allí, también el panel.' },
