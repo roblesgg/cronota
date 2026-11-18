@@ -273,6 +273,9 @@
   /* Aparece como una gota que cae y se asienta (solo la primera vez que se ve). */
   .reunion-block.gota-nueva { animation:gotaCae .55s cubic-bezier(.34,1.56,.64,1) both; }
   @keyframes gotaCae { 0% { opacity:0; transform:translateY(-6px) scale(.86,1.08); } 60% { opacity:1; transform:translateY(1px) scale(1.03,.97); } 100% { transform:none; } }
+  .pqa-btn.pqa-outlook { color:#6cb8f6; }
+  .pqa-btn.pqa-outlook .rb-ico { width:14px; height:14px; flex:none; }
+  :root[data-scheme="light"] .pqa-btn.pqa-outlook { color:#0f6cbd; }
   .reunion-block .rb-titulo { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* Reunión corta: una sola línea, el título y el botón al lado. */
   .reunion-block.bajita { display:flex; align-items:center; gap:6px; padding-top:2px; padding-bottom:2px; }
@@ -2738,6 +2741,13 @@ function renderPopupQuickActions(task, entryIndex, entry) {
         'Alargar',
         () => { ipcRenderer.send('action', { type:'resume-entry', payload:{ taskId: task.id, entryIndex } }); closePopup(); }
       );
+    }));
+  }
+  // 2.12: llevar este rato a Outlook (abre un evento ya relleno en el navegador; se guarda allí).
+  // No sale en los que ya vienen de una reunión de Outlook ni en el que está en marcha.
+  if (entry.end != null && !entry.outlookId) {
+    wrap.appendChild(mkBtn(ICONO_OUTLOOK, 'Crear en Outlook', 'pqa-outlook', () => {
+      ipcRenderer.send('action', { type:'abrir-outlook', payload:{ que:'evento', titulo: entry.nameAtTime || task.name, inicio: entry.start, fin: entry.end, nota: entry.note || '' } });
     }));
   }
 }

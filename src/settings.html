@@ -675,14 +675,15 @@
       </div>
       <div class="row col">
         <div class="row-head">
-          <span class="ico" data-ico="calendario" style="--ic:#0f6cbd"></span>
+          <span class="ico" style="--ic:#0f6cbd;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><rect x="5" y="3" width="10" height="10" rx="1.5" fill="#28a8ea"/><path d="M5 6.5l5 3 5-3" fill="none" stroke="#fff" stroke-width="1" opacity=".9"/><rect x="1" y="4" width="8" height="8" rx="1.4" fill="#0a64ad"/><ellipse cx="5" cy="8" rx="2" ry="2.3" fill="none" stroke="#fff" stroke-width="1.3"/></svg></span>
           <div class="row-text">
             <span class="row-title">Reuniones de Outlook</span>
-            <span class="row-desc" id="outlookEstado">Pega el vínculo ICS de Outlook → Configuración → Calendario → Calendarios compartidos → Publicar un calendario</span>
+            <span class="row-desc" id="outlookEstado">Pulsa «Sacar el vínculo en Outlook», publica tu calendario y pega aquí el vínculo ICS</span>
           </div>
         </div>
         <input type="text" id="outlookIcsUrl" maxlength="2000" placeholder="https://outlook.office365.com/owa/calendar/…/calendar.ics" autocomplete="off" spellcheck="false" style="width:100%;box-sizing:border-box">
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'abrir-outlook', payload:{ que:'publicar' } })" style="white-space:nowrap;padding:9px 14px;color:#4ea8ff">Sacar el vínculo en Outlook</button>
           <button class="btn-ghost" onclick="conectarOutlook()" style="white-space:nowrap;padding:9px 14px">Conectar</button>
           <button class="btn-ghost" onclick="quitarOutlook()" id="outlookQuitar" style="white-space:nowrap;padding:9px 14px">Quitar</button>
           <button class="btn-ghost" onclick="verDescartadas()" id="outlookDescartadas" style="white-space:nowrap;padding:9px 14px;display:none">Volver a ver las descartadas</button>
@@ -1492,7 +1493,7 @@ async function pintarEstadoOutlook(probar) {
   try { e = await ipcRenderer.invoke('outlook-estado', { probar: !!probar }); } catch {}
   document.getElementById('outlookQuitar').style.display = e && e.conectado ? '' : 'none';
   document.getElementById('outlookDescartadas').style.display = e && e.conectado ? '' : 'none';
-  if (!e || !e.conectado) { el.textContent = 'Pega el vínculo ICS de Outlook → Configuración → Calendario → Calendarios compartidos → Publicar un calendario'; return; }
+  if (!e || !e.conectado) { el.textContent = 'Pulsa «Sacar el vínculo en Outlook», publica tu calendario (permiso «Puede ver títulos y ubicaciones») y pega aquí el vínculo ICS'; return; }
   if (e.error && !e.ok) { el.textContent = 'No se pudo leer: ' + e.error; return; }
   el.textContent = `Conectado · ${e.estaSemana} reunión(es) esta semana` + (e.error ? ' · la última vez falló, se usa la copia' : '') + ' · se ven en el Calendario; clic en una para añadirla';
 }

@@ -2990,6 +2990,26 @@ ipcMain.on('action', (event, { type, payload }) => {
       break;
     }
     case 'open-impute-url': openImputeUrl(payload); break;
+    // 2.12: abrir Outlook en el navegador, sin iniciar sesión desde Cronota ni registrar nada.
+    //   que='publicar': la página de Outlook donde se publica el calendario (para sacar el vínculo ICS);
+    //   que='evento': un evento nuevo ya relleno (título, horas y nota); tú solo pulsas Guardar.
+    case 'abrir-outlook': {
+      const p = payload || {};
+      let url = null;
+      if (p.que === 'publicar') url = 'https://outlook.office.com/calendar/options/calendar/SharedCalendars';
+      else if (p.que === 'evento' && Number(p.inicio) && Number(p.fin) > Number(p.inicio)) {
+        const q = new URLSearchParams({
+          path: '/calendar/action/compose', rru: 'addevent',
+          subject: String(p.titulo || '').slice(0, 250),
+          startdt: new Date(Number(p.inicio)).toISOString(),
+          enddt: new Date(Number(p.fin)).toISOString(),
+          body: String(p.nota || '').slice(0, 1000),
+        });
+        url = 'https://outlook.office.com/calendar/deeplink/compose?' + q.toString();
+      }
+      if (url) { try { require('electron').shell.openExternal(url); } catch {} }
+      break;
+    }
     case 'set-week-days': {
       const dias = Array.isArray(payload && payload.days)
         ? payload.days.map(Number).filter(d => d >= 0 && d <= 6) : [];
