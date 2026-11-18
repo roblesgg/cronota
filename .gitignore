@@ -1,11 +1,11 @@
 # Dependencias
 node_modules/
 
-# Compilaciones (npm run dist / npm run store). Cada versión en dist/<versión>/; se vacía tras publicar.
+# Compilaciones (npm run store). Se vacía tras publicar.
 dist/
-# Restos de compilaciones antiguas
-release/
-release_*/
+
+
+
 
 # app.asar bloqueados sueltos (ver docs/notas-tecnicas.md)
 *.asar

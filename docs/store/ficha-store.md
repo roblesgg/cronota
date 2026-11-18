@@ -20,7 +20,8 @@ Lo que te ofrece:
 • Barra flotante en el borde de la pantalla: un toque y aparece el panel, otro y desaparece.
 • Descanso visual opcional para mirar lejos cada cierto tiempo.
 • Temas claros y oscuros, colores de acento y estilo de cristal o plano.
-• Funciona sin cuenta, con tus datos en tu equipo. Si quieres, inicia sesión para sincronizarlo con el móvil.
+• Sin cuentas: tus datos se quedan en tu equipo, con una copia automática cada día.
+• Tus reuniones de Outlook en el calendario, para añadirlas a tus horas con un clic.
 
 Sin publicidad y sin seguimiento.
 
@@ -39,7 +40,7 @@ Botón Imputar hacia tu herramienta de imputación
 Barra flotante en el borde de la pantalla
 Recordatorios y aviso a la hora de salir
 Temas claros y oscuros
-Funciona sin cuenta; sincronización opcional con el móvil
+Reuniones de Outlook en el calendario
 
 ## Palabras clave (máximo 7)
 

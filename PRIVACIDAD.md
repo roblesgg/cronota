@@ -14,14 +14,9 @@ Tus tareas, secciones, los ratos de tiempo registrados, sus notas y tus ajustes 
 
 Para que no los pierdas si desinstalas la app, Cronota guarda además **una copia de tus tareas y secciones cada día** en tu carpeta Documentos, en `Documentos\Cronota\Copias automáticas` (se quedan las 14 últimas). Al pasar de la versión del instalador a la de Microsoft Store también deja una copia en `Documentos\Cronota\cronota-traspaso.json`. Si tu carpeta Documentos se sincroniza con OneDrive u otro servicio, estas copias se sincronizan con ella como cualquier otro documento tuyo.
 
-## Sincronización con una cuenta (opcional)
+## Sin cuentas
 
-Si inicias sesión para sincronizar Cronota con la aplicación móvil, se usan estos datos:
-
-- **Tu correo electrónico y tu contraseña**, para identificarte. La contraseña la gestiona el servicio de autenticación de Supabase y nunca se guarda en texto legible.
-- **Tus tareas y los ratos de tiempo registrados**, que se guardan en la base de datos de Supabase (proveedor de base de datos en la nube) para tenerlos iguales en todos tus dispositivos.
-
-Sin cuenta, la aplicación funciona igual, solo que en local.
+Cronota no tiene cuentas ni inicio de sesión, y no envía tus tareas ni tus horas a ningún servidor nuestro. Hasta la versión 2.12 había una sincronización opcional con la app del móvil a través de Supabase; ya no existe. Si la usaste y quieres que se borre lo que se guardó allí, escríbenos (ver «Tus derechos»).
 
 ## Lectura de la pantalla para el efecto de cristal
 
@@ -41,7 +36,7 @@ Cronota solo escribe en el portapapeles cuando tú copias algo desde la aplicaci
 
 ## Actualizaciones
 
-La versión de Microsoft Store se actualiza a través de la propia Store. La versión que se instala desde nuestra web consulta GitHub para saber si hay una versión nueva; esa consulta no incluye ninguno de tus datos.
+Cronota se instala y se actualiza a través de la Microsoft Store. Cronota no consulta por su cuenta si hay versiones nuevas.
 
 ## Lo que no hacemos
 
@@ -51,7 +46,7 @@ La versión de Microsoft Store se actualiza a través de la propia Store. La ver
 
 ## Tus derechos
 
-Los datos locales los borras al desinstalar Cronota o eliminando su carpeta de datos, y las copias, borrando la carpeta `Documentos\Cronota`. Si usas una cuenta, puedes pedir en cualquier momento que te enviemos, corrijamos o borremos tus datos y tu cuenta escribiendo a **roblesgg16@gmail.com**. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es).
+Los datos locales los borras al desinstalar Cronota o eliminando su carpeta de datos, y las copias, borrando la carpeta `Documentos\Cronota`. Si usaste la antigua sincronización con el móvil, puedes pedir en cualquier momento que te enviemos o borremos lo que se guardó escribiendo a **roblesgg16@gmail.com**. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es).
 
 ## Cambios en esta política
 

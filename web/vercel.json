@@ -1,27 +1,55 @@
 {
   "rewrites": [
-    { "source": "/descargar", "destination": "/index.html" }
+    {
+      "source": "/descargar",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
     {
       "source": "/cronota-setup.exe",
-      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/cronota-setup.exe",
+      "destination": "https://apps.microsoft.com/detail/9NXSJVW6BXQF",
       "permanent": false
     },
     {
       "source": "/cronota-portable.exe",
-      "destination": "https://github.com/roblesgg/cronota/releases/latest/download/cronota-portable.exe",
+      "destination": "https://apps.microsoft.com/detail/9NXSJVW6BXQF",
       "permanent": false
     },
-    { "source": "/exe", "destination": "/cronota-setup.exe", "permanent": false },
-    { "source": "/imputame-latest.exe", "destination": "/cronota-setup.exe", "permanent": false },
-    { "source": "/imputame-portable.exe", "destination": "/cronota-portable.exe", "permanent": false },
+    {
+      "source": "/exe",
+      "destination": "https://apps.microsoft.com/detail/9NXSJVW6BXQF",
+      "permanent": false
+    },
+    {
+      "source": "/imputame-latest.exe",
+      "destination": "https://apps.microsoft.com/detail/9NXSJVW6BXQF",
+      "permanent": false
+    },
+    {
+      "source": "/imputame-portable.exe",
+      "destination": "https://apps.microsoft.com/detail/9NXSJVW6BXQF",
+      "permanent": false
+    },
+    {
+      "source": "/store",
+      "destination": "https://apps.microsoft.com/detail/9NXSJVW6BXQF",
+      "permanent": false
+    },
     {
       "source": "/imputame.apk",
-      "destination": "https://github.com/roblesgg/cronota/releases/download/v1.1.0/imputame.apk",
+      "destination": "/",
       "permanent": false
     },
-    { "source": "/apk", "destination": "/imputame.apk", "permanent": false },
-    { "source": "/app", "destination": "https://imputame-app.dripdev.dev", "permanent": false }
+    {
+      "source": "/apk",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/app",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }

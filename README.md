@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/roblesgg/cronota/releases/latest"><img src="https://img.shields.io/github/v/release/roblesgg/cronota?style=for-the-badge&label=descargar&color=818CF8" alt="Descargar la última versión"></a>
+  <a href="https://apps.microsoft.com/detail/9NXSJVW6BXQF"><img src="https://img.shields.io/badge/Microsoft%20Store-descargar-818CF8?style=for-the-badge&logo=microsoft&logoColor=white" alt="Descargar en la Microsoft Store"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-1C1C2A?style=for-the-badge&logo=windows&logoColor=A69EDB" alt="Windows 10 y 11">
   <img src="https://img.shields.io/badge/%E2%97%8F-en%20marcha-F53F4C?style=for-the-badge" alt="En marcha">
 </p>
@@ -27,18 +27,12 @@ Vive en la bandeja del sistema y no molesta.
 | 📅 **Calendario semanal** | Ves tus bloques de tiempo, los corriges y añades los que se te pasaron. |
 | ⏱️ **Recordatorio** | Un aviso discreto si una tarea lleva mucho rato corriendo. |
 | ✅ **No pierde nada** | Cada cambio se guarda al momento. Ni un apagón te quita un minuto. |
-| ☕ **No molestar** | Silencia los avisos cuando necesitas concentrarte. |
+| ☕ **No molestar** | Silencia los avisos cuando necesitas concentrarte, y solos durante las llamadas. |
+| 📆 **Outlook** | Tus reuniones salen en el calendario y las añades a tus horas con un clic. |
 
 ## Descárgala
 
-En la [última versión](https://github.com/roblesgg/cronota/releases/latest):
-
-| Archivo | Para quién |
-|---|---|
-| `cronota-setup.exe` | Instalador. **Se actualiza sola.** Recomendado. |
-| `cronota-portable.exe` | Sin instalar, por ejemplo desde un USB. |
-
-Pronto también en la Microsoft Store.
+En la [Microsoft Store](https://apps.microsoft.com/detail/9NXSJVW6BXQF). Es gratis y la Store la mantiene al día sola.
 
 ## Hecho con
 
@@ -59,15 +53,14 @@ Cómo está montado el proyecto:
 
 | Carpeta | Qué hay |
 |---|---|
-| `main.js`, `sync.js`… | Proceso principal de la app |
+| `main.js`, `copias.js`, `outlook-ics.js`… | Proceso principal de la app |
 | `src/` | Pantallas (HTML, CSS y JS) |
-| `assets/`, `build/`, `build-hooks/` | Iconos, letras y personalización del instalador |
-| `movil/` | App del móvil |
-| `web/` | Web de descarga |
+| `assets/`, `build/`, `build-hooks/` | Iconos, letras e imágenes del paquete de la Store |
+| `web/` | Web |
 | `tools/` | Comprobaciones, capturas y arranque en desarrollo |
 | `docs/` | [Roadmap](docs/ROADMAP.md), [notas técnicas](docs/notas-tecnicas.md) y la ficha de la Microsoft Store |
 
-El roadmap explica también cómo se publica cada versión (beta → estable → Microsoft Store).
+El roadmap explica también cómo se publica cada versión: se prueba en modo pruebas (`tools/modo-pruebas.vbs`), se compila el paquete en GitHub Actions y se sube a la Microsoft Store.
 
 </details>
 
