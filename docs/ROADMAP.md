@@ -71,8 +71,9 @@ Decidido el 18-11-2026: nada de Microsoft Graph ni apps registradas en Azure (ha
 
 - **Reuniones de Outlook por enlace ICS** (`outlook-ics.js`): en Outlook, Configuración → Calendario → Calendarios compartidos → **Publicar un calendario** (permiso «Puede ver títulos y ubicaciones») y se pega el vínculo ICS en Ajustes → Calendario. Cronota lo descarga cada 15 min; las reuniones salen en el calendario a rayas y un clic abre «Nueva entrada» con sus horas y su título como nota. Entiende reuniones periódicas, excepciones y movidas. Solo lectura.
 - **Sin avisos en llamadas** (`en-llamada.js`): si alguna app tiene el micrófono abierto (Teams, Meet, Zoom...), Windows lo apunta en el registro; Cronota lo lee con `reg.exe` cada 20 s y no saca avisos (como No molestar). Ajustes → Avisos dice qué app está en llamada.
+- **Al añadir una reunión** (decidido el 18-11-2026, `anadirReunion` en `main.js` y `recortar-solapes.js`): la reunión manda y se recorta lo que se solape de otras entradas (si una la cubre entera, se parte en dos); si está pasando ahora, la tarea en marcha se corta al empezar la reunión y la de la reunión queda en marcha desde esa hora; las futuras no se pueden añadir; las ya añadidas salen «✓ Añadida»; la que cruza la medianoche se corta a las 23:59. Se deshace con Ctrl+Z.
 - Política de privacidad actualizada.
-- **Estado (18-11-2026):** programado, falta que Álvaro lo pruebe en modo pruebas con su vínculo ICS y en una llamada de Teams.
+- **Estado (18-11-2026):** las reuniones ya salen en modo pruebas con el vínculo de Álvaro; los casos al añadirlas, probados sin ventanas con datos inventados. Falta probar «Sin avisos en llamadas» en una llamada de Teams.
 
 ### Fase 4 · Descartada por ahora
 

@@ -86,7 +86,8 @@ const IS_STORE = !!process.windowsStore;
 // 2.9.2: paso de la versión del instalador a la de la Store y copias diarias en Documentos\Cronota.
 const migracion = require('./migracion-store');
 const outlookIcs = require('./outlook-ics');     // 2.12: reuniones de Outlook por enlace ICS
-const enLlamada = require('./en-llamada');       // 2.12: ¿micrófono en uso? → avisos en silencio
+const enLlamada = require('./en-llamada');
+const { recortarSolapes } = require('./recortar-solapes');   // 2.12: la reunión manda       // 2.12: ¿micrófono en uso? → avisos en silencio
 const { GROUP_PALETTES, colorFromGroupPalette } = require('./palettes');
 // Versión de la interfaz: la 3 es el rediseño de la 2.8 (Noche cálida). Al pasar a ella se
 // estrena el tema nuevo una vez; después cada cual elige el que quiera en Ajustes.
@@ -1112,6 +1113,44 @@ function addCalendarEntry(taskId, newTaskName, newTaskColor, startMs, endMs, not
   }
   task.entries.push(entry);
   saveData(); broadcastState();
+}
+
+// 2.12: añadir una reunión de Outlook (decidido con Álvaro el 18-11-2026):
+//   - futura: no se puede (aún no ha pasado);
+//   - ya añadida (misma reunión, entry.outlookId): no se repite;
+//   - la reunión manda: lo que otras entradas tengan en ese rato se recorta (recortar-solapes.js);
+//   - si está pasando ahora, la tarea en marcha se corta al empezar la reunión y la de la
+//     reunión se pone en marcha desde esa hora.
+function anadirReunion(p) {
+  const ahora = Date.now();
+  const startMs = Number(p.startMs), endMs = p.endMs == null ? null : Number(p.endMs);
+  if (!startMs || startMs >= ahora) return;
+  if (state.tasks.some(t => !t.deleted && t.entries.some(e => e.outlookId === p.reunionId))) return;
+  let task = state.tasks.find(t => t.id === p.taskId);
+  if (!task && p.newTaskName) {
+    addCalendarEntry(null, p.newTaskName, p.newTaskColor, startMs, startMs + 1, '', null, p.newTaskGroupId);   // crea la tarea
+    task = state.tasks[state.tasks.length - 1];
+    task.entries = [];
+  }
+  if (!task) return;
+  const enCurso = endMs == null || endMs > ahora;
+  const { paroLaActiva } = recortarSolapes(state.tasks, startMs, enCurso ? null : endMs, ahora);
+  if (paroLaActiva) { state.activeTaskId = null; state.activeSubId = null; }
+  const entry = { start: startMs, end: enCurso ? null : endMs, nameAtTime: task.name, outlookId: String(p.reunionId).slice(0, 300) };
+  const n = (p.note || '').trim().slice(0, 500);
+  if (n) entry.note = n;
+  const sub = p.subId ? (task.subtasks || []).find(x => x.id === p.subId) : null;
+  if (sub) { entry.subId = sub.id; entry.subNameAtTime = sub.name; }
+  if (enCurso) {
+    // Si quedaba otra en marcha (no se solapaba), se para ahora: solo puede haber una.
+    if (state.activeTaskId) pauseActive();
+    task.entries.push(entry);
+    state.activeTaskId = task.id;
+    state.activeSubId = sub ? sub.id : null;
+  } else {
+    task.entries.push(entry);
+  }
+  saveData(); broadcastState(); resetReminderTimer();
 }
 
 // ── Reminder widget ───────────────────────────────────────────────────────────
@@ -2972,6 +3011,7 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'edit-entry':    editEntry(payload.taskId, payload.entryIndex, payload.startMs, payload.endMs, payload.note, payload.name, payload.subId); break;
     case 'delete-entry':  deleteEntry(payload.taskId, payload.entryIndex); break;
     case 'add-calendar-entry':
+      if (payload && payload.reunionId) { anadirReunion(payload); break; }   // 2.12: desde Outlook
       addCalendarEntry(payload.taskId, payload.newTaskName, payload.newTaskColor, payload.startMs, payload.endMs, payload.note, payload.subId, payload.newTaskGroupId);
       break;
     case 'archive-purge': archivePurge(payload && payload.taskIds); break;

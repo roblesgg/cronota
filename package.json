@@ -34,6 +34,7 @@
       "migracion-store.js",
       "outlook-ics.js",
       "en-llamada.js",
+      "recortar-solapes.js",
       "src/**/*",
       "assets/**/*",
       "package.json",
