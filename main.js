@@ -67,9 +67,7 @@ const TASK_COLORS = ['#6366f1','#f472b6','#34d399','#fbbf24','#60a5fa','#f87171'
 // Los temas, los acentos y la paleta resuelta viven en themes.js (también los usan las
 // herramientas de captura de tools/).
 const { THEMES, DEFAULT_THEME, ACCENTS, themeVars: resolverTema } = require('./themes');
-const { aplicarDesenfoqueWindows, quitarDesenfoqueWindows, esquinasWindows } = require('./desenfoque-windows');
 const { vigilarCapturas } = require('./capturas-windows');
-const USAR_DESENFOQUE_SISTEMA = false;
 // Versión de la Microsoft Store (paquete MSIX): la actualiza la Store, no nuestro actualizador, y
 // el arranque con Windows lo gestiona Windows (Configuración → Aplicaciones → Inicio).
 const IS_STORE = !!process.windowsStore;
@@ -1407,120 +1405,6 @@ function pruneWeekOverrides() {
   });
 }
 
-// Menú para elegir qué días se ven. Los cambios de aquí son SOLO de esa semana; el
-// ajuste permanente está en Ajustes, y desde aquí se puede volver a él.
-function showWeekDaysMenu(clave) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(clave || ''))) return;
-  const win = BrowserWindow.getFocusedWindow() || dockPanelWin || calendarWin;
-  const visibles = weekDaysFor(clave);
-  const hayExcepcion = !!(settings.weekOverrides && settings.weekOverrides[clave]);
-
-  const plantilla = [
-    { label: 'Días de esta semana', enabled: false },
-    { type: 'separator' },
-    ...DIAS_SEMANA.map(([n, etiqueta]) => ({
-      label: etiqueta,
-      type: 'checkbox',
-      checked: visibles.includes(n),
-      click: () => {
-        const nuevos = visibles.includes(n) ? visibles.filter(x => x !== n) : [...visibles, n];
-        if (!nuevos.length) return;   // dejar la semana sin días no tiene sentido
-        if (!settings.weekOverrides) settings.weekOverrides = {};
-        settings.weekOverrides[clave] = nuevos;
-        pruneWeekOverrides();
-  // Antes solo se podía guardar un enlace. El que hubiera pasa a ser el primero de la
-  // lista, sin que el usuario tenga que volver a escribirlo.
-  if (!Array.isArray(settings.imputeUrls)) settings.imputeUrls = [];
-  if (!settings.imputeUrls.length && settings.imputeUrl) settings.imputeUrls = [settings.imputeUrl];
-  settings.imputeUrls = settings.imputeUrls.map(normalizeUrl).filter(Boolean); saveSettings(); broadcastState();
-      },
-    })),
-    { type: 'separator' },
-    {
-      label: 'Volver a mis días de siempre',
-      enabled: hayExcepcion,
-      click: () => {
-        delete settings.weekOverrides[clave];
-        saveSettings(); broadcastState();
-      },
-    },
-    { label: 'Cambiar mis días de siempre…', click: () => openSettings() },
-  ];
-  try { Menu.buildFromTemplate(plantilla).popup(win ? { window: win } : {}); } catch {}
-}
-
-// ── Menú del clic derecho sobre una entrada del calendario ───────────────────
-// Sirve sobre todo para archivar la tarea en una sección sin tener que ir al panel,
-// que es donde estaba ese botón hasta ahora.
-function showCalendarContextMenu(taskId, entryIndex) {
-  const task = state.tasks.find(t => t.id === taskId);
-  if (!task) return;
-  const win = BrowserWindow.getFocusedWindow() || dockPanelWin || calendarWin;
-  const enMarcha = state.activeTaskId === task.id;
-
-  const avisar = (canal, datos) => {
-    [calendarWin, dockPanelWin].forEach(w => {
-      if (w && !w.isDestroyed()) sendToAllFrames(w, canal, datos);
-    });
-  };
-
-  const secciones = sortedGroups().map(g => ({
-    label: g.name,
-    type: 'radio',
-    checked: task.archived && task.groupId === g.id,
-    click: () => archiveTask(task.id, g.id),
-  }));
-
-  const plantilla = [
-    { label: task.name, enabled: false },
-    { type: 'separator' },
-  ];
-
-  if (task.deleted) {
-    plantilla.push({ label: 'Restaurar la tarea', click: () => restoreTask(task.id) });
-  } else {
-    plantilla.push({
-      label: task.archived ? 'Mover a otra sección' : 'Guardar en una sección',
-      submenu: secciones.concat(
-        secciones.length ? [{ type: 'separator' }] : [],
-        [{ label: 'Sección nueva…', click: () => avisar('ask-new-group', task.id) }],
-      ),
-    });
-    if (task.archived) {
-      plantilla.push({ label: 'Sacar de Guardadas', click: () => unarchiveTask(task.id) });
-    }
-    // Mismos controles que el popup de la entrada, para no tener que abrirlo.
-    const entrada = task.entries[entryIndex];
-    const enCurso = entrada && entrada.end == null;
-    plantilla.push({ type: 'separator' });
-    if (enMarcha && enCurso) {
-      plantilla.push({ label: 'Pausar', click: () => pauseActive() });
-    } else if (enMarcha) {
-      // Rato viejo de una tarea que ya corre en otro. Sin esto el menú se quedaba sin
-      // acciones y parecía que iban y venían. No se ofrece alargar: reabrir este rato
-      // hasta ahora se solaparía con el que está en marcha.
-      plantilla.push({ label: 'Pausar la tarea', click: () => pauseActive() });
-    } else if (entrada) {
-      // Las dos maneras de retomar: una entrada nueva desde ahora, o estirar esta
-      // hasta ahora. En ambas se conservan la subtarea y la nota de este rato.
-      const sub = entrada.subId && (task.subtasks || []).some(x => x.id === entrada.subId)
-        ? entrada.subId : undefined;
-      plantilla.push(
-        { label: 'Nueva entrada desde ahora', click: () => startTask(task.id, 0, sub, entrada.note) },
-        { label: 'Alargar esta hasta ahora', click: () => resumeEntry(task.id, entryIndex) },
-      );
-    }
-  }
-
-  plantilla.push(
-    { type: 'separator' },
-    { label: 'Editar esta entrada…', click: () => avisar('open-entry-popup', { taskId: task.id, entryIndex }) },
-    { label: 'Eliminar esta entrada', click: () => deleteEntry(task.id, entryIndex) },
-  );
-
-  try { Menu.buildFromTemplate(plantilla).popup(win ? { window: win } : {}); } catch {}
-}
-
 // ── Enlace para imputar ──────────────────────────────────────────────────────
 // Se acepta lo que el usuario pegue: si no trae esquema, se le pone https://. Solo
 // http y https, para que un enlace guardado no pueda acabar abriendo otra cosa.
@@ -2719,7 +2603,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       try { event.reply('undo-hecho', { tipo: type, ok }); } catch {}
       break;
     }
-    case 'start-task':    startTask(payload.taskId, payload.backMinutes, payload.subId); break;
     case 'add-subtask':    addSubtask(payload.taskId, payload.name); break;
     // Crear y arrancar de una vez: quien la crea desde "Empezar tarea" la quiere ya en
     // marcha, y desde el renderer no se puede porque el id lo pone este proceso.
@@ -2860,7 +2743,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       saveSettings(); broadcastState();
       break;
     }
-    case 'week-days-menu': showWeekDaysMenu(payload && payload.week); break;
     case 'set-group-sort':
       if (payload && payload.sort !== undefined) {
         settings.groupSort = ['alpha', 'created', 'custom'].includes(payload.sort) ? payload.sort : 'created';
@@ -2997,9 +2879,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       updateDockHitTest();
       break;
     case 'set-dnd': setDnd(payload && payload.minutes === null ? null : Number(payload && payload.minutes) || 0); break;
-    case 'calendar-context-menu': showCalendarContextMenu(payload && payload.taskId, payload && payload.entryIndex); break;
     case 'dock-context-menu': showDockContextMenu(); break;
-    case 'show-dock-bar': hideDockFor(null); break;
     case 'dock-expand':            // la barrita pide abrir el panel
       showDockPanel();
       break;
@@ -3029,19 +2909,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       break;
     }
     // Desenfoque del propio Windows detrás de la ventana (cero retraso: lo pinta el compositor).
-    case 'desenfoque-sistema': {
-      // DESACTIVADO: Windows desenfoca el rectángulo ENTERO de la ventana, sin respetar su forma
-      // (probado con setShape y con SetWindowRgn nativo): con el panel, que ocupa la pantalla,
-      // desenfocaba todo. Solo valdría con ventanas del tamaño exacto de la tarjeta.
-      if (!USAR_DESENFOQUE_SISTEMA) break;
-      const win = BrowserWindow.fromWebContents(event.sender);
-      if (!win || win.isDestroyed()) break;
-      const on = !!(payload && payload.on);
-      if (win.__desenfoque === on) break;
-      win.__desenfoque = on;
-      if (on) aplicarDesenfoqueWindows(win, { estado: 3 }); else quitarDesenfoqueWindows(win);
-      break;
-    }
     case 'dock-panel-rect': {   // dónde está la tarjeta: botón = su tamaño; forma = cuánto dejar visible
       if (!dockPanelWin || dockPanelWin.isDestroyed() || !payload) break;
       const boton = Number(payload.boton) || 0, forma = payload.forma == null ? boton : Number(payload.forma) || 0;
@@ -3089,9 +2956,6 @@ ipcMain.on('action', (event, { type, payload }) => {
         width: d.size.width, height: d.size.height,
         primary: d.bounds.x === 0 && d.bounds.y === 0,
       })));
-      break;
-    case 'dock-focus':
-      if (dockWin && !dockWin.isDestroyed()) { try { dockWin.focus(); } catch {} }
       break;
     // Vista previa en vivo mientras se toquetea la barra en Ajustes (sin darle a Guardar).
     // 2.10: la píldora se está arrastrando fuera de su pantalla. La ventana de la barra se

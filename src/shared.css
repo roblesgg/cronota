@@ -1,38 +1,18 @@
-/* Montserrat self-hosted (offline-friendly). Latin subset woff2. */
+/* Las letras de la app: Zalando Sans Expanded para títulos y Zalando Sans para el resto
+   (también en mac.css; aquí para las páginas que solo cargan este archivo). */
 @font-face {
-  font-family: 'Montserrat';
+  font-family: 'Zalando Sans';
   font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../assets/fonts/montserrat-latin-400-normal.woff2') format('woff2');
+  font-weight: 200 900;
+  font-display: block;
+  src: url('../assets/fonts/zalando-sans-latin-variable.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Montserrat';
+  font-family: 'Zalando Sans Expanded';
   font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('../assets/fonts/montserrat-latin-500-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('../assets/fonts/montserrat-latin-600-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('../assets/fonts/montserrat-latin-700-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-  src: url('../assets/fonts/montserrat-latin-800-normal.woff2') format('woff2');
+  font-weight: 200 900;
+  font-display: block;
+  src: url('../assets/fonts/zalando-sans-expanded-latin-variable.woff2') format('woff2');
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,7 +50,7 @@
 }
 
 body {
-  font-family: 'Montserrat', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Zalando Sans', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   font-size: var(--font-md);
   font-weight: var(--fw-regular);
   line-height: 1.45;

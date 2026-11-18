@@ -648,24 +648,6 @@ function formaDeElemento(el) {
   const x1 = Math.min(window.innerWidth, r.right), y1 = Math.min(window.innerHeight, r.bottom);
   return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0), radios: [radio, radio, radio, radio] };
 }
-function seguidorDeForma(el) {
-  let ipc = null;
-  try { ipc = require('electron').ipcRenderer; } catch { return { enviar() {}, seguir() {} }; }
-  let hasta = 0, raf = 0, oculto = false;
-  const enviar = () => ipc.send('action', { type: 'forma-ventana',
-    payload: oculto ? { x: 0, y: 0, w: 0, h: 0 } : formaDeElemento(el) });
-  return {
-    enviar,
-    seguir(ms) {
-      hasta = Math.max(hasta, performance.now() + ms);
-      if (raf) return;
-      const paso = () => { enviar(); raf = performance.now() < hasta ? requestAnimationFrame(paso) : 0; };
-      raf = requestAnimationFrame(paso);
-    },
-    ocultar(v) { oculto = !!v; enviar(); },
-  };
-}
-
 // ── Avisos de confirmar (2.8.3) ──────────────────────────────────────────────────
 // Con uno abierto, Intro acepta y Esc cancela, y manda sobre cualquier otro atajo (antes
 // Intro abría los detalles del rato seleccionado que había detrás).
