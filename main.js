@@ -253,6 +253,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.11.0': { title: 'Novedades de Cronota 2.11', steps: [
+    { icon:'bar', title:'Lleva la barra a otra pantalla',
+      text:'Mantén pulsada la barrita del borde y arrástrala a otra pantalla: se muda contigo y se queda allí, también el panel.' },
+    { icon:'spark', title:'Todo se mueve con más suavidad',
+      text:'Las tareas se deslizan a su sitio al reordenarse, las secciones se abren y se pliegan, la semana del calendario y las categorías de Ajustes entran deslizándose.' },
+  ] },
   '2.9.5': { title: 'Novedades de Cronota 2.9.5', steps: [
     { icon:'folder', title:'La copia de seguridad lo lleva todo',
       text:'Ajustes → Exportar copia guarda ahora tus tareas con todo su historial y también todos tus ajustes. Al restaurarla puedes elegir si recuperar los ajustes; si dices que sí, Cronota se reinicia con ellos.' },
