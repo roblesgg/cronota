@@ -82,6 +82,37 @@ Decidido el 18-11-2026: nada de Microsoft Graph ni apps registradas en Azure (ha
 
 Cambiar el estado de Teams o crear eventos en Outlook desde Cronota necesita una app registrada en Azure (Microsoft Graph). Solo si algún día sistemas lo aprueba.
 
+### Revisión completa de la app (18-11-2026)
+
+Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
+
+**Arreglado ya (sale en la próxima versión):**
+- Al apagar el PC o cerrar sesión con una tarea en marcha, se para en ese momento ('session-end'). Si la app se cierra de golpe, al volver a abrirla se para en el último minuto en que estaba viva y avisa (`ultimoLatido`, `repararCierreDeGolpe`). Antes contaba toda la noche.
+- Ajustes guardados de forma segura, como las tareas (antes, un corte de luz a mitad los perdía en silencio, con el vínculo de Outlook y el tutorial visto). Si están rotos, se apartan como copia.
+- Un archivo de tareas que se lee pero viene vacío ya no impide arrancar.
+- Si la barra se cae, se vuelve a crear; antes se pasaba a modo ventanas para siempre.
+- El calendario de la barra no se puede estrechar por debajo de 760 px (antes la semana quedaba ilegible).
+- «Pararla automáticamente a esa hora» en Ajustes → Avisos.
+- 12 temas nuevos (6 con brillo, 6 clásicos) y 9 colores de acento más, entre ellos «Outlook».
+
+**Sobra ahora que solo se publica en la Store (quitar en la próxima versión, junto con la cuenta y el móvil):**
+- Actualizador de GitHub y canal beta: `setupAutoUpdate`, `checkForUpdatesIfStale`, `installUpdateNow`, la ventana `src/update.html`, la barra roja de «Actualizar» del Panel, el interruptor «Betatester» y «Volver a la estable», y `electron-updater`.
+- Paso del instalador a la Store: `src/migrar.html`, casi todo `migracion-store.js` (quedan `copiaDelDia`, `ajustesTraspasables` y `arranqueDeSesion`, mejor en un `copias.js`), `SIMULACRO_STORE`, «Pasar a la Microsoft Store…» de la bandeja, `tools/simular-paso-store.vbs`.
+- Arranque con Windows del instalador (`applyLoginItem`, `quitarArranquesDelInstalador`).
+- Compilación del instalador: `nsis`/`portable`/`publish` en `package.json`, `build/installer.nsh` y sus imágenes, `build-hooks/make-installer-images.js`, el script `dist`.
+- Código que nadie usa: `desenfoque-windows.js`, menús `week-days-menu` y `calendar-context-menu`, acciones `start-task`, `show-dock-bar`, `dock-focus`, `desenfoque-sistema`; `#navButtons` del Panel, `startRename`, `escapeHtml`, `seguidorDeForma`, clases CSS sueltas y las letras Montserrat de `shared.css`.
+- Pasos del tutorial que apuntan a cosas que ya no existen (`main-update`, `set-beta`).
+- Ajustes → General: la tarjeta «Inicio y versiones» sale vacía en la Store, y «Actualizaciones» debería llamarse «Ver en Microsoft Store».
+- Web y documentación: `web/index.html` descarga el instalador y el APK y no enlaza a la Store; `web/vercel.json` y `web/version.json`; README, notas técnicas, ficha de la Store y política de privacidad hablan del instalador, las betas y el móvil.
+
+**Mejorar:**
+- Rendimiento: cada segundo, con una tarea en marcha, se manda todo el historial de todas las tareas a las pantallas. Bastaría mandar los tiempos. Las 4 vistas de la barra lo reciben aunque no se vean, y el calendario rehace su minicalendario cada segundo. La barra comprueba el ratón cada 60 ms aunque esté escondida, y deshacer guarda hasta 60 copias completas.
+- Ajustes guarda de dos maneras (unos al momento, otros con «Aplicar») y «Cancelar» no deshace lo ya aplicado. Pasar todo a «al momento» y quitar Aplicar/Cancelar.
+- Palabras: el Panel habla de «grupo» y Tareas de «sección». El «Añadir tarea» del Panel solo abre Tareas, y la fila «Al iniciar, llevo…» no se entiende.
+- Accesibilidad: el punto de color no se puede usar con teclado y es de 11 px; varios campos no enseñan el foco; hay 18 `alert`/`confirm` del sistema mezclados con las ventanitas propias.
+- Las ventanas de los ojos y de arranque usan Montserrat en vez de las Zalando de la app.
+- Decidir: si el portátil se suspende con una tarea en marcha, ¿se para al suspender? Hoy sigue contando.
+
 ### Pendientes sueltos
 
 - **Próxima versión · fuera la cuenta y el móvil; sincronizar con OneDrive o Google Drive** (pedido por Álvaro el 18-11-2026):

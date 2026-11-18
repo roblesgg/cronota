@@ -464,6 +464,7 @@ let settings = {
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
   outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
   silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
+  ultimoLatido: 0,       // 2.13: última vez que la app estaba viva (ver repararCierreDeGolpe)
   traspasoVisto: null,  // 2.9.2, versión de la Store: fecha del traspaso desde el instalador ya recibido
 };
 
@@ -481,6 +482,13 @@ function loadData() {
     // escritura completa que no llegó a renombrarse.
     try { fs.copyFileSync(DATA_FILE, `${DATA_FILE}.corrupt-${Date.now()}`); } catch {}
     try { state = JSON.parse(fs.readFileSync(DATA_FILE + '.tmp', 'utf8')); } catch {}
+  }
+  // 2.13: un fichero que se lee pero no trae tareas (p. ej. «null») tumbaba el arranque. Se
+  // aparta igual que uno roto y se prueba con el .tmp.
+  if (!state || !Array.isArray(state.tasks)) {
+    try { fs.copyFileSync(DATA_FILE, `${DATA_FILE}.corrupt-${Date.now()}`); } catch {}
+    try { const t = JSON.parse(fs.readFileSync(DATA_FILE + '.tmp', 'utf8')); if (t && Array.isArray(t.tasks)) state = t; } catch {}
+    if (!state || !Array.isArray(state.tasks)) state = { tasks: [], groups: [], activeTaskId: null, activeSubId: null };
   }
   if (!Array.isArray(state.groups)) state.groups = [];
   state.tasks.forEach(t => {
@@ -500,7 +508,11 @@ function loadData() {
   });
   try {
     if (fs.existsSync(SETTINGS_FILE)) settings = { ...settings, ...JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) };
-  } catch {}
+  } catch {
+    // 2.13: roto (un apagado a mitad de guardar): se aparta y se prueba con el .tmp, como las tareas.
+    try { fs.copyFileSync(SETTINGS_FILE, `${SETTINGS_FILE}.corrupt-${Date.now()}`); } catch {}
+    try { settings = { ...settings, ...JSON.parse(fs.readFileSync(SETTINGS_FILE + '.tmp', 'utf8')) }; } catch {}
+  }
   // 2.8: estreno del rediseño. Una sola vez, el tema pasa a Noche cálida con su acento; a
   // partir de ahí cada cual elige el que quiera en Ajustes y no se vuelve a tocar.
   const uiVista = Number(settings.uiVersion) || 0;
@@ -536,7 +548,11 @@ function saveData() {
 }
 
 function saveSettings() {
-  try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2)); } catch {}
+  // 2.13: escritura atómica, como las tareas: si se va la luz a mitad, el bueno sigue entero.
+  const json = JSON.stringify(settings, null, 2);
+  const tmp = SETTINGS_FILE + '.tmp';
+  try { fs.writeFileSync(tmp, json); fs.renameSync(tmp, SETTINGS_FILE); }
+  catch { try { fs.writeFileSync(SETTINGS_FILE, json); } catch {} }
 }
 
 // Registra (o quita) Cronota del arranque de Windows según el ajuste.
@@ -1933,7 +1949,7 @@ function dockConfig() {
     barGlass: settings.dockBarGlass !== false && settings.liquidGlass !== false,   // 2.8.3: de cristal (por defecto); con el estilo plano, lisa
     panelWidth: Math.max(320, Math.min(1600, Number(settings.dockPanelWidth) || 460)),
     panelHeight: Math.max(260, Math.min(1400, Number(settings.dockPanelHeight) || 620)),
-    calendarWidth: Math.max(420, Math.min(1900, Number(settings.dockCalendarWidth) || 1180)),
+    calendarWidth: Math.max(760, Math.min(1900, Number(settings.dockCalendarWidth) || 1180)),
     closeMode: ['button','clickOutside','mouseLeave'].includes(settings.dockCloseMode) ? settings.dockCloseMode : 'button',
     closeSeconds: Math.max(0, Math.min(30, Number(settings.dockCloseSeconds) ?? 3)),
   };
@@ -2381,11 +2397,18 @@ function createDock() {
     // quitar el modo barra ni guardarlo así.
     if (saliendo) return;
     destroyDock();
-    settings.dockMode = false; saveSettings(); updateTrayTitle();
+    // 2.13: antes se apagaba el modo barra y se guardaba así para siempre por una sola caída.
+    // Ahora se vuelve a crear; solo si se cae 3 veces en un minuto se pasa a ventanas, y sin
+    // guardarlo (al volver a abrir la app, vuelve la barra).
+    const ahora = Date.now();
+    caidasDock = caidasDock.filter(t => ahora - t < 60000); caidasDock.push(ahora);
+    if (caidasDock.length < 3) { setTimeout(() => { if (!saliendo && settings.dockMode) { createDock(); positionDock(); } }, 800); return; }
+    settings.dockMode = false; updateTrayTitle();
     openMain();
   });
 }
 
+let caidasDock = [];
 function destroyDock() {
   if (dockPanelWin && !dockPanelWin.isDestroyed()) dockPanelWin.close();
   dockPanelWin = null;
@@ -3251,7 +3274,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (size > 0) {
         const lim = (a, b) => Math.max(a, Math.min(b, size));
         if (!vertical) settings.dockPanelHeight = lim(260, 1400);
-        else if ((payload && payload.view) === 'calendar') settings.dockCalendarWidth = lim(420, 1900);
+        else if ((payload && payload.view) === 'calendar') settings.dockCalendarWidth = lim(760, 1900);
         else settings.dockPanelWidth = lim(320, 1600);
         saveSettingsSoon();
         sendDockConfig();   // la barrita necesita el tamaño para colocar su botón
@@ -3939,6 +3962,8 @@ app.whenReady().then(() => {
   // caso hay que pedirlo desde Ajustes; si no, a quien le quedaran pasos sueltos se lo
   // encontraría paseándole por la app en cada arranque.
   if (!(settings.tutorialSeenSteps || []).length) tourActive = true;
+  repararCierreDeGolpe();   // 2.13: antes que nada que use la tarea en marcha
+  latir(); setInterval(latir, 60000);
   startLeaveWatcher();
   startEyeCareTimer();
   arrancarOutlookYLlamadas();
@@ -4054,6 +4079,41 @@ function installUpdateNow() {
 app.on('window-all-closed', e => e.preventDefault());
 // saveSettings() explícito: saveSettingsSoon puede tener un guardado pendiente (p. ej.
 // la última vista abierta) que se perdería si la app se cierra antes de que salte.
+// ── Apagar el PC con una tarea en marcha (2.13) ───────────────────────────────────
+// Antes, al apagar Windows con una tarea en marcha, el rato se quedaba abierto y al día
+// siguiente contaba toda la noche. Ahora:
+//   - al cerrar sesión o apagar, Windows avisa a cada ventana ('session-end') y se para ahí;
+//   - si la app se cierra de golpe (se va la luz, se cuelga), cada minuto se apunta que sigue
+//     viva, y al volver a abrirla la tarea se para en ese último minuto y se avisa.
+function alTerminarSesion() {
+  if (saliendo) return;
+  saliendo = true;
+  try { pauseActive(); saveData(); settings.ultimoLatido = Date.now(); saveSettings(); } catch {}
+}
+app.on('browser-window-created', (_e, w) => { try { w.on('session-end', alTerminarSesion); } catch {} });
+
+function latir() { settings.ultimoLatido = Date.now(); saveSettings(); }
+function repararCierreDeGolpe() {
+  const latido = Number(settings.ultimoLatido) || 0;
+  const task = getActiveTask();
+  const ultima = task && task.entries[task.entries.length - 1];
+  if (!latido || !ultima || ultima.end != null) return;
+  // Más de 10 minutos sin señal: la app no estuvo abierta todo ese rato.
+  if (Date.now() - latido < 10 * 60000 || latido <= ultima.start) return;
+  ultima.end = latido;
+  state.activeTaskId = null; state.activeSubId = null;
+  saveDataRaw();
+  const hora = new Date(latido).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  setTimeout(() => {
+    try {
+      new Notification({
+        title: 'Cronota paró una tarea',
+        body: `Cronota se cerró de golpe con «${task.name}» en marcha. La he parado a las ${hora}, la última vez que estaba abierta.`,
+      }).show();
+    } catch {}
+  }, 4000);
+}
+
 app.on('before-quit', () => {
   saliendo = true;
   pauseActive(); saveData(); saveSettings();
