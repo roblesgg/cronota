@@ -1,12 +1,11 @@
 // Genera assets/icon.ico a partir de assets/icon.png: los tamaños de 16 a 256 px, cada uno
-// guardado en PNG dentro del .ico (como el de antes; Windows, rcedit y el instalador lo leen).
+// guardado en PNG dentro del .ico (como el de antes; Windows y rcedit lo leen).
 //
 // Al cambiar el logo:
 //   1. Poner el original en docs/marca/ y su PNG (1080×1080, con transparencia) en assets/icon.png.
-//   2. node build-hooks/make-icon-ico.js        -> assets/icon.ico (ventanas, .exe, instalador)
+//   2. node build-hooks/make-icon-ico.js        -> assets/icon.ico (ventanas y .exe)
 //   3. node build-hooks/make-appx-assets.js     -> build/appx/ (Microsoft Store)
-//   4. node build-hooks/make-installer-images.js -> build/*.bmp (páginas del instalador)
-//   5. web/cronota-icon.png (512 px) para la web.
+//   4. web/cronota-icon.png (512 px) para la web.
 const Jimp = require('jimp');
 const fs = require('fs');
 const path = require('path');

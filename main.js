@@ -2,22 +2,15 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, dialog, na
 const path = require('path');
 const fs = require('fs');
 
-// 2.9.2 · Simulacro del paso a la Microsoft Store, para ver el aviso sin cambiar nada de verdad:
-//   npx electron . --simular-paso-store      (o el .exe instalado con ese argumento)
-// Trabaja sobre una copia de los datos en una carpeta temporal, con su propio bloqueo de
-// instancia (puede ir a la vez que la Cronota de siempre). No desinstala nada, no cierra la
-// app, no toca el arranque con Windows ni busca actualizaciones.
-//
-// Modo pruebas (para los desarrollos del roadmap): lo mismo, pero sin el aviso de la Store.
+// Modo pruebas (para los desarrollos del roadmap):
 //   npx electron . --pruebas                 (o doble clic en tools\modo-pruebas.vbs)
 // Sus datos viven en %TEMP%\cronota-pruebas y se conservan entre pruebas; la primera vez (o con
 // --datos-nuevos) se copian los tuyos. Nada de lo que hagas ahí toca tus horas reales.
-const SIMULACRO_STORE = process.argv.includes('--simular-paso-store');
-const MODO_PRUEBAS = SIMULACRO_STORE || process.argv.includes('--pruebas');
+const MODO_PRUEBAS = process.argv.includes('--pruebas');
 if (MODO_PRUEBAS) {
-  const caja = path.join(require('os').tmpdir(), SIMULACRO_STORE ? 'cronota-simulacro' : 'cronota-pruebas');
+  const caja = path.join(require('os').tmpdir(), 'cronota-pruebas');
   try {
-    const copiar = SIMULACRO_STORE || process.argv.includes('--datos-nuevos') || !fs.existsSync(path.join(caja, 'imputa-tasks.json'));
+    const copiar = process.argv.includes('--datos-nuevos') || !fs.existsSync(path.join(caja, 'imputa-tasks.json'));
     fs.mkdirSync(caja, { recursive: true });
     const real = path.join(app.getPath('appData'), 'imputa-me');
     if (copiar) ['imputa-tasks.json', 'imputa-settings.json'].forEach((f) => {
@@ -39,9 +32,6 @@ app.on('second-instance', () => {
   // Alguien ha vuelto a lanzar la app mientras ya estaba corriendo: solo la traemos al
   // frente (por donde se quedó), no dejamos que se abra un proceso duplicado.
   openLastView();
-  // 2.9.2: puede ser la versión de la Store, que no se abre mientras esta siga abierta. Si
-  // ya está instalada, esta versión del instalador se aparta y le deja paso.
-  comprobarPasoAStore();
 });
 
 // 2.9.4: a veces, justo al arrancar con Windows, una ventana (o un iframe del panel) recibe su
@@ -84,7 +74,7 @@ const USAR_DESENFOQUE_SISTEMA = false;
 // el arranque con Windows lo gestiona Windows (Configuración → Aplicaciones → Inicio).
 const IS_STORE = !!process.windowsStore;
 // 2.9.2: paso de la versión del instalador a la de la Store y copias diarias en Documentos\Cronota.
-const migracion = require('./migracion-store');
+const copias = require('./copias');   // 2.13: copias diarias y arranque con Windows (antes en migracion-store.js)
 const outlookIcs = require('./outlook-ics');     // 2.12: reuniones de Outlook por enlace ICS
 const enLlamada = require('./en-llamada');
 const { recortarSolapes } = require('./recortar-solapes');   // 2.12: la reunión manda       // 2.12: ¿micrófono en uso? → avisos en silencio
@@ -416,7 +406,6 @@ let settings = {
   widgetAutoHideSeconds: 10,
   widgetScale: 100,         // 2.8.3: tamaño del recordatorio de la esquina (en %)
   colorMode: 'auto', // 'auto' | 'manual'
-  openAtLogin: false, // arrancar al iniciar sesión en Windows (desactivado por defecto)
   bgOpacity: 85,       // 100 = mate; por debajo, el panel lateral es de cristal (2.8.3: de serie, un toque)
   liquidGlass: true,   // estilo: cristal líquido (true) o plano (false), en Ajustes → Apariencia
   tutorialSeenSteps: [], // ids de pasos del tutorial guiado ya vistos u omitidos (ver TUTORIAL_STEPS en shared.js)
@@ -458,7 +447,6 @@ let settings = {
   outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
   silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
   ultimoLatido: 0,       // 2.13: última vez que la app estaba viva (ver repararCierreDeGolpe)
-  traspasoVisto: null,  // 2.9.2, versión de la Store: fecha del traspaso desde el instalador ya recibido
 };
 
 function nextAutoColor() {
@@ -548,29 +536,8 @@ function saveSettings() {
   catch { try { fs.writeFileSync(SETTINGS_FILE, json); } catch {} }
 }
 
-// Registra (o quita) Cronota del arranque de Windows según el ajuste.
-// Al arrancar por el login se le pasa "--hidden" para ir directo a la bandeja
-// sin abrir el panel. En desarrollo no se toca el registro (apuntaría a electron.exe).
-// La versión del instalador se apunta al inicio de Windows en HKCU\...\Run. Según la versión,
-// con el nombre «electron.app.imputa.me» o «electron.app.Cronota», y una no borraba la de la
-// otra: había equipos con las dos, más la tarea de inicio de la de la Store, y Cronota se abría
-// dos o tres veces a la vez al encender. Al pasarse a la Store se quitan las dos (la de la Store
-// no puede: Windows le da su propia copia del registro), y desinstalar tampoco las quitaba.
-const NOMBRES_ARRANQUE = ['electron.app.imputa.me', 'electron.app.Cronota'];
-function quitarArranquesDelInstalador() {
-  if (IS_STORE || !app.isPackaged || MODO_PRUEBAS) return;
-  NOMBRES_ARRANQUE.forEach(name => { try { app.setLoginItemSettings({ openAtLogin: false, name }); } catch {} });
-}
-
-function applyLoginItem() {
-  if (!app.isPackaged || IS_STORE || MODO_PRUEBAS) return;
-  try {
-    app.setLoginItemSettings({ openAtLogin: !!settings.openAtLogin, args: ['--hidden'] });
-    // Y que no quede la entrada con el otro nombre, que abriría la app otra vez.
-    const propio = 'electron.app.' + app.getName();
-    NOMBRES_ARRANQUE.filter(n => n !== propio).forEach(name => { try { app.setLoginItemSettings({ openAtLogin: false, name }); } catch {} });
-  } catch {}
-}
+// 2.13: el arranque con Windows lo pone la Store (tarea de inicio del paquete) y se cambia en
+// Configuración de Windows → Aplicaciones → Inicio. Lo del registro era de la versión del instalador.
 
 // ── Utilidades de tiempo ─────────────────────────────────────────────────────
 function totalSecondsForTask(task) {
@@ -633,7 +600,7 @@ let lastTrayTip = null, lastTrayTipAt = 0;
 function updateTrayTitle() {
   if (!tray) return;
   const active = getActiveTask();
-  const tip = `${SIMULACRO_STORE ? 'SIMULACRO · ' : MODO_PRUEBAS ? 'PRUEBAS · ' : ''}Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
+  const tip = `${MODO_PRUEBAS ? 'PRUEBAS · ' : ''}Cronota · ${formatDuration(totalTodaySeconds())}${active ? ' · ' + active.name : ''}`;
   const now = Date.now();
   if (tip !== lastTrayTip || now - lastTrayTipAt > 60000) {
     lastTrayTip = tip; lastTrayTipAt = now; tray.setToolTip(tip);
@@ -666,7 +633,6 @@ function buildTrayMenu() {
     // Si la barra se escondió desde su menú, esta es la forma de recuperarla.
     { label: 'Mostrar la barra ahora', click: () => hideDockFor(null), visible: !!settings.dockMode && dockIsHidden() },
     { label: 'Buscar actualizaciones…', click: () => checkForUpdates(true) },
-    { label: 'Pasar a la Microsoft Store…', click: () => openMigracion({ modo: 'aviso' }), visible: migracionActiva() },
     { label: 'Salir', click: () => { saveData(); app.quit(); } },
   ]);
 }
@@ -2597,136 +2563,8 @@ function maybeShowWhatsNew() {
   saveSettings();
   // Si la versión nueva cuenta exactamente lo mismo que la anterior, no se repite:
   // ya se leyó una vez y volver a soltarlo entero es justo lo que molestaba.
-  // 2.9.2: en la versión del instalador manda el aviso de pasarse a la Store, no las novedades.
-  if (!notes || yaVisto || migracionActiva()) return;
+  if (!notes || yaVisto) return;
   setTimeout(() => openWhatsNew(), 1200);   // tras el arranque, sin pisar al splash
-}
-
-// ── Paso a la Microsoft Store (2.9.2) ──────────────────────────────────────────
-// La lógica de fondo está en migracion-store.js; aquí la ventana (src/migrar.html) y el orden.
-// Modos de la ventana: 'aviso' y 'esperando' (versión del instalador), 'listo' (se está
-// cambiando) y 'bienvenida' (la primera vez en la versión de la Store).
-let migracionWin = null;
-let migracionDatos = { modo: 'aviso' };
-let migracionCerrable = false;     // el aviso no se cierra con Alt+F4: solo con «Más tarde»
-let migracionSondeo = null;        // mientras se espera a que se instale la de la Store
-let migracionOtraVez = null;       // «Más tarde»: vuelve a salir pasadas unas horas
-let migracionCambiando = false;
-
-// Solo en la versión del instalador ya instalada (ni en la de la Store ni en desarrollo), o en
-// el simulacro (ver SIMULACRO_STORE arriba del todo).
-function migracionActiva() { return process.platform === 'win32' && !IS_STORE && (app.isPackaged || SIMULACRO_STORE); }
-
-function datosMigracion() {
-  return { ...migracionDatos, tareas: state.tasks.filter(t => !t.deleted).length, grupos: state.groups.length };
-}
-
-function openMigracion(datos) {
-  migracionDatos = { ...migracionDatos, aviso: null, ...datos };
-  migracionCerrable = migracionDatos.modo === 'bienvenida';
-  if (migracionWin && !migracionWin.isDestroyed()) {
-    migracionWin.webContents.send('migracion', datosMigracion());
-    migracionWin.show(); migracionWin.focus();
-    try { migracionWin.moveTop(); } catch {}
-    return;
-  }
-  migracionWin = makeWindow('migrar.html', 520, 700, {
-    alwaysOnTop: true, resizable: false, minimizable: false, maximizable: false,
-    minWidth: 480, minHeight: 640, maxWidth: 560, maxHeight: 760,
-  });
-  migracionWin.on('close', (e) => { if (!migracionCerrable && !saliendo) e.preventDefault(); });
-  migracionWin.once('ready-to-show', () => {
-    migracionWin.show(); migracionWin.focus();
-    try { migracionWin.moveTop(); } catch {}
-  });
-  migracionWin.on('closed', () => { migracionWin = null; });
-}
-
-function cerrarMigracion() {
-  if (!migracionWin || migracionWin.isDestroyed()) return;
-  migracionCerrable = true;
-  migracionWin.close();
-}
-
-// Al arrancar la versión del instalador: si ya está la de la Store, se cambia sola; si no,
-// enseña el aviso.
-async function iniciarPasoAStore() {
-  if (!migracionActiva()) return;
-  // En el simulacro se enseña el aviso aunque la de la Store ya esté instalada.
-  if (!SIMULACRO_STORE && await comprobarPasoAStore()) return;
-  openMigracion({ modo: 'aviso' });
-}
-
-// Si la de la Store ya está instalada, se cambia a ella. Devuelve true si se está cambiando.
-async function comprobarPasoAStore() {
-  if (!migracionActiva() || migracionCambiando) return false;
-  const paquete = await migracion.paqueteStore();
-  if (!paquete || migracionCambiando) return false;
-  pasarALaStore(paquete);
-  return true;
-}
-
-function pasarALaStore(paquete) {
-  migracionCambiando = true;
-  pararSondeoStore();
-  if (migracionOtraVez) { clearTimeout(migracionOtraVez); migracionOtraVez = null; }
-  // Todo guardado y el traspaso al día antes de irse. Como al instalar una actualización,
-  // la tarea en marcha se para y se guarda.
-  pauseActive(); saveData(); saveSettings();
-  migracion.guardarTraspaso(state, settings);
-  openMigracion({ modo: 'listo' });
-  if (SIMULACRO_STORE) {
-    // Simulacro: ni se desinstala ni se cierra nada. Se enseña lo que verían después, ya en la
-    // versión de la Store.
-    setTimeout(() => { migracionCambiando = false; openMigracion({ modo: 'bienvenida', traidas: false }); }, 2800);
-    return;
-  }
-  // 2.9.3: sin nada en segundo plano. Esta versión no se desinstala sola (ver migracion-store.js):
-  // abre la de la Store como cualquier programa y se cierra. Antes se suelta el bloqueo de
-  // instancia única, por si las dos versiones lo comparten y la nueva no llegara a abrirse.
-  setTimeout(() => {
-    saliendo = true;
-    try { if (dockHitTimer) { clearInterval(dockHitTimer); dockHitTimer = null; } } catch {}
-    try { if (tray) { tray.destroy(); tray = null; } } catch {}
-    BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} });
-    quitarArranquesDelInstalador();
-    try { app.releaseSingleInstanceLock(); } catch {}
-    migracion.abrirLaDeLaStore(paquete);
-    setTimeout(() => { try { app.exit(0); } catch {} }, 500);
-  }, 2400);
-}
-
-function empezarSondeoStore() {
-  pararSondeoStore();
-  const hasta = Date.now() + 30 * 60 * 1000;   // media hora: de sobra para instalarla
-  migracionSondeo = setInterval(() => {
-    if (Date.now() > hasta) { pararSondeoStore(); return; }
-    comprobarPasoAStore();
-  }, 6000);
-}
-function pararSondeoStore() {
-  if (migracionSondeo) { clearInterval(migracionSondeo); migracionSondeo = null; }
-}
-
-// Versión de la Store: la primera vez tras el traspaso da la bienvenida. Si arranca vacía
-// (Windows no le ha enseñado los datos de siempre), se los trae del traspaso de Documentos.
-function recibirTraspaso() {
-  const t = migracion.leerTraspaso();
-  if (!t || settings.traspasoVisto === t.exportedAt) return;
-  let traidas = false;
-  if (!state.tasks.length && !state.groups.length && (t.tasks.length || t.groups.length)) {
-    state = { tasks: t.tasks, groups: t.groups, activeTaskId: null, activeSubId: null };
-    saveDataRaw();
-    Object.assign(settings, migracion.ajustesTraspasables(t.settings));
-    saveSettings();
-    loadData();   // para que pasen por las mismas comprobaciones que al arrancar
-    traidas = true;
-  }
-  settings.traspasoVisto = t.exportedAt;
-  saveSettings();
-  // 2.9.6: sin bienvenida. Salía cada vez que alguien abría la versión vieja (cada paso deja un
-  // traspaso nuevo) y molestaba más que ayudaba. Los datos se siguen trayendo en silencio.
-  void traidas;
 }
 
 // ── IPC ───────────────────────────────────────────────────────────────────────
@@ -3057,7 +2895,7 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'save-settings': {
       const wasDock = settings.dockMode;
       settings = { ...settings, ...payload };
-      saveSettings(); resetReminderTimer(); applyLoginItem(); applyTranslucencyAll();
+      saveSettings(); resetReminderTimer(); applyTranslucencyAll();
       if (outlook && payload && payload.outlookIcsUrl !== undefined) outlook.configurar(settings.outlookIcsUrl);   // 2.12
       applyDockMode(wasDock);   // crea/destruye el dock si ha cambiado el modo
       // El botón es "Aplicar": deja los ajustes aplicados pero SIN cerrarlos ni sacarte
@@ -3079,7 +2917,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       settings[key] = payload.value;
       saveSettingsSoon();
       if (key === 'reminderMinutes' || key === 'widgetAutoHide' || key === 'widgetAutoHideSeconds') resetReminderTimer();
-      if (key === 'openAtLogin') applyLoginItem();
       if (key === 'outlookIcsUrl' && outlook) outlook.configurar(payload.value);
       if (key === 'silenciarEnLlamada' && vigiaLlamadas) { if (payload.value) vigiaLlamadas.encender(); else vigiaLlamadas.apagar(); }
       if (key === 'widgetScale') widgetBounds = null;   // el sitio guardado era del tamaño de antes
@@ -3330,37 +3167,6 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'close-whats-new':
       if (whatsNewWin && !whatsNewWin.isDestroyed()) whatsNewWin.close();
       break;
-    // 2.9.2: ventana del paso a la Microsoft Store (src/migrar.html).
-    case 'get-migracion': event.reply('migracion', datosMigracion()); break;
-    case 'migracion-store':
-      // Primero quedarse a salvo: todo guardado y el traspaso en Documentos\Cronota.
-      saveData(); saveSettings();
-      migracion.guardarTraspaso(state, settings);
-      try { require('electron').shell.openExternal(migracion.FICHA_STORE); } catch {}
-      openMigracion({ modo: 'esperando' });
-      empezarSondeoStore();
-      break;
-    case 'migracion-abrir-store':
-      try { require('electron').shell.openExternal(migracion.FICHA_STORE); } catch {}
-      empezarSondeoStore();
-      break;
-    case 'migracion-ya-instalada':
-      comprobarPasoAStore().then((cambia) => {
-        if (!cambia) openMigracion({ modo: 'esperando', aviso: 'Todavía no la veo instalada. Espera a que la Store termine y vuelve a pulsar.' });
-      });
-      break;
-    case 'migracion-mas-tarde':   // desde el aviso: vuelve a salir dentro de 4 horas o al arrancar
-      pararSondeoStore();
-      cerrarMigracion();
-      if (migracionOtraVez) clearTimeout(migracionOtraVez);
-      migracionOtraVez = setTimeout(() => {
-        migracionOtraVez = null;
-        if (!migracionCambiando) openMigracion({ modo: 'aviso' });
-      }, 4 * 60 * 60 * 1000);
-      break;
-    case 'migracion-cerrar':      // bienvenida, o mientras se espera (se sigue mirando por detrás)
-      cerrarMigracion();
-      break;
     case 'set-theme':
       if (payload && payload.theme !== undefined) {
         settings.theme = THEMES[payload.theme] ? payload.theme : DEFAULT_THEME;
@@ -3538,7 +3344,7 @@ ipcMain.handle('apply-import-backup', async (_e, payload) => {
   // Con los ajustes de la copia: se guardan y la app se reinicia para que todo (tema, barra,
   // avisos...) arranque ya con ellos, igual que al abrirla.
   if (payload && payload.withSettings && raw.settings && typeof raw.settings === 'object') {
-    const nuevos = migracion.ajustesTraspasables(raw.settings);
+    const nuevos = copias.ajustesTraspasables(raw.settings);
     AJUSTES_DE_ESTE_EQUIPO.forEach(k => { delete nuevos[k]; });
     Object.keys(nuevos).forEach(k => { if (!(k in settings)) delete nuevos[k]; });
     Object.assign(settings, nuevos);
@@ -3786,11 +3592,8 @@ app.whenReady().then(() => {
   DATA_FILE = path.join(app.getPath('userData'), 'imputa-tasks.json');
   SETTINGS_FILE = path.join(app.getPath('userData'), 'imputa-settings.json');
   loadData();
-  // 2.9.2: el simulacro deja sus copias dentro de su carpeta temporal, no en tus Documentos, y
-  // va sin barra flotante para que no se monte encima de la de tu Cronota de siempre.
-  try { migracion.configurar({ documentos: MODO_PRUEBAS ? path.join(app.getPath('userData'), 'Documentos') : app.getPath('documents') }); } catch {}
-  if (SIMULACRO_STORE) settings.dockMode = false;
-  if (IS_STORE) recibirTraspaso();   // 2.9.2: la primera vez tras pasar del instalador a la Store
+  // En modo pruebas las copias van a su carpeta temporal, no a tus Documentos.
+  try { copias.configurar({ documentos: MODO_PRUEBAS ? path.join(app.getPath('userData'), 'Documentos') : app.getPath('documents') }); } catch {}
   pruneWeekOverrides();
   applySystemThemeSource();
   // Instalación nueva: el recorrido va solo por las cuatro pantallas. En cualquier otro
@@ -3853,14 +3656,13 @@ app.whenReady().then(() => {
 
   startTick();
   resetReminderTimer();
-  applyLoginItem();                         // sincroniza el registro con el ajuste guardado
   // Si arranca solo por el inicio de sesión de Windows (--hidden), no se abre el panel.
   // PERO en modo barra flotante la barrita ES la presencia de la app (ya es discreta de
   // por sí), así que hay que crearla igualmente: si no, arrancar con Windows dejaba la
   // app sin nada visible salvo el icono de la bandeja.
   // 2.9.2: la versión de la Store arranca con Windows por su tarea de inicio, que no pasa
   // "--hidden"; ahí se deduce mirando si la sesión acaba de empezar.
-  if (process.argv.includes('--hidden') || (IS_STORE && migracion.arranqueDeSesion())) {
+  if (process.argv.includes('--hidden') || (IS_STORE && copias.arranqueDeSesion())) {
     if (settings.dockMode) {
       createDock();
       // Arrancando con Windows, las pantallas todavía no son las definitivas: se recoloca
@@ -3875,11 +3677,9 @@ app.whenReady().then(() => {
   // 2.9.2: una copia al día en Documentos\Cronota\Copias automáticas. La versión de la Store
   // guarda sus datos dentro del paquete, y Windows los borra si se desinstala.
   if (app.isPackaged) {
-    migracion.copiaDelDia(state);
-    setInterval(() => migracion.copiaDelDia(state), 3 * 60 * 60 * 1000);
+    copias.copiaDelDia(state);
+    setInterval(() => copias.copiaDelDia(state), 3 * 60 * 60 * 1000);
   }
-  // 2.9.2: la versión del instalador invita a pasarse a la de la Store (o se cambia sola si ya está).
-  if (migracionActiva()) setTimeout(iniciarPasoAStore, 5000);
 });
 
 app.on('window-all-closed', e => e.preventDefault());

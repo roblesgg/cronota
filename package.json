@@ -7,12 +7,10 @@
   "scripts": {
     "start": "electron .",
     "check": "node tools/check-all.js",
-    "dist": "electron-builder --win --publish never",
     "store": "electron-builder --win appx --publish never"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
-    "electron-updater": "^6.8.9",
     "koffi": "^2.16.3"
   },
   "devDependencies": {
@@ -31,7 +29,7 @@
       "palettes.js",
       "desenfoque-windows.js",
       "capturas-windows.js",
-      "migracion-store.js",
+      "copias.js",
       "outlook-ics.js",
       "en-llamada.js",
       "recortar-solapes.js",
@@ -43,38 +41,14 @@
     "directories": {
       "output": "dist"
     },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "roblesgg",
-        "repo": "cronota"
-      }
-    ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "appx"
       ],
       "icon": "assets/icon.ico",
       "signAndEditExecutable": false
     },
     "afterPack": "build-hooks/afterPack.js",
-    "portable": {
-      "artifactName": "cronota-portable.exe"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "runAfterFinish": true,
-      "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true,
-      "shortcutName": "Cronota",
-      "uninstallDisplayName": "Cronota",
-      "artifactName": "cronota-setup.exe",
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico"
-    },
     "asarUnpack": [
       "node_modules/koffi/build/koffi/win32_x64/**"
     ],
