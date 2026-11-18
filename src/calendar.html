@@ -279,8 +279,7 @@
   .reunion-block.bajita .rb-hora { display:none; }
   .reunion-block.bajita .rb-titulo { flex:1; min-width:0; }
   .reunion-block.bajita .rb-imputar { margin-top:0; flex:none; display:none; }
-  .reunion-block.bajita:hover .rb-imputar { display:inline-flex; animation:rbEntra .4s cubic-bezier(.34,1.56,.64,1) both; }
-  @keyframes rbEntra { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:none; } }
+  .reunion-block.bajita:hover .rb-imputar { display:inline-flex; }
   .reunion-block.bajita .rb-imputar .rb-largo { display:none; }
   /* El icono de Outlook, fijo abajo a la derecha: en las sugerencias y en las tarjetas que vienen
      de una reunión (entry.outlookId). En las bajitas va centrado a la derecha y la × a su lado. */
@@ -297,31 +296,20 @@
   .reunion-block:not(.bajita) { padding-bottom:8px; }
   .reunion-block .rb-hora { color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  /* «Añadir»: pastilla con el icono de Outlook. Entra con un muelle al pasar el ratón, un brillo
-     la cruza una vez y al pasar por ella crece un poco. Nada se repite en bucle. */
+  /* «Añadir»: discreto, en el azul de Outlook. Aparece suave al pasar el ratón y se aviva un
+     poco al pasar por encima. Nada se repite en bucle. */
   .reunion-block .rb-imputar {
-    position:relative;overflow:hidden;
-    display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;box-sizing:border-box;
-    margin-top:4px;padding:3px 10px;border-radius:999px;white-space:nowrap;
-    font-weight:700;font-size:10.5px;letter-spacing:.01em;color:#fff;
-    background:linear-gradient(180deg, color-mix(in srgb, var(--accent2) 80%, #fff), var(--accent2));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 3px 10px -3px color-mix(in srgb, var(--accent2) 80%, transparent);
-    opacity:0;transform:translateY(4px) scale(.7);transform-origin:left center;pointer-events:none;
-    transition:opacity .18s ease, transform .4s cubic-bezier(.34,1.56,.64,1);
+    display:inline-flex;align-items:center;gap:4px;width:max-content;max-width:100%;box-sizing:border-box;
+    margin-top:4px;padding:1px 8px;border-radius:999px;white-space:nowrap;
+    font-weight:600;font-size:10px;letter-spacing:.01em;color:#6cb8f6;
+    background:rgba(15,108,189,.16);border:1px solid rgba(40,168,234,.35);
+    opacity:0;transform:translateY(3px);pointer-events:none;
+    transition:opacity .2s ease, transform .25s cubic-bezier(.22,1,.36,1), background .15s ease, color .15s ease;
   }
   .reunion-block:hover .rb-imputar { opacity:1;transform:none;pointer-events:auto; }
-  .reunion-block .rb-imputar:hover { transform:scale(1.07); }
-  .reunion-block .rb-imputar::after {
-    content:'';position:absolute;top:0;bottom:0;width:40%;left:-60%;pointer-events:none;
-    background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
-  }
-  .reunion-block:hover .rb-imputar::after { animation:rbBrillo .9s .15s ease-out 1 both; }
-  @keyframes rbBrillo { to { left:130%; } }
-  .reunion-block .rb-imputar .rb-ico {
-    flex:none;width:15px;height:15px;display:block;padding:1px;border-radius:50%;background:#fff;box-sizing:border-box;
-    transform:rotate(-20deg) scale(.6);transition:transform .45s .05s cubic-bezier(.34,1.56,.64,1);
-  }
-  .reunion-block:hover .rb-imputar .rb-ico { transform:none; }
+  .reunion-block .rb-imputar:hover { background:#0f6cbd; color:#fff; border-color:#0f6cbd; }
+  :root[data-scheme="light"] .reunion-block .rb-imputar { color:#0f6cbd; background:rgba(15,108,189,.10); border-color:rgba(15,108,189,.35); }
+  :root[data-scheme="light"] .reunion-block .rb-imputar:hover { color:#fff; background:#0f6cbd; }
   .reunion-block .rb-imputar .rb-largo { display:none; }
   @container (min-width: 150px) { .reunion-block .rb-imputar .rb-largo { display:inline; } }
   .reunion-block .rb-descartar {
@@ -1509,7 +1497,7 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     const t = document.createElement('div'); t.className = 'rb-titulo'; t.textContent = r.titulo;
     const h = document.createElement('div'); h.className = 'rb-hora'; h.textContent = hora + ' ';
     const i = document.createElement('span'); i.className = 'rb-imputar';
-    i.innerHTML = '<span>+ Añadir</span><span class="rb-largo">desde Outlook</span>';
+    i.innerHTML = '<span>Añadir</span><span class="rb-largo">desde Outlook</span>';
     const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
     b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook());
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
