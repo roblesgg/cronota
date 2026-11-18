@@ -1604,7 +1604,13 @@ function save() {
   const mins = parseInt(document.getElementById('reminderMinutes').value) || 10;
   const archiveDaysVal = parseInt(document.getElementById('archiveDays').value);
   const sel = document.getElementById('dockDisplay').value;
+  // 2.12: el vínculo de Outlook también se guarda con «Aplicar» (no solo con «Conectar»).
+  const ics = document.getElementById('outlookIcsUrl').value.trim();
+  const icsValido = !ics || /^(https|webcal)://S+$/i.test(ics);
+  if (!icsValido) { alert('El vínculo de Outlook no es válido: pega el vínculo ICS completo (empieza por https:// y acaba en .ics).'); return; }
+  if (ics) setTimeout(() => pintarEstadoOutlook(true), 400);
   ipcRenderer.send('action', { type:'save-settings', payload:{
+    outlookIcsUrl: ics,
     reminderMinutes: Math.max(1, Math.min(120, mins)),
     archiveDays: Math.max(0, Math.min(365, isNaN(archiveDaysVal) ? 30 : archiveDaysVal)),
     widgetAutoHide: document.getElementById('widgetAutoHide').checked,

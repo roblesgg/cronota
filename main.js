@@ -2979,6 +2979,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       const wasDock = settings.dockMode;
       settings = { ...settings, ...payload };
       saveSettings(); resetReminderTimer(); applyLoginItem(); applyTranslucencyAll();
+      if (outlook && payload && payload.outlookIcsUrl !== undefined) outlook.configurar(settings.outlookIcsUrl);   // 2.12
       applyDockMode(wasDock);   // crea/destruye el dock si ha cambiado el modo
       // El botón es "Aplicar": deja los ajustes aplicados pero SIN cerrarlos ni sacarte
       // de la pantalla, para poder seguir tocando cosas.
