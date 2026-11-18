@@ -346,7 +346,6 @@ let eyeCareNextAt = 0;       // momento del próximo aviso de la regla 20-20-20
 let eyeCareHideTimer = null;
 let leaveNotifiedOn = null;   // 'YYYY-MM-DD' del último aviso, para no repetirlo
 let tickTimer = null;
-let syncWin = null;
 let whatsNewWin = null;
 let dockWin = null;              // ventana transparente de la BARRITA (click-through)
 let dockPanelWin = null;         // ventana del PANEL: sin transparencia y con acrílico
@@ -362,11 +361,6 @@ let dockBarNear = null;
 let dockHitTimer = null;
 let dockIgnoring = null;
 let saliendo = false;            // la app se está cerrando (salir, o instalar una actualización)
-let syncStatus = { loggedIn: false, email: null };
-
-// Módulo de sincronización opcional (Supabase). Si falla el require, la app sigue local.
-let sync = null;
-try { sync = require('./sync'); } catch {}
 
 // ── Estado ──────────────────────────────────────────────────────────────────
 let state = {
@@ -523,7 +517,6 @@ function saveDataRaw() {
 }
 function saveData() {
   saveDataRaw();
-  if (sync) sync.schedulePush();   // sube los cambios al servidor (si hay sesión)
 }
 
 function saveSettings() {
@@ -621,7 +614,6 @@ function buildTrayMenu() {
     { label: 'Calendario', click: () => openCalendar() },
     { label: 'Tareas', click: () => openGroups() },
     { label: 'Ajustes', click: () => openSettings() },
-    { label: `Sincronizar (móvil)${syncStatus.loggedIn ? ' ✓' : ''}…`, click: () => openSync() },
     { label: 'Pausar', click: () => pauseActive(), enabled: !!active },
     { label: 'No molestar', type: 'checkbox', checked: dndActive(), click: () => setDnd(dndActive() ? null : 0) },
     { type: 'separator' },
@@ -1568,7 +1560,7 @@ function applyTranslucencyAll() {
   applySystemThemeSource();
   // Ni la barrita ni (desde la 2.8) el panel del dock ni (2.8.3) el recordatorio llevan
   // material: son transparentes a propósito, y applyTranslucency les haría setOpacity.
-  [mainWin, calendarWin, groupsWin, settingsWin, syncWin]
+  [mainWin, calendarWin, groupsWin, settingsWin]
     .forEach(w => applyTranslucency(w));
   broadcastTheme();
 }
@@ -1580,7 +1572,7 @@ function themeVars() {
 
 function broadcastTheme() {
   const vars = themeVars();
-  [mainWin, calendarWin, groupsWin, settingsWin, widgetWin, syncWin, dockWin, splashWin]
+  [mainWin, calendarWin, groupsWin, settingsWin, widgetWin, dockWin, splashWin]
     .forEach(w => sendToAllFrames(w, 'theme', vars));
   sendToAllFrames(dockPanelWin, 'theme', vars);
 }
@@ -2404,13 +2396,6 @@ function openGroups() {
   groupsWin.on('closed', () => { groupsWin = null; });
 }
 
-function openSync() {
-  if (syncWin && !syncWin.isDestroyed()) { syncWin.show(); syncWin.focus(); return; }
-  syncWin = makeWindow('sync.html', 400, 520, { minWidth: 360, minHeight: 460, maxWidth: 520, maxHeight: 680 });
-  syncWin.once('ready-to-show', () => { syncWin.show(); syncWin.webContents.send('sync-status', syncStatus); });
-  syncWin.on('closed', () => { syncWin = null; });
-}
-
 // ── Novedades al actualizar ───────────────────────────────────────────────────
 function openWhatsNew() {
   if (whatsNewWin && !whatsNewWin.isDestroyed()) { whatsNewWin.show(); whatsNewWin.focus(); return; }
@@ -3055,8 +3040,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (settings.dockMode) dockNavigate('panel');
       else { if (groupsWin && !groupsWin.isDestroyed()) groupsWin.hide(); ensureSomeWindowVisible(); }
       break;
-    case 'open-sync':     openSync(); break;
-    case 'close-sync':    if (syncWin && !syncWin.isDestroyed()) syncWin.close(); break;   // se recrea al abrirla (openSync)
     case 'check-for-updates': checkForUpdates(true); break;   // «Buscar actualizaciones» de Ajustes: abre la Store
     case 'get-state':     event.reply('state', getSerializableState()); break;
   }
@@ -3338,11 +3321,6 @@ ipcMain.handle('capture-desktop', async (event, opts) => {
   finally { protegidas.forEach(w => { if (!ventanasExcluidas.has(w) || capturaEnCurso) { try { w.setContentProtection(false); } catch {} } }); }
 });
 
-// Login/logout de sincronización (respuestas asíncronas)
-ipcMain.handle('sync-login', async (_e, { email, password }) => sync ? sync.login(email, password) : { ok: false, error: 'Sync no disponible' });
-ipcMain.handle('sync-logout', async () => sync ? sync.logout() : { ok: true });
-ipcMain.handle('sync-status', async () => syncStatus);
-
 // 2.8: foto de la ventana para el cristal líquido de los bocadillos (src/glass.js). Va en
 // crudo (BGRA, sin comprimir: es lo más rápido) junto con el ancho de la página en px CSS,
 // para saber la escala, y, si quien la pide va dentro del panel del dock (en un iframe),
@@ -3472,22 +3450,6 @@ app.whenReady().then(() => {
   setInterval(vigilarReunionesPlaneadas, 20000);   // 2.12
   // No molestar se apaga solo al vencer: dndActive() lo caduca y avisa a las vistas.
   setInterval(() => { if (settings.dndUntil) dndActive(); }, 30000);
-
-  // Sincronización opcional (Supabase). Si hay sesión guardada, arranca sola.
-  if (sync) sync.init({
-    sessionFile: path.join(app.getPath('userData'), 'imputa-sync.json'),
-    getState: () => state,
-    saveRaw: saveDataRaw,
-    onChange: () => { saveDataRaw(); broadcastState(); },
-    onStatus: (s) => {
-      syncStatus = s;   // el menú de la bandeja lo lee al abrirse
-      if (syncWin && !syncWin.isDestroyed()) syncWin.webContents.send('sync-status', s);
-      // Ajustes puede estar como ventana o embebido en el panel del dock (iframe): a los
-      // dos. Se mandaba a dockWin, la barrita, que no tiene Ajustes dentro.
-      sendToAllFrames(settingsWin, 'sync-status', s);
-      sendToAllFrames(dockPanelWin, 'sync-status', s);
-    },
-  }).catch(() => {});
 
   const trayIcon = nativeImage.createFromPath(APP_ICON_PATH).resize({ width: 32, height: 32, quality: 'best' });
 

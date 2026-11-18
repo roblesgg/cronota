@@ -10,7 +10,6 @@
     "store": "electron-builder --win appx --publish never"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0",
     "koffi": "^2.16.3"
   },
   "devDependencies": {
@@ -24,7 +23,6 @@
     "productName": "imputa.me",
     "files": [
       "main.js",
-      "sync.js",
       "themes.js",
       "palettes.js",
       "capturas-windows.js",

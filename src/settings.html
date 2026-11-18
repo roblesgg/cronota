@@ -320,10 +320,6 @@
   .big-btn:hover svg { transform:scale(1.12); }
   .big-btn:active { transform:translateY(0); }
 
-  /* ── Cuenta ────────────────────────────────────────────────── */
-  .account-status { font-size:13px;color:var(--text2);line-height:1.4; }
-  .account-status.online b { color:var(--accent2); }
-
   /* ── Pie ───────────────────────────────────────────────────── */
   /* Barra fija de Cancelar/Guardar. Fondo propio casi opaco + blur fuerte: con
      var(--bg) (translúcido a propósito para el efecto cristal) se transparentaba el
@@ -819,20 +815,6 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0l-4 4m4-4l4 4"/><path d="M4 21h16"/></svg>
         Restaurar copia
       </button>
-    </div>
-  </div>
-
-  <!-- ── Cuenta ─────────────────────────────────────────────── -->
-  <div class="section" data-cat="general">
-    <div class="section-label">Cuenta</div>
-    <div class="card">
-      <div class="row col">
-        <div class="row-head">
-          <span class="ico" data-ico="nube" style="--ic:#4c8dff"></span>
-          <div class="account-status" id="accountStatus">Trabajando en local (sin cuenta)</div>
-        </div>
-        <button class="btn-ghost" id="accountBtn" style="padding:11px;border-radius:12px" onclick="openSync()">Iniciar sesión para sincronizar…</button>
-      </div>
     </div>
   </div>
 
@@ -1744,28 +1726,6 @@ async function confirmImport() {
   closeImportPopup();
   afterImport(res, 'Copia restaurada');
 }
-
-// ---------- Cuenta / sincronización ----------
-function openSync() { ipcRenderer.send('action', { type:'open-sync' }); }
-
-async function refreshAccount() {
-  let s = { loggedIn: false };
-  try { s = await ipcRenderer.invoke('sync-status'); } catch {}
-  const status = document.getElementById('accountStatus');
-  const btn = document.getElementById('accountBtn');
-  if (s && s.loggedIn) {
-    status.className = 'account-status online';
-    status.innerHTML = `Sesión iniciada como <b>${s.email || ''}</b> · sincronizando con el móvil`;
-    btn.textContent = 'Gestionar sincronización…';
-  } else {
-    status.className = 'account-status';
-    status.textContent = 'Trabajando en local (sin cuenta)';
-    btn.textContent = 'Iniciar sesión para sincronizar…';
-  }
-}
-ipcRenderer.on('sync-status', () => refreshAccount());
-window.addEventListener('focus', refreshAccount);
-refreshAccount();
 
 // Embebido en el dock nadie empuja 'settings' al cargar, así que lo pedimos.
 ipcRenderer.send('action', { type:'get-settings' });
