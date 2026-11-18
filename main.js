@@ -448,7 +448,8 @@ let settings = {
   archiveDays: 30,      // días sin usar una tarea antes de que pase al Archivador (0 = nunca)
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
   outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
-  silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
+  silenciarEnLlamada: true,
+  outlookDescartadas: [],   // 2.12: reuniones sugeridas que se descartaron (ids, las 500 últimas)   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
   traspasoVisto: null,  // 2.9.2, versión de la Store: fecha del traspaso desde el instalador ya recibido
 };
 
