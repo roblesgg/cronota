@@ -245,6 +245,14 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.14.0': { title: 'Novedades de Cronota 2.14', steps: [
+    { icon:'folder', title:'Tus horas en OneDrive o Google Drive',
+      text:'En Ajustes → General → Sincronizar eliges uno con un clic, sin cuentas en Cronota: tus horas se guardan en tu nube y en otro PC elige lo mismo para tenerlas allí.' },
+    { icon:'reloj', title:'No cuenta mientras no estás',
+      text:'Si apagas el PC, se cierra de golpe o el portátil se queda dormido más de media hora con una tarea en marcha, Cronota la para en ese momento y te avisa.' },
+    { icon:'spark', title:'Más temas y Ajustes al momento',
+      text:'Temas nuevos con brillo y clásicos, más colores de acento, y en Ajustes todo se guarda solo, sin botón de Aplicar. El iconito de Outlook abre ese día en tu calendario.' },
+  ] },
   '2.13.0': { title: 'Novedades de Cronota 2.13', steps: [
     { icon:'calendar', title:'Lleva tus horas a Outlook',
       text:'Haz clic en una entrada del calendario y pulsa «Crear en Outlook»: se abre un evento ya relleno con sus horas y su nota, y solo tienes que guardarlo.' },

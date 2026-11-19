@@ -25,7 +25,7 @@ Lo que hay que saber para trabajar en la app y que no está a la vista en el có
 - Los ajustes también se guardan de forma atómica (2.13). Si un fichero está roto al arrancar, se aparta como `.corrupt-<fecha>` y se prueba con el `.tmp`.
 - Con una tarea en marcha, cada minuto se apunta `ultimoLatido`. Si la app se cerró de golpe, al arrancar la tarea se para en ese último latido y se avisa; al apagar o cerrar sesión se para en el momento (`session-end`).
 - Copias diarias en `Documentos\Cronota\Copias automáticas` (`copias.js`, las 14 últimas).
-- Desde la 2.13 no hay cuenta ni sincronización (la de Supabase y la app del móvil se quitaron). Algunas tareas viejas conservan un `remoteId` que ya no se usa.
+- Sin cuentas: la sincronización con Supabase y la app del móvil se quitaron en la 2.13 (algunas tareas viejas conservan un `remoteId` que ya no se usa). Desde la 2.14 se sincroniza por la carpeta de OneDrive o Google Drive (`nube.js`): `settings.nube`, `nubeVersion` (marca del último archivo conocido) y `nubePendiente` (cambios de aquí sin subir). OneDrive se busca en las variables `OneDriveCommercial`/`OneDrive`; Google Drive, en las unidades con «Mi unidad»/«My Drive».
 
 ## Compilar y publicar
 

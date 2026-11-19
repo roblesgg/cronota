@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 17 de noviembre de 2026 · Publicada: 2.12.1 (Microsoft Store); 2.13.0 en certificación. Solo se publica en la Store.
+Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.0 lista para enviar. Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -113,14 +113,24 @@ Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
 - Las ventanas de los ojos y de arranque usan Montserrat en vez de las Zalando de la app.
 - Decidir: si el portátil se suspende con una tarea en marcha, ¿se para al suspender? Hoy sigue contando.
 
+### 2.14 · Todo lo de la revisión, hecho (19-11-2026)
+
+- [x] **Tutoriales y novedades**: las novedades son las de la última versión que las tenga (antes solo la exacta), hay pasos del recorrido para lo nuevo (Outlook, llamadas, temas, «ver las N») y el botón «Enséñame dónde está» solo sale si queda algo que enseñar.
+- [x] **Sincronizar con OneDrive o Google Drive** (`nube.js`): por la carpeta que ya sincroniza ese programa, sin cuentas. Archivo `Cronota\cronota-sync.json`; si los dos PC cambian a la vez manda el último y lo del otro se aparta como `cronota-sync-conflicto-…json`, con aviso. Probado simulando dos PC.
+- [x] **Consumo**: el tic de cada segundo solo rehace la tarea en marcha; la barra no mira el ratón escondida ni quieta; el minicalendario solo cambia de un día para otro.
+- [x] **Ajustes al momento**: sin «Aplicar» ni «Cancelar»; el vínculo de Outlook con «Conectar» o Enter.
+- [x] **Detalles**: «sección» en vez de «grupo», «Empezaste hace … min o a las …», foco visible con teclado, punto de color con teclado. **Suspender**: si el portátil duerme más de media hora con una tarea en marcha, se para a la hora en que se durmió y avisa (Ctrl+Z lo deshace).
+- [x] El iconito de Outlook (sugerencias y tarjetas añadidas) abre ese día en Outlook web. El evento exacto no se puede sin una app registrada en Azure.
+- [ ] **Pendiente que no es código**: vídeo de la ficha (ChatGPT) y probar la instalación desde la Store en un portátil de un compañero.
+
 ### Pendientes sueltos
 
-- **Próxima versión · fuera la cuenta y el móvil; sincronizar con OneDrive o Google Drive** (pedido por Álvaro el 18-11-2026):
+- ~~Próxima versión · fuera la cuenta y el móvil; sincronizar con OneDrive o Google Drive~~ (hecho en la 2.14) (pedido por Álvaro el 18-11-2026):
   - **Quitar** todo lo que sobra: «Sincronizar (móvil)…» de la bandeja, la cuenta y la sincronización con Supabase (`sync.js`, `src/sync.html`, sección Cuenta de Ajustes, `imputa-sync.json`), la app del móvil y sus referencias (README, web, política de privacidad). Los dominios `imputame*.dripdev.dev` y el APK dejan de hacer falta.
   - **Añadir** en Ajustes una sección «Sincronizar» con los iconos de **OneDrive** y **Google Drive**: eliges uno con un clic y ya está, sin cuentas ni contraseñas en Cronota. Cronota busca sola la carpeta de ese servicio en el PC (OneDrive: variables `OneDrive` / `OneDriveCommercial`; Google Drive para escritorio: su unidad, p. ej. «Mi unidad»), crea dentro `Cronota` y guarda ahí una copia de tus datos al momento; el programa de OneDrive o Google Drive la sube a tu nube. En otro PC con el mismo servicio, Cronota la encuentra y ofrece traerla.
   - Si el servicio no está instalado, el botón lo dice y lleva a su descarga. Pensar qué pasa si se usa en dos PC a la vez (el último cambio manda, avisando) y no meter nunca en la nube el vínculo ICS de Outlook sin decirlo.
   - Actualizar la política de privacidad.
 
-- **Próxima versión · tutoriales y novedades bien hechos** (pedido por Álvaro el 18-11-2026): ahora van raros, como si solo salieran una vez. Lo que tiene que pasar: al entrar después de una actualización salen las novedades de esa versión (y el recorrido de lo nuevo, si lo hay), una sola vez por versión; el botón de cada paso te lleva de verdad a la pantalla y al sitio que explica; y desde Ajustes («Ver tutorial», «Ver novedades») se pueden volver a ver siempre. Revisar `lastSeenVersion`, `lastSeenWhatsNew`, `tutorialSeenSteps`, `TUTORIAL_STEPS` (shared.js) y el recorrido entre vistas (`tourActive`, `tutorial-next`). Probar con versiones seguidas (2.12 → 2.13) y con una instalación nueva.
+- ~~Próxima versión · tutoriales y novedades bien hechos~~ (hecho en la 2.14) (pedido por Álvaro el 18-11-2026): ahora van raros, como si solo salieran una vez. Lo que tiene que pasar: al entrar después de una actualización salen las novedades de esa versión (y el recorrido de lo nuevo, si lo hay), una sola vez por versión; el botón de cada paso te lleva de verdad a la pantalla y al sitio que explica; y desde Ajustes («Ver tutorial», «Ver novedades») se pueden volver a ver siempre. Revisar `lastSeenVersion`, `lastSeenWhatsNew`, `tutorialSeenSteps`, `TUTORIAL_STEPS` (shared.js) y el recorrido entre vistas (`tourActive`, `tutorial-next`). Probar con versiones seguidas (2.12 → 2.13) y con una instalación nueva.
 
 - **«imputame» por dentro**: la app del móvil (paquete Android `me.imputa.app` y sus textos) y los dominios `imputame.dripdev.dev` e `imputame-app.dripdev.dev`, que piden cambios en Vercel, en el DNS y un APK nuevo. El ejecutable y las carpetas del instalador no hace falta cambiarlos si todos pasan a la Store.
