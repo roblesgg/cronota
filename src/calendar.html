@@ -2193,7 +2193,10 @@ function abrirMenuEntrada(ev, task, idx, entry, block) {
     items.push({ label: 'Restaurar tarea', icon: IC.undo, tone: 'success', run: () => enviar('restore-task', { taskId: task.id }) });
   } else if (enMarcha) {
     items.push({ label: enCurso ? 'Pausar' : 'Pausar la tarea', icon: IC.pause, tone: 'danger', run: () => enviar('pause') });
-  } else {
+  } else if (enCurso) {
+    // 2.14.6: corre pero su tarea no consta como en marcha (se había quedado colgada): se puede parar.
+    items.push({ label: 'Parar', hint: 'Se había quedado en curso', icon: IC.pause, tone: 'danger', run: () => enviar('stop-entry', { taskId: task.id, entryIndex: idx }) });
+} else {
     items.push({ label: 'Seguir desde ahora', hint: 'Entrada nueva con la misma nota', icon: IC.play, tone: 'success',
       run: () => enviar('switch-task', { taskId: task.id, subId: sub, note: entry.note }) });
     if (!enCurso) items.push({ label: 'Alargar hasta ahora', hint: 'Esta misma, sin cortar', icon: IC.extend, tone: 'accent',

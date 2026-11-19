@@ -612,6 +612,14 @@ function formatDuration(seconds) {
 function getActiveTask() {
   return state.tasks.find(t => t.id === state.activeTaskId) || null;
 }
+// 2.14.6: la entrada que está corriendo es la que no tiene fin, que NO tiene por qué ser la última:
+// si detrás se añade otra (una reunión de Outlook para más tarde, una pegada o duplicada), la que
+// corre queda en medio. Antes se miraba solo la última y la tarea no se podía parar.
+function entradaEnCurso(task) {
+  if (!task || !Array.isArray(task.entries)) return null;
+  for (let i = task.entries.length - 1; i >= 0; i--) if (task.entries[i] && task.entries[i].end == null) return task.entries[i];
+  return null;
+}
 
 // ── Tray ─────────────────────────────────────────────────────────────────────
 // Solo el tooltip, y solo si cambia. El menú ya no se reconstruye aquí: con una tarea
@@ -693,10 +701,14 @@ function startTask(taskId, backMinutes, subId, note) {
 
 function pauseActive() {
   const task = getActiveTask();
+  const ahora = Date.now();
+  // 2.14.6: ninguna entrada se queda abierta al pausar, sea la última o no, y aunque se hubiera
+  // quedado colgada en otra tarea (se veía «en curso» en el calendario y no había forma de pararla).
+  state.tasks.forEach(t => (t.entries || []).forEach(e => { if (e && e.end == null && t !== task) e.end = Math.max(e.start, ahora); }));
   if (task) {
-    const last = task.entries[task.entries.length - 1];
+    const last = entradaEnCurso(task);
     if (last && !last.end) {
-      last.end = Date.now();
+      last.end = Math.max(last.start, ahora);
       // La nota se QUEDA con la entrada: es parte del registro de lo que hiciste en esa
       // sesión (se ve en el calendario). Al retomar la tarea se crea una entrada nueva
       // sin nota, así que el campo del panel vuelve a estar en blanco solo, sin tener
@@ -714,7 +726,7 @@ function pauseActive() {
 function setActiveEntryNote(note) {
   const task = getActiveTask();
   if (!task) return;
-  const last = task.entries[task.entries.length - 1];
+  const last = entradaEnCurso(task);
   if (!last || last.end) return;
   const n = (note || '').trim().slice(0, 500);
   if (n) last.note = n; else delete last.note;
@@ -768,7 +780,7 @@ function deleteSubtask(taskId, subId) {
 function restartActiveTaskWithNote(note) {
   const task = getActiveTask();
   if (!task) return;
-  const last = task.entries[task.entries.length - 1];
+  const last = entradaEnCurso(task);
   if (last && !last.end) { last.end = Date.now(); }   // la nota de esa sesión se conserva en su entrada
   // Reiniciar con otra nota se queda en la misma subtarea: sigues en lo mismo.
   const entry = { start: Date.now(), end: null, nameAtTime: task.name };
@@ -1260,7 +1272,7 @@ function primeraSalidaPasada(desdeMs) {
 function checkLeaveTime() {
   if (!settings.leaveEnabled || !state.activeTaskId) return;   // sin nada corriendo, nada que parar
   const task = getActiveTask();
-  const last = task && task.entries[task.entries.length - 1];
+  const last = entradaEnCurso(task);
   if (!last || last.end) return;
 
   const corte = primeraSalidaPasada(last.start);
@@ -2685,6 +2697,17 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'rename-subtask': renameSubtask(payload.taskId, payload.subId, payload.name); break;
     case 'delete-subtask': deleteSubtask(payload.taskId, payload.subId); break;
     case 'pause':         pauseActive(); break;
+    // 2.14.6: parar una entrada que sigue abierta aunque su tarea no sea la que está en marcha.
+    case 'stop-entry': {
+      const t = state.tasks.find(x => x.id === (payload && payload.taskId));
+      const e = t && t.entries[payload.entryIndex];
+      if (!e || e.end != null) break;
+      if (state.activeTaskId === t.id && entradaEnCurso(t) === e) { pauseActive(); break; }
+      fotoAntesDe('parar-entrada');
+      e.end = Math.max(e.start, Date.now());
+      saveData(); broadcastState();
+      break;
+    }
     case 'switch-task':   switchTask(payload.taskId, payload.backMinutes, payload.subId, payload.note); break;
     case 'restart-task-with-note': restartActiveTaskWithNote(payload && payload.note); break;
     case 'resume-entry':  resumeEntry(payload.taskId, payload.entryIndex); break;
@@ -3522,7 +3545,7 @@ let reanudarTrasReunion = null;   // { taskId, subId, en }
 function vigilarReunionesPlaneadas() {
   const ahora = Date.now();
   const activa = getActiveTask();
-  const enMarcha = activa && activa.entries[activa.entries.length - 1];
+  const enMarcha = entradaEnCurso(activa);
   if (enMarcha && enMarcha.end == null) {
     let reunion = null;
     state.tasks.forEach(t => { if (!t.deleted) t.entries.forEach(e => {
@@ -3786,7 +3809,7 @@ function alDespertar() {
   const desde = suspendidoEn; suspendidoEn = 0;
   if (!desde || Date.now() - desde < 30 * 60000) return;
   const task = getActiveTask();
-  const ultima = task && task.entries[task.entries.length - 1];
+  const ultima = entradaEnCurso(task);
   if (!ultima || ultima.end != null || ultima.start >= desde) return;
   fotoAntesDe('suspender');
   ultima.end = desde;
@@ -3807,7 +3830,7 @@ function repararCierreDeGolpe() {
   }
   const latido = Number(settings.ultimoLatido) || 0;
   const task = getActiveTask();
-  const ultima = task && task.entries[task.entries.length - 1];
+  const ultima = entradaEnCurso(task);
   if (!latido || !ultima || ultima.end != null) return;
   // Más de 10 minutos sin señal: la app no estuvo abierta todo ese rato.
   if (Date.now() - latido < 10 * 60000 || latido <= ultima.start) return;
