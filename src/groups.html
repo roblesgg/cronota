@@ -372,7 +372,8 @@
     <div class="entry-popup-actions">
       <div style="flex:1"></div>
       <button class="btn-ghost" onclick="closeStartPopup()">Cancelar</button>
-      <button class="btn-primary" onclick="confirmStart()">▶ Empezar</button>
+      <button class="btn-ghost" id="startPopupCrear" onclick="confirmStart(false)" title="La crea sin ponerla en marcha">Crear</button>
+      <button class="btn-primary" id="startPopupEmpezar" onclick="confirmStart()" style="white-space:nowrap">▶ Empezar</button>
     </div>
   </div>
 
@@ -1221,6 +1222,9 @@ function openStartPopup(task, subId, groupId) {
   document.getElementById('startPopupTitle').textContent =
     isNew ? 'Nueva tarea' : (sub ? `${task.name} · ${sub.name}` : task.name);
   document.getElementById('startPopupNameFields').style.display = isNew ? 'flex' : 'none';
+  // 2.14.7: una tarea nueva se puede crear sin empezarla.
+  document.getElementById('startPopupCrear').style.display = isNew ? '' : 'none';
+  document.getElementById('startPopupEmpezar').textContent = isNew ? '▶ Crear y empezar' : '▶ Empezar';
   document.getElementById('startPopupName').value = '';
 
   // Tipo + memo: al crear se eligen; al empezar una existente se pueden retocar y se
@@ -1289,7 +1293,7 @@ function closeStartPopup() {
   startPopupTaskId = null;
   startPopupSubId = null;
 }
-function confirmStart() {
+function confirmStart(empezar = true) {
   const backMinutes = computeBackMinutes('startBackMinutes', 'startBackTime');
   const sessionNote = (document.getElementById('startPopupSessionNote') || {}).value || '';
   const memo = (document.getElementById('startPopupMemo') || {}).value || '';
@@ -1311,7 +1315,7 @@ function confirmStart() {
       type: 'create-task',
       payload: {
         name, color: startPopupColor, backMinutes, groupId: grupo,
-        taskType: startPopupKind, memo, note: sessionNote,
+        taskType: startPopupKind, memo, note: sessionNote, empezar,
       },
     });
   }

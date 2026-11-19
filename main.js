@@ -2724,6 +2724,8 @@ ipcMain.on('action', (event, { type, payload }) => {
         const t = state.tasks.find(x => x.id === id);
         if (t) t.groupId = payload.groupId;
       }
+      // 2.14.7: se puede crear sin empezarla (botón «Crear» en Tareas).
+      if (payload.empezar === false) { saveData(); broadcastState(); break; }
       // Nota de esta sesión al crear+empezar (aparte del memo persistente).
       startTask(id, payload.backMinutes, payload.subId, payload.note);
       openMain();
