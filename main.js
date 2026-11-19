@@ -2144,10 +2144,17 @@ function protegerClicsPanel(p) {
   try { w.setIgnoreMouseEvents(!dentro); } catch {}
 }
 
+let ultimoPuntoDock = null;
 function updateDockHitTest() {
   if (!dockWin || dockWin.isDestroyed()) return;
+  // 2.14: con la barra escondida no hay nada que mirar.
+  if (!dockExpanded && dockIsHidden()) { setDockIgnore(true); return; }
   let p, b;
   try { p = screen.getCursorScreenPoint(); b = dockWin.getBounds(); } catch { return; }
+  // 2.14: con el panel cerrado y el ratón quieto, nada cambia: no se recalcula.
+  const clave = p.x + ',' + p.y + ',' + b.x + ',' + b.y + ',' + dockHitRects.length;
+  if (!dockExpanded && clave === ultimoPuntoDock) return;
+  ultimoPuntoDock = clave;
   protegerClicsPanel(p);
   const x = p.x - b.x, y = p.y - b.y;
   const inside = dockHitRects.some(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
@@ -2455,6 +2462,32 @@ function maybeShowWhatsNew() {
 }
 
 // ── IPC ───────────────────────────────────────────────────────────────────────
+// 2.14: con una tarea en marcha, cada segundo solo cambian sus tiempos y el total de hoy. Antes se
+// recalculaban todas las tareas con todo su historial (crece con los años). Ahora el tic parte del
+// último estado completo y solo rehace la tarea en marcha; el completo se rehace con cada cambio
+// de verdad, al cambiar de día y, por si acaso, cada minuto.
+let estadoCache = null, estadoCacheEn = 0, estadoCacheDia = '';
+function estadoDelTic() {
+  const ahora = Date.now(), dia = new Date().toDateString();
+  if (!estadoCache || dia !== estadoCacheDia || ahora - estadoCacheEn > 60000) {
+    estadoCache = getSerializableState(); estadoCacheEn = ahora; estadoCacheDia = dia;
+    return estadoCache;
+  }
+  const t = state.tasks.find(x => x.id === state.activeTaskId);
+  if (!t) return estadoCache;
+  const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+  const tareaAlDia = {
+    ...t,
+    todaySecs: todaySecondsForTask(t),
+    totalSecs: totalSecondsForTask(t),
+    inTrash: isInTrash(t),
+    inactive: isInactiveTask(t),
+    subtasks: (t.subtasks || []).map(sub => ({ ...sub, todaySecs: secondsForSub(t, sub.id, hoy0.getTime()), totalSecs: secondsForSub(t, sub.id, null) })),
+    ownTodaySecs: secondsForSub(t, null, hoy0.getTime()),
+  };
+  return { ...estadoCache, tasks: estadoCache.tasks.map(x => (x.id === t.id ? tareaAlDia : x)), todayTotal: totalTodaySeconds(), activeTaskId: state.activeTaskId, activeSubId: state.activeSubId || null };
+}
+
 function getSerializableState() {
   return {
     enLlamada: appsEnLlamada,   // 2.12: apps con el micrófono abierto (Ajustes lo enseña)
@@ -2560,7 +2593,9 @@ function broadcastState(opts) {
   if (!tic) marcos = allDockFrames();
   else if (seVe(dockPanelWin)) marcos = activeDockFrames();
   if (!ventanas.length && !marcos.length) return;   // nadie mira: ni se calcula
-  const s = getSerializableState();   // una sola vez (antes, una por ventana, cada segundo)
+  let s;   // 2.14: el tic reutiliza el último estado completo (ver estadoDelTic)
+  if (tic) s = estadoDelTic();
+  else { s = estadoCache = getSerializableState(); estadoCacheEn = Date.now(); estadoCacheDia = new Date().toDateString(); }
   ventanas.forEach(w => sendToAllFrames(w, 'state', s));
   marcos.forEach(f => { try { f.send('state', s); } catch {} });
 }

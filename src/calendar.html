@@ -888,6 +888,7 @@ function calendarStructuralSignature(state) {
 let lastCalSignature = null;
 let weekGridBuilt = false;
 
+let miniCalDia = '';
 ipcRenderer.on('state', (_, state) => {
   currentState = state;
   let firstLoad = false;
@@ -906,7 +907,9 @@ ipcRenderer.on('state', (_, state) => {
     updateRunningBlocksLive();
     renderDayTotals();
     pintarTotalesDia();
-    renderMiniCal();
+    // 2.14: el minicalendario solo cambia de un día para otro: no se rehace cada segundo.
+    const hoyTxt = new Date().toDateString();
+    if (hoyTxt !== miniCalDia) { miniCalDia = hoyTxt; renderMiniCal(); }
   } else {
     renderAll();
   }
