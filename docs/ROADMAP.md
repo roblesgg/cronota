@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.2 publicada (envío 11); 2.14.3 enviada a certificación (envío 12). Solo se publica en la Store.
+Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.3 publicada (envío 12); 2.14.5 enviada a certificación (envío 13, lleva también la 2.14.4). Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -45,8 +45,8 @@ Lo aprendido:
 - **2.14.1** (19-11-2026, envío 10 mandado a certificación hacia las 12:20; la 2.14.0 ya estaba publicada a esa hora): sincronizar lleva también los ajustes (menos los de cada pantalla) y las sugerencias de Outlook descartadas, y los que llegan de otro PC se aplican al momento; las copias diarias llevan ajustes; al restaurar una copia no se trae la nube elegida en el otro PC. Probado simulando dos PC.
 - **2.14.2** (19-11-2026, envío 11 mandado a certificación hacia las 13:00; la 2.14.1 se publicó en menos de una hora): la versión instalada se ve en Ajustes → General, debajo de «Ayuda y copias».
 - **2.14.3** (19-11-2026, envío 12 mandado a certificación por la tarde, cuando la 2.14.2 ya estaba publicada): Cronota avisa cuando la Store tiene una versión nueva y ofrece «Cerrar y actualizar» (aviso, bandeja y Ajustes → General), sin parar la tarea en marcha si vuelves en media hora; lo pidió Ramiro porque la Store da error si actualizas con la app abierta. Y la barra recalcula si acepta clics tras atascarse (el botón de esconder se quedaba sin responder). Probado sin abrir ventanas.
-- **2.14.4** (19-11-2026, sin enviar): en el calendario, una tarjeta tapada por una sugerencia de Outlook (p. ej. del mismo tamaño) se puede arrastrar: al pinchar en la gota se coge la tarjeta de debajo; los botones de la gota («Añadir», ×, Outlook) siguen siendo suyos.
-- **2.14.5** (19-11-2026, sin enviar): en Ajustes → General → Sincronizar, «Cambiar carpeta…» elige en qué carpeta de OneDrive o Google Drive se guarda (por defecto «Cronota»; tiene que estar dentro del servicio). Se guarda relativa a la raíz (settings.nubeCarpeta), así vale en otro PC aunque su OneDrive esté en otra ruta. Probado simulando OneDrive.
+- **2.14.4** (19-11-2026, salió dentro de la 2.14.5): en el calendario, una tarjeta tapada por una sugerencia de Outlook (p. ej. del mismo tamaño) se puede arrastrar: al pinchar en la gota se coge la tarjeta de debajo; los botones de la gota («Añadir», ×, Outlook) siguen siendo suyos.
+- **2.14.5** (19-11-2026, envío 13 mandado a certificación con la 2.14.4 dentro): en Ajustes → General → Sincronizar, «Cambiar carpeta…» elige en qué carpeta de OneDrive o Google Drive se guarda (por defecto «Cronota»; tiene que estar dentro del servicio). Se guarda relativa a la raíz (settings.nubeCarpeta), así vale en otro PC aunque su OneDrive esté en otra ruta. Probado simulando OneDrive.
 - **Desinstalar la versión vieja** (17-11-2026): la de la Store no puede borrar nada fuera de su paquete (Windows le da su propia copia del registro y de AppData). Abriendo el desinstalador viejo con el Explorador se ejecuta de verdad, pero sin `/currentuser` deja los accesos directos y la entrada de «Aplicaciones instaladas». Además cierra también la de la Store, que se llama igual (`imputa.me.exe`).
 
 ### Fase 1 · La píldora entre pantallas (2.10)
