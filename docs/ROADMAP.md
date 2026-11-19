@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.1 publicada (envío 10); 2.14.2 enviada a certificación (envío 11). Solo se publica en la Store.
+Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.2 publicada (envío 11); 2.14.3 enviada a certificación (envío 12). Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -44,7 +44,7 @@ Lo aprendido:
 - **2.14.0** (19-11-2026): sincronizar con OneDrive o Google Drive, parar la tarea al apagar o suspender, más temas, Ajustes al momento, iconito de Outlook que abre el día, tutoriales arreglados y limpieza. Envío 9 mandado a certificación el 19-11-2026 hacia las 11:45.
 - **2.14.1** (19-11-2026, envío 10 mandado a certificación hacia las 12:20; la 2.14.0 ya estaba publicada a esa hora): sincronizar lleva también los ajustes (menos los de cada pantalla) y las sugerencias de Outlook descartadas, y los que llegan de otro PC se aplican al momento; las copias diarias llevan ajustes; al restaurar una copia no se trae la nube elegida en el otro PC. Probado simulando dos PC.
 - **2.14.2** (19-11-2026, envío 11 mandado a certificación hacia las 13:00; la 2.14.1 se publicó en menos de una hora): la versión instalada se ve en Ajustes → General, debajo de «Ayuda y copias».
-- **2.14.3** (19-11-2026, sin enviar): Cronota avisa cuando la Store tiene una versión nueva y ofrece «Cerrar y actualizar» (aviso, bandeja y Ajustes → General), sin parar la tarea en marcha si vuelves en media hora; lo pidió Ramiro porque la Store da error si actualizas con la app abierta. Y la barra recalcula si acepta clics tras atascarse (el botón de esconder se quedaba sin responder). Probado sin abrir ventanas.
+- **2.14.3** (19-11-2026, envío 12 mandado a certificación por la tarde, cuando la 2.14.2 ya estaba publicada): Cronota avisa cuando la Store tiene una versión nueva y ofrece «Cerrar y actualizar» (aviso, bandeja y Ajustes → General), sin parar la tarea en marcha si vuelves en media hora; lo pidió Ramiro porque la Store da error si actualizas con la app abierta. Y la barra recalcula si acepta clics tras atascarse (el botón de esconder se quedaba sin responder). Probado sin abrir ventanas.
 - **Desinstalar la versión vieja** (17-11-2026): la de la Store no puede borrar nada fuera de su paquete (Windows le da su propia copia del registro y de AppData). Abriendo el desinstalador viejo con el Explorador se ejecuta de verdad, pero sin `/currentuser` deja los accesos directos y la entrada de «Aplicaciones instaladas». Además cierra también la de la Store, que se llama igual (`imputa.me.exe`).
 
 ### Fase 1 · La píldora entre pantallas (2.10)
