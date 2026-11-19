@@ -51,7 +51,7 @@ function copiaDelDia(estado, ajustes) {
 
 // Ajustes que no se restauran desde una copia: dependen de la versión o de este equipo.
 // 2.14.1: tampoco la nube elegida (cada PC elige la suya en Ajustes).
-const AJUSTES_QUE_NO_VIAJAN = ['openAtLogin', 'betaUpdates', 'lastSeenVersion', 'lastSeenWhatsNew', 'traspasoVisto', 'ultimoLatido', 'nube', 'nubeVersion', 'nubePendiente'];
+const AJUSTES_QUE_NO_VIAJAN = ['openAtLogin', 'betaUpdates', 'lastSeenVersion', 'lastSeenWhatsNew', 'traspasoVisto', 'ultimoLatido', 'nube', 'nubeVersion', 'nubePendiente', 'versionNuevaAvisada', 'cerradoParaActualizar'];
 function ajustesTraspasables(ajustes) {
   const r = { ...(ajustes || {}) };
   AJUSTES_QUE_NO_VIAJAN.forEach((k) => { delete r[k]; });

@@ -40,7 +40,7 @@ Cronota solo escribe en el portapapeles cuando tú copias algo desde la aplicaci
 
 ## Actualizaciones
 
-Cronota se instala y se actualiza a través de la Microsoft Store. Cronota no consulta por su cuenta si hay versiones nuevas.
+Cronota se instala y se actualiza a través de la Microsoft Store. Cada pocas horas Cronota mira en el catálogo público de la Microsoft Store qué versión hay publicada, para avisarte y ofrecerte «Cerrar y actualizar». Es una consulta como la que hace la propia Store: no envía tus datos, tus tareas ni nada que te identifique.
 
 ## Lo que no hacemos
 

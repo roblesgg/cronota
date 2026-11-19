@@ -655,6 +655,7 @@ function buildTrayMenu() {
     { label: 'Modo barra flotante (dock)', type: 'checkbox', checked: !!settings.dockMode, click: () => toggleDockMode() },
     // Si la barra se escondió desde su menú, esta es la forma de recuperarla.
     { label: 'Mostrar la barra ahora', click: () => hideDockFor(null), visible: !!settings.dockMode && dockIsHidden() },
+    { label: `Cerrar y actualizar a la ${versionNueva}`, click: () => cerrarYActualizar(), visible: !!versionNueva },
     { label: 'Buscar actualizaciones…', click: () => checkForUpdates(true) },
     { label: 'Salir', click: () => { saveData(); app.quit(); } },
   ]);
@@ -2422,7 +2423,7 @@ function openSettings() {
     minWidth: 380, minHeight: 420,
     maxWidth: 560, maxHeight: 900,
   });
-  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE }); });
+  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE, versionNueva }); });
   settingsWin.on('closed', () => { settingsWin = null; });
 }
 
@@ -3119,7 +3120,8 @@ ipcMain.on('action', (event, { type, payload }) => {
       }
       saveSettings(); broadcastTheme();
       break;
-    case 'get-settings':  event.reply('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE }); break;
+    case 'cerrar-y-actualizar': cerrarYActualizar(); break;   // 2.14.3
+    case 'get-settings':  event.reply('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE, versionNueva }); break;
     case 'min-main':      if (mainWin && !mainWin.isDestroyed()) mainWin.minimize(); break;
     case 'close-calendar':
       if (settings.dockMode) dockNavigate('panel');
@@ -3468,6 +3470,48 @@ function checkForUpdates(manual) {
   if (manual) { try { require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {} }
 }
 
+// 2.14.3: la Store no puede actualizar Cronota mientras está abierta (da error si le das a
+// «Actualizar»). Cronota mira en el catálogo público de la Store qué versión hay publicada y, si
+// es más nueva, lo avisa una vez y ofrece «Cerrar y actualizar» (aviso, bandeja y Ajustes): abre
+// la ficha de la Store y se cierra. La tarea en marcha no se para: si vuelves a abrir Cronota en
+// menos de media hora, sigue contando como si nada (ver repararCierreDeGolpe).
+const CATALOGO_STORE = 'https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=9NXSJVW6BXQF&market=ES&languages=es-es';
+let versionNueva = null;
+function versionDelCatalogo(texto) {
+  let mejor = null;
+  const re = new RegExp('Cronota_(\\d+)\\.(\\d+)\\.(\\d+)\\.\\d+_', 'g');
+  let m;
+  while ((m = re.exec(String(texto || '')))) {
+    const v = m[1] + '.' + m[2] + '.' + m[3];
+    if (!mejor || compararVersiones(v, mejor) > 0) mejor = v;
+  }
+  return mejor;
+}
+async function buscarVersionNueva() {
+  if (!IS_STORE) return;
+  try {
+    const r = await net.fetch(CATALOGO_STORE);
+    if (!r.ok) return;
+    const v = versionDelCatalogo(await r.text());
+    if (!v || compararVersiones(v, app.getVersion()) <= 0) return;
+    const yaAvisada = settings.versionNuevaAvisada === v;
+    versionNueva = v;
+    [settingsWin, dockPanelWin].forEach(w => sendToAllFrames(w, 'version-nueva', v));
+    if (yaAvisada) return;
+    settings.versionNuevaAvisada = v; saveSettings();
+    const n = new Notification({ title: `Cronota ${v} está lista`, body: 'Pulsa aquí para cerrar Cronota y actualizarla en la Store. Si tienes una tarea en marcha, sigue contando al volver a abrirla.' });
+    n.on('click', () => cerrarYActualizar());
+    n.show();
+  } catch {}
+}
+function cerrarYActualizar() {
+  try { require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {}
+  settings.cerradoParaActualizar = Date.now();
+  settings.ultimoLatido = Date.now();
+  saveSettings();
+  setTimeout(() => { saliendo = true; app.quit(); }, 600);   // que la Store llegue a abrirse
+}
+
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 // ── Reuniones apuntadas antes de tiempo (2.12) ──────────────────────────────────
 // Una reunión de Outlook añadida antes de que empiece ya está en el calendario. Cuando llega su
@@ -3567,7 +3611,7 @@ function aplicarAjustesDeOtroPC(remotos) {
   try { startEyeCareTimer(eyeAntes !== settings.eyeCareEnabled + '|' + settings.eyeCareEvery); } catch {}
   broadcastState();
   // Ajustes abierto: que enseñe lo nuevo (si no, al tocar algo guardaría lo de antes encima).
-  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE });
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE, versionNueva });
 }
 ipcMain.handle('nube-estado', () => (nubeSync ? nubeSync.estado() : null));
 ipcMain.on('nube', (_e, p) => {
@@ -3620,6 +3664,7 @@ app.whenReady().then(() => {
   repararCierreDeGolpe();   // 2.13: antes que nada que use la tarea en marcha
   try { const { powerMonitor } = require('electron'); powerMonitor.on('suspend', alSuspender); powerMonitor.on('resume', alDespertar); } catch {}
   latir(); setInterval(latir, 60000);
+  setTimeout(buscarVersionNueva, 60000); setInterval(buscarVersionNueva, 4 * 60 * 60 * 1000);   // 2.14.3
   startLeaveWatcher();
   startEyeCareTimer();
   arrancarOutlookYLlamadas();
@@ -3722,6 +3767,13 @@ function alDespertar() {
 
 function latir() { settings.ultimoLatido = Date.now(); saveSettings(); }
 function repararCierreDeGolpe() {
+  // 2.14.3: cerrada para actualizar. Si vuelve en menos de media hora, la tarea sigue contando
+  // (el rato de la actualización también cuenta); si tarda más, se para cuando se cerró.
+  const paraActualizar = Number(settings.cerradoParaActualizar) || 0;
+  if (paraActualizar) {
+    settings.cerradoParaActualizar = 0; saveSettings();
+    if (Date.now() - paraActualizar < 30 * 60000) return;
+  }
   const latido = Number(settings.ultimoLatido) || 0;
   const task = getActiveTask();
   const ultima = task && task.entries[task.entries.length - 1];
@@ -3744,7 +3796,9 @@ function repararCierreDeGolpe() {
 
 app.on('before-quit', () => {
   saliendo = true;
-  pauseActive(); saveData(); saveSettings();
+  // 2.14.3: al cerrar para actualizar, la tarea en marcha no se para (ver cerrarYActualizar).
+  if (!settings.cerradoParaActualizar) pauseActive();
+  saveData(); saveSettings();
   if (nubeSync) nubeSync.alSalir();   // 2.14: que no quede nada sin subir a la nube
   // La bandeja se va con la app: si se queda, el instalador que se lanza al salir
   // (autoInstallOnAppQuit) puede seguir viendo el proceso vivo y pedir que la cierres.
