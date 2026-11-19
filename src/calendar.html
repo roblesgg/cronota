@@ -1457,10 +1457,21 @@ const ICONO_OUTLOOK = '<svg class="rb-ico" viewBox="0 0 16 16" aria-hidden="true
 const gotasVistas = new Set();
 let gotaCandidata = null, gotaPendiente = null, gotaOculta = null;
 
-function marcaOutlook() {
+// El iconito de Outlook (sugerencias y tarjetas añadidas). Con `dia`, al pulsarlo abre ese día en el
+// calendario de Outlook (en el navegador: la app no deja elegir el día).
+function marcaOutlook(dia) {
   const m = document.createElement('span');
   m.className = 'outlook-marca'; m.title = 'De una reunión de Outlook';
   m.innerHTML = ICONO_OUTLOOK;
+  if (dia) {
+    m.classList.add('abre');
+    m.title = 'Abrir este día en el calendario de Outlook';
+    m.addEventListener('mousedown', (e) => e.stopPropagation());   // ni arrastrar ni añadir
+    m.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ipcRenderer.send('action', { type:'abrir-outlook', payload:{ que:'calendario', dia } });
+    });
+  }
   return m;
 }
 
@@ -1505,7 +1516,7 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     const i = document.createElement('span'); i.className = 'rb-imputar';
     i.innerHTML = '<span>Añadir</span><span class="rb-largo">desde Outlook</span>';
     const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
-    b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook());
+    b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook(r.inicio));
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
     x.addEventListener('click', (e) => { e.stopPropagation(); descartarReunion(r.id, b); });
     if (!gotasVistas.has(r.id)) { gotasVistas.add(r.id); b.classList.add('gota-nueva'); }
@@ -1742,18 +1753,7 @@ function renderDayEntries(col, date) {
         block.appendChild(bottomHandle);
       }
 
-      if (entry.outlookId) {
-        // 2.12: viene de una reunión de Outlook. 2.13: el iconito abre el calendario de Outlook en ese día.
-        const m = marcaOutlook();
-        m.classList.add('abre');
-        m.title = 'Abrir este día en el calendario de Outlook';
-        m.addEventListener('mousedown', (e) => e.stopPropagation());   // no es arrastrar la tarjeta
-        m.addEventListener('click', (e) => {
-          e.stopPropagation();
-          ipcRenderer.send('action', { type:'abrir-outlook', payload:{ que:'calendario', dia: entry.start } });
-        });
-        block.appendChild(m);
-      }
+      if (entry.outlookId) block.appendChild(marcaOutlook(entry.start));   // 2.12: viene de una reunión de Outlook; el iconito abre ese día
       col.appendChild(block);
       // 2.12: la tarjeta nueva de una reunión sale de su gota (la gota se disuelve encima).
       if (gotaPendiente && entry.outlookId === gotaPendiente.id && Date.now() - gotaPendiente.t < 6000) {
