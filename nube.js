@@ -55,6 +55,15 @@ function disponibles() {
   return Object.fromEntries(Object.entries(SERVICIOS).map(([k, s]) => [k, { nombre: s.nombre, carpeta: s.carpeta(), descarga: s.descarga }]));
 }
 
+// Ruta relativa segura dentro del servicio: sin salirse de él (..), sin unidad ni barra delante.
+function carpetaRelativa(r) {
+  const s = String(r == null ? '' : r).trim().replace(/[\\/]+/g, path.sep).replace(/^[\\/]+|[\\/]+$/g, '');
+  if (!s) return 'Cronota';
+  if (s === '.') return '.';
+  if (path.isAbsolute(s) || /^[a-zA-Z]:/.test(s) || s.split(path.sep).some(p => p === '..')) return 'Cronota';
+  return s;
+}
+
 function escribirAtomico(fichero, texto) {
   fs.mkdirSync(path.dirname(fichero), { recursive: true });
   const tmp = fichero + '.tmp';
@@ -81,7 +90,11 @@ function crear(o) {
   let estado = { activo: false, servicio: null, carpeta: null, ultima: null, error: null };
 
   const aj = () => o.ajustes();
-  const fichero = () => estado.carpeta && path.join(estado.carpeta, 'Cronota', ARCHIVO);
+  // 2.14.5: la carpeta dentro de OneDrive / Google Drive la elige el usuario (por defecto «Cronota»).
+  // Se guarda relativa a la raíz del servicio, así vale igual en otro PC aunque su OneDrive esté en
+  // otra ruta. «.» es la raíz misma.
+  const subcarpeta = () => carpetaRelativa(aj().nubeCarpeta);
+  const fichero = () => estado.carpeta && path.join(estado.carpeta, subcarpeta(), ARCHIVO);
 
   function cambiarEstado(p) { estado = { ...estado, ...p }; try { o.alCambiarEstado && o.alCambiarEstado(); } catch {} }
 
@@ -156,8 +169,8 @@ function crear(o) {
 
   return {
     arrancar, parar, alSalir, cambioLocal, ahora: () => { if (estado.activo) bajar(); },
-    estado: () => ({ ...estado, archivo: fichero(), disponibles: disponibles(), equipo }),
+    estado: () => ({ ...estado, archivo: fichero(), subcarpeta: subcarpeta(), disponibles: disponibles(), equipo }),
   };
 }
 
-module.exports = { crear, disponibles, SERVICIOS };
+module.exports = { crear, disponibles, carpetaRelativa, SERVICIOS };

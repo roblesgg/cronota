@@ -3630,6 +3630,37 @@ ipcMain.on('nube', (_e, p) => {
     nubeSync.parar();
     settings.nube = ''; settings.nubePendiente = false; saveSettings();
     nubeSync.arrancar();
+  } else if (accion === 'carpeta') {
+    // 2.14.5: elegir la carpeta dentro de OneDrive / Google Drive. Tiene que estar dentro.
+    const e = nubeSync.estado();
+    const raiz = e.carpeta;
+    if (!raiz) { avisarNube(); return; }
+    const parent = settingsWin && !settingsWin.isDestroyed() ? settingsWin : (dockPanelWin && !dockPanelWin.isDestroyed() ? dockPanelWin : undefined);
+    const nombre = nube.SERVICIOS[e.servicio] ? nube.SERVICIOS[e.servicio].nombre : 'tu nube';
+    const actual = path.join(raiz, nube.carpetaRelativa(settings.nubeCarpeta));
+    dialog.showOpenDialog(parent, {
+      title: `Carpeta de ${nombre} donde guardar Cronota`,
+      defaultPath: fs.existsSync(actual) ? actual : raiz,
+      properties: ['openDirectory', 'createDirectory'],
+    }).then(({ canceled, filePaths }) => {
+      if (canceled || !filePaths || !filePaths[0]) return;
+      const rel = path.relative(raiz, filePaths[0]);
+      if (rel.startsWith('..') || path.isAbsolute(rel)) {
+        dialog.showMessageBox(parent, { type: 'warning', title: 'Cronota', message: `Elige una carpeta dentro de ${nombre}`, detail: `Tiene que estar dentro de ${raiz} para que ${nombre} la suba a tu nube.` }).catch(() => {});
+        return;
+      }
+      const nueva = rel === '' ? '.' : rel;
+      if (nube.carpetaRelativa(settings.nubeCarpeta) === nueva) return;
+      nubeSync.parar();
+      settings.nubeCarpeta = nueva;
+      // Como al elegir el servicio: si en la carpeta nueva ya hay datos de otro PC, no se pisan.
+      settings.nubeVersion = 0;
+      settings.nubePendiente = state.tasks.some(t => !t.deleted);
+      saveSettings();
+      nubeSync.arrancar();
+      avisarNube();
+    }).catch(() => {});
+    return;
   } else if (accion === 'ahora') {
     nubeSync.ahora();
   } else if (accion === 'abrir-carpeta') {

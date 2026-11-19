@@ -826,6 +826,7 @@
         </div>
         <div style="display:none;gap:8px;flex-wrap:wrap" id="nubeAcciones">
           <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'ahora' })" style="white-space:nowrap;padding:9px 14px">Sincronizar ahora</button>
+          <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'carpeta' })" style="white-space:nowrap;padding:9px 14px" title="Elige en qué carpeta de tu OneDrive o Google Drive se guarda">Cambiar carpeta…</button>
           <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'abrir-carpeta' })" style="white-space:nowrap;padding:9px 14px">Abrir la carpeta</button>
           <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'quitar' })" style="white-space:nowrap;padding:9px 14px">Dejar de sincronizar</button>
         </div>
@@ -1549,7 +1550,7 @@ function pintarNube(e) {
   });
   document.getElementById('nubeAcciones').style.display = e.activo ? 'flex' : 'none';
   if (e.error) el.textContent = e.error;
-  else if (e.activo) el.textContent = `Guardando en ${e.archivo}${cuando ? ' · última vez ' + cuando : ''}. En otro PC elige lo mismo y se traerá tus horas.`;
+  else if (e.activo) el.textContent = `Guardando en ${e.archivo}${cuando ? ' · última vez ' + cuando : ''}. En otro PC elige lo mismo${e.subcarpeta && e.subcarpeta !== 'Cronota' ? ' y la misma carpeta' : ''} y se traerá tus horas.`;
   else el.textContent = 'Tareas, horas y ajustes (menos los de cada pantalla). Se usa la carpeta que ya sincroniza ese programa en tu PC, sin cuentas en Cronota.';
 }
 ipcRenderer.on('nube-estado', (_, e) => pintarNube(e));
