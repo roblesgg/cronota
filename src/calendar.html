@@ -1746,7 +1746,7 @@ function renderDayEntries(col, date) {
         // 2.12: viene de una reunión de Outlook. 2.13: el iconito abre el calendario de Outlook en ese día.
         const m = marcaOutlook();
         m.classList.add('abre');
-        m.title = 'Abrir el calendario de Outlook';
+        m.title = 'Abrir este día en el calendario de Outlook';
         m.addEventListener('mousedown', (e) => e.stopPropagation());   // no es arrastrar la tarjeta
         m.addEventListener('click', (e) => {
           e.stopPropagation();

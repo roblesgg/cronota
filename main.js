@@ -2695,15 +2695,12 @@ ipcMain.on('action', (event, { type, payload }) => {
       let url = null;
       if (p.que === 'publicar') url = 'https://outlook.office.com/calendar/options/calendar/SharedCalendars';
       else if (p.que === 'calendario') {
-        // 2.13: el calendario de Outlook, en la app si la hay (Windows dice quién abre «ms-outlook:»)
-        // y si no, en el navegador en ese día.
+        // 2.13: el calendario de Outlook en el día de esa reunión.
         const d = new Date(Number(p.dia) || Date.now());
         const web = `https://outlook.office.com/calendar/view/day/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
-        let hayApp = false;
-        try { hayApp = !!app.getApplicationNameForProtocol('ms-outlook:'); } catch {}
-        const shell = require('electron').shell;
-        if (hayApp) shell.openExternal('ms-outlook://calendar').catch(() => shell.openExternal(web).catch(() => {}));
-        else shell.openExternal(web).catch(() => {});
+        // La app de Outlook no deja abrir un día concreto (y un evento concreto solo se puede con su
+        // id interno, que sin iniciar sesión no tenemos): el navegador sí abre ese día.
+        require('electron').shell.openExternal(web).catch(() => {});
         break;
       }
       else if (p.que === 'evento' && Number(p.inicio) && Number(p.fin) > Number(p.inicio)) {
