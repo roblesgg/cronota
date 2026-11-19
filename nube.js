@@ -10,7 +10,10 @@
 // otro no se pierde: se deja como «cronota-sync-conflicto-<equipo>-<fecha>.json» en la misma
 // carpeta (se puede restaurar desde Ajustes como cualquier copia) y se avisa.
 //
-// No viajan los ajustes (temas, barra...) ni el vínculo de Outlook: solo tareas, secciones y horas.
+// Viajan las tareas, secciones y horas, la tarea en marcha, las sugerencias de Outlook descartadas
+// y (2.14.1) los ajustes que no dependen de cada PC: tema, avisos, hora de salida, descanso de ojos,
+// vínculo de Outlook... (la lista está en main.js, AJUSTES_QUE_SE_SINCRONIZAN). No viajan los de
+// cada pantalla (barra, tamaños, monitor) ni la propia elección de la nube.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -68,6 +71,8 @@ function fecha(ms) {
 // opciones: getEstado() → { tasks, groups, activeTaskId, activeSubId }
 //           aplicar(datos)     → poner los datos de otro PC (y guardarlos sin volver a subirlos)
 //           ajustes()          → objeto de ajustes (nube, nubeVersion, nubePendiente…), guardar()
+//           ajustesParaSubir() → los ajustes que viajan (2.14.1)
+//           aplicarAjustes(a)  → poner los ajustes de otro PC (2.14.1)
 //           avisar(titulo, texto)
 //           alCambiarEstado()  → para refrescar Ajustes
 function crear(o) {
@@ -86,7 +91,8 @@ function crear(o) {
     try {
       const e = o.getEstado();
       const guardado = Date.now();
-      escribirAtomico(f, JSON.stringify({ cronotaSync: 1, equipo, guardado, tasks: e.tasks, groups: e.groups, activeTaskId: e.activeTaskId || null, activeSubId: e.activeSubId || null }));
+      const ajustes = o.ajustesParaSubir ? o.ajustesParaSubir() : undefined;
+      escribirAtomico(f, JSON.stringify({ cronotaSync: 2, equipo, guardado, tasks: e.tasks, groups: e.groups, activeTaskId: e.activeTaskId || null, activeSubId: e.activeSubId || null, outlookDescartadas: e.outlookDescartadas || [], settings: ajustes }));
       aj().nubeVersion = guardado; aj().nubePendiente = false; o.guardar();
       cambiarEstado({ ultima: guardado, error: null });
     } catch (err) { cambiarEstado({ error: 'No se pudo guardar en la carpeta: ' + String((err && err.message) || err) }); }
@@ -109,13 +115,16 @@ function crear(o) {
       // Los dos PC cambiaron cosas: se queda lo de aquí (es lo último) y lo del otro se aparta.
       try {
         escribirAtomico(path.join(path.dirname(f), `cronota-sync-conflicto-${remoto.equipo || 'otro'}-${fecha(remoto.guardado)}.json`),
-          JSON.stringify({ cronotaBackup: true, exportedAt: new Date(remoto.guardado).toISOString(), tasks: remoto.tasks, groups: remoto.groups }, null, 2));
+          JSON.stringify({ cronotaBackup: true, exportedAt: new Date(remoto.guardado).toISOString(), tasks: remoto.tasks, groups: remoto.groups, outlookDescartadas: remoto.outlookDescartadas, settings: remoto.settings }, null, 2));
       } catch {}
       o.avisar('Cronota: cambios en dos equipos', `Has cambiado horas aquí y en «${remoto.equipo || 'otro equipo'}» a la vez. Se queda lo de este equipo; lo del otro está en la carpeta Cronota de tu nube por si lo necesitas (Ajustes → Restaurar copia).`);
       subir();
       return;
     }
-    o.aplicar({ tasks: remoto.tasks, groups: remoto.groups, activeTaskId: remoto.activeTaskId || null, activeSubId: remoto.activeSubId || null });
+    const datos = { tasks: remoto.tasks, groups: remoto.groups, activeTaskId: remoto.activeTaskId || null, activeSubId: remoto.activeSubId || null };
+    if (Array.isArray(remoto.outlookDescartadas)) datos.outlookDescartadas = remoto.outlookDescartadas;   // una 2.14.0 no las manda
+    o.aplicar(datos);
+    if (remoto.settings && typeof remoto.settings === 'object' && o.aplicarAjustes) o.aplicarAjustes(remoto.settings);
     aj().nubeVersion = remoto.guardado; o.guardar();
     cambiarEstado({ ultima: remoto.guardado, error: null });
   }

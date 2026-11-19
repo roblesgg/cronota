@@ -33,13 +33,14 @@ function fechaLocal(d) {
 // Una copia al día, con el mismo formato que «Exportar copia» (se restaura desde Ajustes igual).
 // Si no hay nada que guardar no se escribe: si un día la app arrancara vacía por lo que fuera,
 // no debe ir desplazando a las copias buenas.
-function copiaDelDia(estado) {
+function copiaDelDia(estado, ajustes) {
   try {
     if (!(estado.tasks || []).length && !(estado.groups || []).length) return false;
     const dir = carpetaCopias();
     const fichero = path.join(dir, `cronota-copia-${fechaLocal(new Date())}.json`);
     if (fs.existsSync(fichero)) return false;
-    const copia = { cronotaBackup: true, exportedAt: new Date().toISOString(), tasks: estado.tasks || [], groups: estado.groups || [] };
+    // 2.14.1: también los ajustes y las sugerencias descartadas, como «Exportar copia».
+    const copia = { cronotaBackup: true, version: 2, exportedAt: new Date().toISOString(), tasks: estado.tasks || [], groups: estado.groups || [], outlookDescartadas: estado.outlookDescartadas || [], settings: ajustes || undefined };
     escribirAtomico(fichero, JSON.stringify(copia, null, 2));
     const nuestras = fs.readdirSync(dir).filter((n) => /^cronota-copia-\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
     nuestras.slice(0, Math.max(0, nuestras.length - COPIAS_A_GUARDAR))
@@ -49,7 +50,8 @@ function copiaDelDia(estado) {
 }
 
 // Ajustes que no se restauran desde una copia: dependen de la versión o de este equipo.
-const AJUSTES_QUE_NO_VIAJAN = ['openAtLogin', 'betaUpdates', 'lastSeenVersion', 'lastSeenWhatsNew', 'traspasoVisto', 'ultimoLatido', 'nubeVersion', 'nubePendiente'];
+// 2.14.1: tampoco la nube elegida (cada PC elige la suya en Ajustes).
+const AJUSTES_QUE_NO_VIAJAN = ['openAtLogin', 'betaUpdates', 'lastSeenVersion', 'lastSeenWhatsNew', 'traspasoVisto', 'ultimoLatido', 'nube', 'nubeVersion', 'nubePendiente'];
 function ajustesTraspasables(ajustes) {
   const r = { ...(ajustes || {}) };
   AJUSTES_QUE_NO_VIAJAN.forEach((k) => { delete r[k]; });

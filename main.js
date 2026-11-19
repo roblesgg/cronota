@@ -247,7 +247,7 @@ const NOVEDADES_2_9 = {
 const WHATS_NEW = {
   '2.14.0': { title: 'Novedades de Cronota 2.14', steps: [
     { icon:'folder', title:'Tus horas en OneDrive o Google Drive',
-      text:'En Ajustes → General → Sincronizar eliges uno con un clic, sin cuentas en Cronota: tus horas se guardan en tu nube y en otro PC elige lo mismo para tenerlas allí.' },
+      text:'En Ajustes → General → Sincronizar eliges uno con un clic, sin cuentas en Cronota: tus horas y tus ajustes se guardan en tu nube y en otro PC eliges lo mismo para tenerlos allí.' },
     { icon:'reloj', title:'No cuenta mientras no estás',
       text:'Si apagas el PC, se cierra de golpe o el portátil se queda dormido más de media hora con una tarea en marcha, Cronota la para en ese momento y te avisa.' },
     { icon:'spark', title:'Más temas y Ajustes al momento',
@@ -532,7 +532,27 @@ function saveData() {
   if (nubeSync) nubeSync.cambioLocal();   // 2.14: a la carpeta de OneDrive / Google Drive
 }
 
+// 2.14.1: ajustes que viajan con la sincronización. Los de cada pantalla o PC (barra, tamaños,
+// monitor, modo dock, versión vista, tutorial, la propia nube) se quedan en cada equipo.
+const AJUSTES_QUE_SE_SINCRONIZAN = ['reminderMinutes', 'imputeUrl', 'imputeUrls', 'leaveEnabled', 'leaveSameEveryDay', 'leaveTime', 'leaveDays', 'leaveAutoStop',
+  'eyeCareEnabled', 'eyeCareEvery', 'eyeCareRest', 'eyeCarePos', 'eyeCareSize', 'eyeCareSoloOjos', 'widgetAutoHide', 'widgetAutoHideSeconds',
+  'colorMode', 'bgOpacity', 'liquidGlass', 'blurEnabled', 'theme', 'accent', 'groupSort', 'groupSortDir', 'weekDays', 'weekOverrides',
+  'dockBarColor', 'dockBarGlass', 'dockBarOpacity', 'dockBarWidth', 'dockBarLength', 'dockNearDistance', 'dockCloseMode', 'dockCloseSeconds',
+  'archiveDays', 'outlookIcsUrl', 'silenciarEnLlamada'];
+function ajustesQueViajan() {
+  const r = {};
+  AJUSTES_QUE_SE_SINCRONIZAN.forEach(k => { if (settings[k] !== undefined) r[k] = settings[k]; });
+  return r;
+}
+let firmaAjustesNube = null;   // lo último que se subió o se trajo; si cambia, hay que subir
+function vigilarAjustesNube() {
+  const firma = JSON.stringify(ajustesQueViajan());
+  if (firmaAjustesNube === null) { firmaAjustesNube = firma; return; }
+  if (firma !== firmaAjustesNube) { firmaAjustesNube = firma; if (nubeSync) nubeSync.cambioLocal(); }
+}
+
 function saveSettings() {
+  vigilarAjustesNube();
   // 2.13: escritura atómica, como las tareas: si se va la luz a mitad, el bueno sigue entero.
   const json = JSON.stringify(settings, null, 2);
   const tmp = SETTINGS_FILE + '.tmp';
@@ -3188,7 +3208,7 @@ ipcMain.handle('export-backup', async (_e, extra) => {
     // Copia completa: todas las tareas (con su historial de fichajes, también las archivadas y
     // las borradas), los grupos, todos los ajustes y las preferencias que guardan las pantallas.
     const local = extra && extra.local && typeof extra.local === 'object' ? extra.local : {};
-    const payload = { cronotaBackup: true, version: 2, appVersion: app.getVersion(), exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups, settings, local };
+    const payload = { cronotaBackup: true, version: 2, appVersion: app.getVersion(), exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups, outlookDescartadas: state.outlookDescartadas || [], settings, local };
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
     return { ok: true, path: filePath };
   } catch (e) {
@@ -3258,6 +3278,10 @@ ipcMain.handle('apply-import-backup', async (_e, payload) => {
     if (deepEqual(state.tasks[idx], t)) return;
     if (res[`task:${t.id}`] === 'replace') state.tasks[idx] = t;
   });
+  // 2.14.1: las sugerencias de Outlook descartadas se suman a las de aquí.
+  if (Array.isArray(raw.outlookDescartadas) && raw.outlookDescartadas.length) {
+    state.outlookDescartadas = [...new Set([...(state.outlookDescartadas || []), ...raw.outlookDescartadas.map(String)])].slice(-500);
+  }
   saveData(); broadcastState();
   // Con los ajustes de la copia: se guardan y la app se reinicia para que todo (tema, barra,
   // avisos...) arranque ya con ellos, igual que al abrirla.
@@ -3273,6 +3297,7 @@ ipcMain.handle('apply-import-backup', async (_e, payload) => {
 });
 
 ipcMain.on('reiniciar-tras-copia', () => {
+  try { saveSettings(); if (nubeSync) nubeSync.alSalir(); } catch {}   // 2.14.1: que la nube se lleve lo restaurado
   setTimeout(() => { try { app.relaunch(); } catch {} app.exit(0); }, 300);
 });
 
@@ -3511,11 +3536,36 @@ function arrancarNube() {
       },
       ajustes: () => settings,
       guardar: () => saveSettingsSoon(),
+      ajustesParaSubir: () => { const a = ajustesQueViajan(); firmaAjustesNube = JSON.stringify(a); return a; },
+      aplicarAjustes: aplicarAjustesDeOtroPC,
       avisar: (title, body) => { try { new Notification({ title, body }).show(); } catch {} },
       alCambiarEstado: avisarNube,
     });
+    firmaAjustesNube = JSON.stringify(ajustesQueViajan());   // 2.14.1: punto de partida
     nubeSync.arrancar();
   } catch {}
+}
+// 2.14.1: los ajustes que llegan de otro PC se ponen al momento, sin reiniciar.
+function aplicarAjustesDeOtroPC(remotos) {
+  const nuevos = {};
+  AJUSTES_QUE_SE_SINCRONIZAN.forEach(k => { if (remotos[k] !== undefined) nuevos[k] = remotos[k]; });
+  const antes = JSON.stringify(ajustesQueViajan());
+  const eyeAntes = settings.eyeCareEnabled + '|' + settings.eyeCareEvery;
+  Object.assign(settings, nuevos);
+  if (!THEMES[settings.theme]) settings.theme = DEFAULT_THEME;
+  const ahora = JSON.stringify(ajustesQueViajan());
+  firmaAjustesNube = ahora;   // vienen de la nube: no hay que volver a subirlos
+  if (ahora === antes) return;
+  saveSettings();
+  try { resetReminderTimer(); } catch {}
+  try { applyTranslucencyAll(); } catch {}
+  try { sendDockConfig(); } catch {}
+  try { if (outlook) outlook.configurar(settings.outlookIcsUrl); } catch {}
+  try { if (vigiaLlamadas) { if (settings.silenciarEnLlamada !== false) vigiaLlamadas.encender(); else vigiaLlamadas.apagar(); } } catch {}
+  try { startEyeCareTimer(eyeAntes !== settings.eyeCareEnabled + '|' + settings.eyeCareEvery); } catch {}
+  broadcastState();
+  // Ajustes abierto: que enseñe lo nuevo (si no, al tocar algo guardaría lo de antes encima).
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings', { ...settings, appVersion: app.getVersion(), isStore: IS_STORE });
 }
 ipcMain.handle('nube-estado', () => (nubeSync ? nubeSync.estado() : null));
 ipcMain.on('nube', (_e, p) => {
@@ -3628,8 +3678,8 @@ app.whenReady().then(() => {
   // 2.9.2: una copia al día en Documentos\Cronota\Copias automáticas. La versión de la Store
   // guarda sus datos dentro del paquete, y Windows los borra si se desinstala.
   if (app.isPackaged) {
-    copias.copiaDelDia(state);
-    setInterval(() => copias.copiaDelDia(state), 3 * 60 * 60 * 1000);
+    copias.copiaDelDia(state, settings);
+    setInterval(() => copias.copiaDelDia(state, settings), 3 * 60 * 60 * 1000);
   }
 });
 

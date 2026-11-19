@@ -12,7 +12,7 @@ Cronota es una aplicación para Windows que registra el tiempo que dedicas a cad
 
 Tus tareas, secciones, los ratos de tiempo registrados, sus notas y tus ajustes se guardan **solo en tu ordenador**, en la carpeta de datos de la aplicación de tu usuario de Windows. No salen de tu equipo salvo que actives la sincronización descrita abajo.
 
-Para que no los pierdas si desinstalas la app, Cronota guarda además **una copia de tus tareas y secciones cada día** en tu carpeta Documentos, en `Documentos\Cronota\Copias automáticas` (se quedan las 14 últimas). Al pasar de la versión del instalador a la de Microsoft Store también deja una copia en `Documentos\Cronota\cronota-traspaso.json`. Si tu carpeta Documentos se sincroniza con OneDrive u otro servicio, estas copias se sincronizan con ella como cualquier otro documento tuyo.
+Para que no los pierdas si desinstalas la app, Cronota guarda además **una copia de tus tareas, secciones y ajustes cada día** en tu carpeta Documentos, en `Documentos\Cronota\Copias automáticas` (se quedan las 14 últimas). Al pasar de la versión del instalador a la de Microsoft Store también deja una copia en `Documentos\Cronota\cronota-traspaso.json`. Si tu carpeta Documentos se sincroniza con OneDrive u otro servicio, estas copias se sincronizan con ella como cualquier otro documento tuyo.
 
 ## Sin cuentas
 
@@ -24,7 +24,7 @@ Con el estilo «Cristal líquido», Cronota lee la imagen de la pantalla que que
 
 ## Sincronizar con OneDrive o Google Drive (opcional)
 
-Si eliges OneDrive o Google Drive en Ajustes → General → Sincronizar, Cronota guarda una copia de tus tareas, secciones y horas en la carpeta que ese programa ya sincroniza en tu PC (dentro de una carpeta «Cronota»), y ese programa la sube a tu propia nube con tu cuenta. Cronota no ve ni guarda tu cuenta ni tu contraseña, y no envía nada a servidores nuestros. No se suben tus ajustes ni el vínculo de Outlook. Para dejar de sincronizar, pulsa «Dejar de sincronizar» y borra esa carpeta si quieres.
+Si eliges OneDrive o Google Drive en Ajustes → General → Sincronizar, Cronota guarda una copia de tus tareas, secciones y horas en la carpeta que ese programa ya sincroniza en tu PC (dentro de una carpeta «Cronota»), y ese programa la sube a tu propia nube con tu cuenta. Cronota no ve ni guarda tu cuenta ni tu contraseña, y no envía nada a servidores nuestros. También se guardan tus ajustes (tema, avisos, hora de salida, descanso de ojos, el vínculo de Outlook si lo has puesto…) y las sugerencias de Outlook que hayas descartado; los de cada pantalla (barra, tamaños, monitor) se quedan en cada PC. Ten en cuenta que el vínculo de Outlook deja ver tu calendario a quien lo tenga: queda en tu nube, como el resto de tus datos. Para dejar de sincronizar, pulsa «Dejar de sincronizar» y borra esa carpeta si quieres.
 
 ## Calendario de Outlook (opcional)
 
