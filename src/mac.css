@@ -1251,3 +1251,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent2); }
    escribir, y desentonaban con el resto. Se usan sus cifras normales en toda la app. Los tiempos
    que corren van alineados a la izquierda, así que el cambio de ancho apenas se nota. */
 *, *::before, *::after { font-variant-numeric: normal !important; }
+
+/* 2.14: foco visible con teclado en toda la app (varios campos quitaban el contorno sin poner otro).
+   Solo con teclado (:focus-visible), así con el ratón no sale el anillo. */
+:focus-visible { outline: 2px solid var(--accent2) !important; outline-offset: 2px !important; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offset: 0 !important; }

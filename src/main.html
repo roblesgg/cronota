@@ -351,11 +351,11 @@
         <button type="button" class="filter-chip" data-filter="oneShot" onclick="setPanelFilter('oneShot')">Puntuales</button>
       </div>
       <div class="back-row" style="margin:0;flex-wrap:wrap;row-gap:4px">
-        <span class="back-label">Al iniciar, llevo:</span>
+        <span class="back-label" title="Si empezaste antes de darle al play, el tiempo cuenta desde entonces">¿Empezaste antes? Cuenta</span>
         <input type="number" id="startBackMin" placeholder="0" min="0" max="600"
           style="width:52px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:4px 7px;outline:none;-webkit-app-region:no-drag;text-align:center">
-        <span class="back-label">min</span>
-        <span class="back-label">o desde:</span>
+        <span class="back-label">min más</span>
+        <span class="back-label">o desde las</span>
         <input type="time" id="startBackTime"
           style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:4px 7px;outline:none;-webkit-app-region:no-drag;color-scheme:dark">
       </div>
@@ -408,10 +408,10 @@
 
   <div class="popup-backdrop" id="archivePopupBackdrop" style="display:none" onclick="closeArchivePopup()"></div>
   <div class="entry-popup" id="archivePopup" style="display:none">
-    <div class="entry-popup-title">Guardar en un grupo</div>
+    <div class="entry-popup-title">Guardar en una sección</div>
     <select id="archiveGroupSelect" onchange="onArchiveGroupChange()"></select>
     <div id="archiveNewGroupFields" style="display:none;flex-direction:column;gap:8px">
-      <input type="text" id="archiveNewGroupName" placeholder="Nombre del grupo nuevo..." maxlength="60">
+      <input type="text" id="archiveNewGroupName" placeholder="Nombre de la sección nueva..." maxlength="60">
     </div>
     <div class="entry-popup-actions">
       <div style="flex:1"></div>
@@ -551,14 +551,14 @@ function buildRow(t, state) {
       <div class="task-chevron ${abierta ? 'open' : ''} ${nSubs ? '' : 'empty'}" title="${nSubs ? 'Ver las subtareas' : 'Añadir subtareas'}">
         <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 1l4 4-4 4"/></svg>
       </div>
-      <div class="task-dot" style="background:${t.color};cursor:pointer" title="Cambiar color" onclick="event.stopPropagation();openColorPopup('${t.id}')"></div>
+      <div class="task-dot" role="button" tabindex="0" aria-label="Cambiar color" style="background:${t.color};cursor:pointer" title="Cambiar color" onclick="event.stopPropagation();openColorPopup('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openColorPopup('${t.id}')}"></div>
       <div class="task-meta-line"><span class="task-name">${t.name}</span>${badgeHtml(t)}</div>
       <span class="task-time">${fmt(t.todaySecs)}</span>
       <div class="task-pill-actions">
         <button class="icon-btn" title="Cambiar el nombre" onclick="event.stopPropagation();openTaskEdit('${t.id}')">
           ${SVG_PENCIL}
         </button>
-        <button class="icon-btn" title="Guardar en un grupo" onclick="event.stopPropagation();archiveTask('${t.id}')">
+        <button class="icon-btn" title="Guardar en una sección" onclick="event.stopPropagation();archiveTask('${t.id}')">
           ${SVG_SAVE}
         </button>
         <button class="icon-btn ${isActive?'is-playing':'is-stopped'}" title="${isActive?'Pausar':'Iniciar'}"
@@ -1099,7 +1099,7 @@ function closeColorPopup() {
   colorPopupTaskId = null;
 }
 
-// ---------- Guardar tarea en un grupo ----------
+// ---------- Guardar tarea en una sección ----------
 function archiveTask(taskId) {
   const task = currentState && currentState.tasks.find(t => t.id === taskId);
   if (!task) return;
@@ -1118,7 +1118,7 @@ function openArchivePopup(taskId) {
     const opt = document.createElement('option'); opt.value = g.id; opt.textContent = g.name;
     select.appendChild(opt);
   });
-  const newOpt = document.createElement('option'); newOpt.value = '__new__'; newOpt.textContent = '+ Grupo nuevo';
+  const newOpt = document.createElement('option'); newOpt.value = '__new__'; newOpt.textContent = '+ Sección nueva';
   select.appendChild(newOpt);
   select.value = groups.length ? groups[0].id : '__new__';
   onArchiveGroupChange();
@@ -1139,7 +1139,7 @@ function confirmArchive() {
   const isNew = select.value === '__new__';
   if (isNew) {
     const name = document.getElementById('archiveNewGroupName').value.trim();
-    if (!name) { alert('Ponle un nombre al grupo'); return; }
+    if (!name) { alert('Ponle un nombre a la sección'); return; }
     ipcRenderer.send('action', { type:'archive-task', payload:{ taskId: archivePopupTaskId, groupName: name } });
   } else {
     ipcRenderer.send('action', { type:'archive-task', payload:{ taskId: archivePopupTaskId, groupId: select.value } });

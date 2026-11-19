@@ -141,7 +141,7 @@ const TUTORIAL_STEPS = [
     title:'Imputar', text:'Te lleva al sitio donde metes las horas de verdad. Sale aquí en cuanto pegas su dirección en Ajustes → Enlace para imputar.' },
   { id:'main-color',     window:'main', version:'1.2.19', selector:'#tasksList .task-dot',
     title:'Color', text:'Haz clic en el punto de color para cambiarlo.' },
-  { id:'main-save',      window:'main', version:'1.2.19', selector:'#tasksList .icon-btn[title="Guardar en un grupo"]',
+  { id:'main-save',      window:'main', version:'1.2.19', selector:'#tasksList .icon-btn[title="Guardar en una sección"]',
     title:'Guardar en una sección', text:'Archiva la tarea en una sección para tenerla ordenada, sin que ocupe sitio en el panel principal. Sigue estando en Tareas, y puedes retomarla cuando quieras.' },
   { id:'main-addtask',   window:'main', version:'1.2.19', selector:'.new-task-area .btn-primary',
     title:'Añadir tarea', text:'Crea una tarea nueva. En cuanto le des a play, empieza a contar el tiempo.' },

@@ -3558,6 +3558,7 @@ app.whenReady().then(() => {
   // encontraría paseándole por la app en cada arranque.
   if (!(settings.tutorialSeenSteps || []).length) tourActive = true;
   repararCierreDeGolpe();   // 2.13: antes que nada que use la tarea en marcha
+  try { const { powerMonitor } = require('electron'); powerMonitor.on('suspend', alSuspender); powerMonitor.on('resume', alDespertar); } catch {}
   latir(); setInterval(latir, 60000);
   startLeaveWatcher();
   startEyeCareTimer();
@@ -3639,6 +3640,25 @@ function alTerminarSesion() {
   try { pauseActive(); saveData(); settings.ultimoLatido = Date.now(); saveSettings(); if (nubeSync) nubeSync.alSalir(); } catch {}
 }
 app.on('browser-window-created', (_e, w) => { try { w.on('session-end', alTerminarSesion); } catch {} });
+
+// 2.14: si el portátil se suspende (se cierra la tapa) con una tarea en marcha y pasa más de media
+// hora dormido, al despertar la tarea se para a la hora en que se durmió y se avisa. Antes contaba
+// toda la noche. Una suspensión corta (moverte de sala) no la toca.
+let suspendidoEn = 0;
+function alSuspender() { suspendidoEn = Date.now(); settings.ultimoLatido = suspendidoEn; saveSettings(); }
+function alDespertar() {
+  const desde = suspendidoEn; suspendidoEn = 0;
+  if (!desde || Date.now() - desde < 30 * 60000) return;
+  const task = getActiveTask();
+  const ultima = task && task.entries[task.entries.length - 1];
+  if (!ultima || ultima.end != null || ultima.start >= desde) return;
+  fotoAntesDe('suspender');
+  ultima.end = desde;
+  state.activeTaskId = null; state.activeSubId = null;
+  saveData(); broadcastState(); resetReminderTimer();
+  const hora = new Date(desde).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  try { new Notification({ title: 'Cronota paró una tarea', body: `El equipo se suspendió con «${task.name}» en marcha. La he parado a las ${hora}. Si seguías trabajando, Ctrl+Z en el calendario lo deshace.` }).show(); } catch {}
+}
 
 function latir() { settings.ultimoLatido = Date.now(); saveSettings(); }
 function repararCierreDeGolpe() {
