@@ -49,7 +49,7 @@ function copiaDelDia(estado) {
 }
 
 // Ajustes que no se restauran desde una copia: dependen de la versión o de este equipo.
-const AJUSTES_QUE_NO_VIAJAN = ['openAtLogin', 'betaUpdates', 'lastSeenVersion', 'lastSeenWhatsNew', 'traspasoVisto', 'ultimoLatido'];
+const AJUSTES_QUE_NO_VIAJAN = ['openAtLogin', 'betaUpdates', 'lastSeenVersion', 'lastSeenWhatsNew', 'traspasoVisto', 'ultimoLatido', 'nubeVersion', 'nubePendiente'];
 function ajustesTraspasables(ajustes) {
   const r = { ...(ajustes || {}) };
   AJUSTES_QUE_NO_VIAJAN.forEach((k) => { delete r[k]; });

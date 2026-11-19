@@ -72,7 +72,8 @@ const { vigilarCapturas } = require('./capturas-windows');
 // el arranque con Windows lo gestiona Windows (Configuración → Aplicaciones → Inicio).
 const IS_STORE = !!process.windowsStore;
 // 2.9.2: paso de la versión del instalador a la de la Store y copias diarias en Documentos\Cronota.
-const copias = require('./copias');   // 2.13: copias diarias y arranque con Windows (antes en migracion-store.js)
+const copias = require('./copias');
+const nube = require('./nube');   // 2.14: sincronizar con OneDrive o Google Drive   // 2.13: copias diarias y arranque con Windows (antes en migracion-store.js)
 const outlookIcs = require('./outlook-ics');     // 2.12: reuniones de Outlook por enlace ICS
 const enLlamada = require('./en-llamada');
 const { recortarSolapes } = require('./recortar-solapes');   // 2.12: la reunión manda       // 2.12: ¿micrófono en uso? → avisos en silencio
@@ -438,6 +439,9 @@ let settings = {
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
   outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
   silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
+  nube: '',              // 2.14: 'onedrive' | 'gdrive' | '' (sin sincronizar). Ver nube.js
+  nubeVersion: 0,        // marca del último archivo de la nube que este PC conoce
+  nubePendiente: false,  // hay cambios de aquí sin subir todavía
   ultimoLatido: 0,       // 2.13: última vez que la app estaba viva (ver repararCierreDeGolpe)
 };
 
@@ -517,6 +521,7 @@ function saveDataRaw() {
 }
 function saveData() {
   saveDataRaw();
+  if (nubeSync) nubeSync.cambioLocal();   // 2.14: a la carpeta de OneDrive / Google Drive
 }
 
 function saveSettings() {
@@ -3444,6 +3449,58 @@ ipcMain.handle('reuniones', (_e, r) => {
   try { return outlook ? outlook.reuniones(Number(r && r.desde) || 0, Number(r && r.hasta) || 0) : []; } catch { return []; }
 });
 ipcMain.handle('en-llamada', () => appsEnLlamada);
+
+// ── Sincronizar con OneDrive o Google Drive (2.14) ────────────────────────────────
+let nubeSync = null;
+function avisarNube() {
+  const e = nubeSync ? nubeSync.estado() : null;
+  [settingsWin, dockPanelWin].forEach(w => sendToAllFrames(w, 'nube-estado', e));
+}
+function arrancarNube() {
+  try {
+    nubeSync = nube.crear({
+      getEstado: () => state,
+      aplicar: (datos) => {
+        fotoAntesDe('nube');   // Ctrl+Z vuelve a lo de antes
+        state = { ...state, ...datos };
+        if (!Array.isArray(state.groups)) state.groups = [];
+        saveDataRaw(); broadcastState(); resetReminderTimer();
+      },
+      ajustes: () => settings,
+      guardar: () => saveSettingsSoon(),
+      avisar: (title, body) => { try { new Notification({ title, body }).show(); } catch {} },
+      alCambiarEstado: avisarNube,
+    });
+    nubeSync.arrancar();
+  } catch {}
+}
+ipcMain.handle('nube-estado', () => (nubeSync ? nubeSync.estado() : null));
+ipcMain.on('nube', (_e, p) => {
+  if (!nubeSync) return;
+  const accion = p && p.accion;
+  if (accion === 'elegir') {
+    const servicio = nube.SERVICIOS[p.servicio] ? p.servicio : '';
+    settings.nube = servicio;
+    settings.nubeVersion = 0;
+    // Si aquí ya hay tareas, se tratan como cambios por subir: si en la nube ya hubiera datos de
+    // otro PC, no se pisan: se apartan como conflicto y se avisa (ver nube.js).
+    settings.nubePendiente = !!(servicio && state.tasks.some(t => !t.deleted));
+    saveSettings();
+    nubeSync.arrancar();
+  } else if (accion === 'quitar') {
+    nubeSync.parar();
+    settings.nube = ''; settings.nubePendiente = false; saveSettings();
+    nubeSync.arrancar();
+  } else if (accion === 'ahora') {
+    nubeSync.ahora();
+  } else if (accion === 'abrir-carpeta') {
+    const e = nubeSync.estado();
+    if (e.archivo) { try { require('electron').shell.showItemInFolder(e.archivo); } catch {} }
+  } else if (accion === 'descargar' && nube.SERVICIOS[p.servicio]) {
+    try { require('electron').shell.openExternal(nube.SERVICIOS[p.servicio].descarga); } catch {}
+  }
+  avisarNube();
+});
 ipcMain.handle('outlook-estado', async (_e, opts) => {
   if (!outlook) return { conectado: false };
   if (opts && opts.probar) await outlook.descargar();
@@ -3470,6 +3527,7 @@ app.whenReady().then(() => {
   startLeaveWatcher();
   startEyeCareTimer();
   arrancarOutlookYLlamadas();
+  arrancarNube();
   setInterval(vigilarReunionesPlaneadas, 20000);   // 2.12
   // No molestar se apaga solo al vencer: dndActive() lo caduca y avisa a las vistas.
   setInterval(() => { if (settings.dndUntil) dndActive(); }, 30000);
@@ -3543,7 +3601,7 @@ app.on('window-all-closed', e => e.preventDefault());
 function alTerminarSesion() {
   if (saliendo) return;
   saliendo = true;
-  try { pauseActive(); saveData(); settings.ultimoLatido = Date.now(); saveSettings(); } catch {}
+  try { pauseActive(); saveData(); settings.ultimoLatido = Date.now(); saveSettings(); if (nubeSync) nubeSync.alSalir(); } catch {}
 }
 app.on('browser-window-created', (_e, w) => { try { w.on('session-end', alTerminarSesion); } catch {} });
 
@@ -3572,6 +3630,7 @@ function repararCierreDeGolpe() {
 app.on('before-quit', () => {
   saliendo = true;
   pauseActive(); saveData(); saveSettings();
+  if (nubeSync) nubeSync.alSalir();   // 2.14: que no quede nada sin subir a la nube
   // La bandeja se va con la app: si se queda, el instalador que se lanza al salir
   // (autoInstallOnAppQuit) puede seguir viendo el proceso vivo y pedir que la cierres.
   try { if (tray) { tray.destroy(); tray = null; } } catch {}

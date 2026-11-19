@@ -320,6 +320,18 @@
   .big-btn:hover svg { transform:scale(1.12); }
   .big-btn:active { transform:translateY(0); }
 
+  /* ── Sincronizar (2.14) ────────────────────────────────────── */
+  .nube-opciones { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .nube-op {
+    display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 10px; cursor:pointer;
+    border-radius:16px; border:1.5px solid transparent; background:var(--bg2); color:var(--text);
+    font:inherit; font-weight:650; font-size:13px; transition:background .15s ease, border-color .15s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  .nube-op:hover { background:var(--bg3); transform:translateY(-1px); }
+  .nube-op small { font-weight:500; font-size:11px; color:var(--text3); min-height:13px; }
+  .nube-op.activa { border-color:var(--accent2); background:var(--accent-soft); }
+  .nube-op.activa small { color:var(--accent); }
+
   /* ── Pie ───────────────────────────────────────────────────── */
   /* Barra fija de Cancelar/Guardar. Fondo propio casi opaco + blur fuerte: con
      var(--bg) (translúcido a propósito para el efecto cristal) se transparentaba el
@@ -787,6 +799,31 @@
           <input type="range" id="dockCloseSeconds" min="0" max="15" step="0.5" value="3">
         </div>
         <span class="nota">El ancho del panel se cambia arrastrando su borde.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Sincronizar (2.14) ───────────────────────────────────── -->
+  <div class="section" data-cat="general">
+    <div class="section-label">Sincronizar</div>
+    <div class="card">
+      <div class="row col">
+        <div class="row-head">
+          <span class="ico" data-ico="nube" style="--ic:#4c8dff"></span>
+          <div class="row-text">
+            <span class="row-title">Tus horas en tu nube</span>
+            <span class="row-desc" id="nubeEstado">Elige dónde guardarlas: se usa la carpeta que ya sincroniza ese programa en tu PC, sin cuentas en Cronota.</span>
+          </div>
+        </div>
+        <div class="nube-opciones">
+          <button type="button" class="nube-op" id="nubeOneDrive" onclick="elegirNube('onedrive')"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M10.2 8.3a5.2 5.2 0 0 1 9.4 2.9 3.6 3.6 0 0 1-.6 7.1H6.4a4.1 4.1 0 0 1-1-8.1 5 5 0 0 1 4.8-1.9z" fill="#0f6cbd"/><path d="M10.2 8.3a5 5 0 0 1 3.3-.9 5.2 5.2 0 0 1 6.1 3.8 3.6 3.6 0 0 1-.6 7.1h-7.8z" fill="#28a8ea"/></svg><span>OneDrive</span><small></small></button>
+          <button type="button" class="nube-op" id="nubeGDrive" onclick="elegirNube('gdrive')"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M8.2 3.5h7.6l6.2 10.8h-7.6z" fill="#fbbc04"/><path d="M8.2 3.5 2 14.3l3.8 6.6 6.2-10.8z" fill="#34a853"/><path d="M5.8 20.9h12.4l3.8-6.6H9.6z" fill="#4285f4"/></svg><span>Google Drive</span><small></small></button>
+        </div>
+        <div style="display:none;gap:8px;flex-wrap:wrap" id="nubeAcciones">
+          <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'ahora' })" style="white-space:nowrap;padding:9px 14px">Sincronizar ahora</button>
+          <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'abrir-carpeta' })" style="white-space:nowrap;padding:9px 14px">Abrir la carpeta</button>
+          <button class="btn-ghost" onclick="ipcRenderer.send('nube', { accion:'quitar' })" style="white-space:nowrap;padding:9px 14px">Dejar de sincronizar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1487,6 +1524,34 @@ function quitarOutlook() {
   ipcRenderer.send('action', { type:'set-setting', payload:{ key:'outlookIcsUrl', value: '' } });
   setTimeout(() => pintarEstadoOutlook(), 200);
 }
+
+// ---------- Sincronizar con OneDrive / Google Drive (2.14) ----------
+let nubeUltimoEstado = null;
+function elegirNube(servicio) {
+  const e = nubeUltimoEstado;
+  const d = e && e.disponibles && e.disponibles[servicio];
+  if (d && !d.carpeta) { ipcRenderer.send('nube', { accion:'descargar', servicio }); return; }
+  if (e && e.activo && e.servicio === servicio) return;
+  ipcRenderer.send('nube', { accion:'elegir', servicio });
+}
+function pintarNube(e) {
+  nubeUltimoEstado = e;
+  if (!e) return;
+  const el = document.getElementById('nubeEstado');
+  const cuando = e.ultima ? new Date(e.ultima).toLocaleString('es-ES', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : null;
+  [['onedrive', 'nubeOneDrive'], ['gdrive', 'nubeGDrive']].forEach(([k, id]) => {
+    const b = document.getElementById(id); if (!b) return;
+    const d = e.disponibles && e.disponibles[k];
+    b.classList.toggle('activa', !!(e.activo && e.servicio === k));
+    b.querySelector('small').textContent = e.activo && e.servicio === k ? 'Sincronizando' : (d && d.carpeta ? 'En este PC' : 'No instalado · descargar');
+  });
+  document.getElementById('nubeAcciones').style.display = e.activo ? 'flex' : 'none';
+  if (e.error) el.textContent = e.error;
+  else if (e.activo) el.textContent = `Guardando en ${e.archivo}${cuando ? ' · última vez ' + cuando : ''}. En otro PC elige lo mismo y se traerá tus horas.`;
+  else el.textContent = 'Elige dónde guardarlas: se usa la carpeta que ya sincroniza ese programa en tu PC, sin cuentas en Cronota.';
+}
+ipcRenderer.on('nube-estado', (_, e) => pintarNube(e));
+ipcRenderer.invoke('nube-estado').then(pintarNube).catch(() => {});
 
 // ---------- Carga de ajustes ----------
 ipcRenderer.on('settings', (_, s) => {
