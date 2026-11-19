@@ -1521,9 +1521,28 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
     b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook(r.inicio));
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
+    // 2.14.4: si debajo de la gota hay una tarjeta tuya (p. ej. del mismo tamaño), al pinchar en la
+    // gota se coge la tarjeta: así se puede arrastrar aunque la sugerencia esté delante. Los
+    // botones de la gota («Añadir», ×, Outlook) siguen siendo de la gota.
+    b.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('button, .rb-imputar, .outlook-marca')) return;
+      const debajo = document.elementsFromPoint(e.clientX, e.clientY)
+        .map(el => el.closest && el.closest('.task-block'))
+        .find(el => el && !el.classList.contains('move-ghost'));
+      if (!debajo) return;
+      e.stopPropagation(); e.preventDefault();
+      b.__pasadaATarjeta = Date.now();
+      debajo.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, composed: true,
+        pointerId: e.pointerId, pointerType: e.pointerType, isPrimary: e.isPrimary,
+        clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY,
+        button: e.button, buttons: e.buttons, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
+      }));
+    }, true);
     x.addEventListener('click', (e) => { e.stopPropagation(); descartarReunion(r.id, b); });
     if (!gotasVistas.has(r.id)) { gotasVistas.add(r.id); b.classList.add('gota-nueva'); }
     b.addEventListener('click', (e) => {
+      if (Date.now() - (b.__pasadaATarjeta || 0) < 1500) { e.stopPropagation(); return; }   // era la tarjeta de debajo
       gotaCandidata = { id: r.id, top: b.style.top, height: b.style.height, html: b.innerHTML };
       // Mientras se elige la tarea, el borrador de la entrada ocupa ese hueco: la gota se aparta
       // para que no se pisen los textos. Si se cancela, vuelve (closePopup).
