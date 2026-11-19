@@ -42,6 +42,8 @@
   /* 2.8.3: menos letra y más grande. Cada ajuste lleva su icono de color (como los Ajustes
      del Mac) y como mucho una línea corta; lo que se puede enseñar, se enseña con un dibujo. */
   .section { display:flex;flex-direction:column;gap:2px;flex-shrink:0; }
+  /* 2.14.2: la versión que tienes, debajo de Ayuda y copias */
+  .version-pie { text-align:center;font-size:12px;opacity:.55;margin-top:12px;user-select:text; }
   .section-label { font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px 6px; }
   .card { background:var(--bg2);border-radius:18px;display:flex;flex-direction:column;overflow:hidden; }
   .row { position:relative;display:flex;align-items:center;gap:12px;padding:13px 16px;-webkit-app-region:no-drag; }
@@ -853,6 +855,7 @@
         Restaurar copia
       </button>
     </div>
+    <div class="version-pie" id="versionPie"></div>
   </div>
 
   <div class="toast" id="toast">
@@ -1551,6 +1554,7 @@ ipcRenderer.invoke('nube-estado').then(pintarNube).catch(() => {});
 
 // ---------- Carga de ajustes ----------
 ipcRenderer.on('settings', (_, s) => {
+  if (s.appVersion) document.getElementById('versionPie').textContent = 'Cronota ' + s.appVersion + (s.isStore ? ' · Microsoft Store' : ' · en desarrollo');
   document.getElementById('reminderMinutes').value = s.reminderMinutes || 10;
   document.getElementById('archiveDays').value = s.archiveDays == null ? 30 : s.archiveDays;
   document.getElementById('widgetAutoHide').checked = !!s.widgetAutoHide;
