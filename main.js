@@ -2261,9 +2261,11 @@ function createDock() {
   // clics pasan al escritorio es el renderer. Si el renderer se cuelga o se muere, esa
   // decisión deja de actualizarse, así que forzamos click-through (y si ha muerto del
   // todo, salimos del modo dock) para no dejar la pantalla bloqueada.
-  dockWin.webContents.on('unresponsive', () => {
-    try { dockWin.setIgnoreMouseEvents(true); } catch {}
-  });
+  dockWin.webContents.on('unresponsive', () => { setDockIgnore(true); });
+  // 2.14.3: al volver en sí, que se recalcule todo en el siguiente tic. Antes el bloqueo de
+  // arriba no apuntaba que la ventana ignoraba el ratón, y si el cursor seguía sobre el botón
+  // de esconder, ese botón no respondía hasta sacar el ratón y volver a entrar.
+  dockWin.webContents.on('responsive', () => { dockIgnoring = null; ultimoPuntoDock = null; });
   dockWin.webContents.on('render-process-gone', () => {
     // Si la app se está cerrando (o el instalador la está cerrando a la fuerza para actualizar),
     // el proceso de la barra muere antes que el principal: eso no es un fallo, y no hay que
