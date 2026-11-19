@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.0 enviada a certificación (envío 9). Solo se publica en la Store.
+Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.0 publicada (envío 9); 2.14.1 enviada a certificación (envío 10). Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -42,7 +42,7 @@ Lo aprendido:
 - **2.12.1** (18-11-2026): al descartar una sugerencia se va al momento y Ctrl+Z la devuelve en el acto. Envío 7.
 - **2.13.0** (18-11-2026): botón «Añadir» discreto en azul de Outlook; en Ajustes, logo de Outlook y «Sacar el vínculo en Outlook»; en cada entrada, «Crear en Outlook» (abre un evento ya relleno en Outlook web con `deeplink/compose`; se guarda allí, sin registrar ninguna app). La 2.12.2 se compiló pero no se subió. Envío 8.
 - **2.14.0** (19-11-2026): sincronizar con OneDrive o Google Drive, parar la tarea al apagar o suspender, más temas, Ajustes al momento, iconito de Outlook que abre el día, tutoriales arreglados y limpieza. Envío 9 mandado a certificación el 19-11-2026 hacia las 11:45.
-- **2.14.1** (19-11-2026, sin enviar: la 2.14.0 está en certificación): sincronizar lleva también los ajustes (menos los de cada pantalla) y las sugerencias de Outlook descartadas, y los que llegan de otro PC se aplican al momento; las copias diarias llevan ajustes; al restaurar una copia no se trae la nube elegida en el otro PC. Probado simulando dos PC.
+- **2.14.1** (19-11-2026, envío 10 mandado a certificación hacia las 12:20; la 2.14.0 ya estaba publicada a esa hora): sincronizar lleva también los ajustes (menos los de cada pantalla) y las sugerencias de Outlook descartadas, y los que llegan de otro PC se aplican al momento; las copias diarias llevan ajustes; al restaurar una copia no se trae la nube elegida en el otro PC. Probado simulando dos PC.
 - **Desinstalar la versión vieja** (17-11-2026): la de la Store no puede borrar nada fuera de su paquete (Windows le da su propia copia del registro y de AppData). Abriendo el desinstalador viejo con el Explorador se ejecuta de verdad, pero sin `/currentuser` deja los accesos directos y la entrada de «Aplicaciones instaladas». Además cierra también la de la Store, que se llama igual (`imputa.me.exe`).
 
 ### Fase 1 · La píldora entre pantallas (2.10)
