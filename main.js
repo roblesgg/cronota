@@ -2412,6 +2412,19 @@ function openWhatsNew() {
 
 // Se enseña una sola vez por versión y SOLO en el canal estable: en el de prueba salen
 // versiones a diario y sería un incordio verlo cada vez.
+// 2.14: las notas que tocan son las de la última versión que tenga notas escritas y no sea más
+// nueva que la instalada (antes solo valía la versión exacta, y en una 2.12.1 no salía nada).
+function compararVersiones(a, b) {
+  const pa = String(a).split(/[.-]/).map(Number), pb = String(b).split(/[.-]/).map(Number);
+  for (let k = 0; k < 3; k++) { const d = (pa[k] || 0) - (pb[k] || 0); if (d) return d; }
+  return 0;
+}
+function notasDeVersion(v) {
+  const claves = Object.keys(WHATS_NEW).filter(k => WHATS_NEW[k] && compararVersiones(k, v) <= 0)
+    .sort(compararVersiones);
+  const k = claves[claves.length - 1];
+  return k ? { version: k, ...WHATS_NEW[k] } : null;
+}
 function whatsNewSignature(notes) {
   if (!notes) return '';
   return (notes.steps || []).map(s => s.title).join('|');
@@ -2424,7 +2437,7 @@ function maybeShowWhatsNew() {
   // las estables las tienen. Antes se descartaba además a quien tuviera Betatester
   // activado, y eso también le ocultaba las novedades de las estables, que es justo lo
   // que había que enseñar.
-  const notes = WHATS_NEW[v];
+  const notes = notasDeVersion(v);
   const sig = whatsNewSignature(notes);
   const yaVisto = !!sig && sig === settings.lastSeenWhatsNew;
   settings.lastSeenVersion = v;      // se marca aunque no haya notas, para no reintentarlo
@@ -3009,8 +3022,9 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'get-theme':     event.reply('theme', themeVars()); break;
     case 'get-whats-new': {
       const v = app.getVersion();
-      const notes = WHATS_NEW[v];
-      event.reply('whats-new', { version: v, title: notes && notes.title, steps: (notes && notes.steps) || [] });
+      const notes = notasDeVersion(v);
+      // Lo visto del recorrido va también: la ventana solo ofrece «Enséñame dónde está» si queda algo.
+      event.reply('whats-new', { version: v, title: notes && notes.title, steps: (notes && notes.steps) || [], vistos: settings.tutorialSeenSteps || [] });
       break;
     }
     case 'show-whats-new': openWhatsNew(); break;   // botón "Ver novedades" de Ajustes

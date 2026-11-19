@@ -89,6 +89,7 @@ const ICONS = {
 
 let steps = [];
 let i = 0;
+let hayRecorrido = false;   // pasos del recorrido sin ver (TUTORIAL_STEPS en shared.js)
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -107,13 +108,13 @@ function render() {
   // El último paso no cierra y ya: encadena con el recorrido guiado, que es el que
   // señala de verdad dónde está cada cosa en vez de contarlo de palabra.
   const ultimo = i === steps.length - 1;
-  document.getElementById('skipBtn').style.display = ultimo ? '' : 'none';
-  document.getElementById('nextBtn').textContent = ultimo ? 'Enséñame dónde está' : 'Siguiente';
+  document.getElementById('skipBtn').style.display = ultimo && hayRecorrido ? '' : 'none';
+  document.getElementById('nextBtn').textContent = ultimo ? (hayRecorrido ? 'Enséñame dónde está' : 'Entendido') : 'Siguiente';
 }
 
 function go(d) {
   if (i + d < 0) return;
-  if (i + d >= steps.length) { empezarRecorrido(); return; }
+  if (i + d >= steps.length) { if (hayRecorrido) empezarRecorrido(); else closeWin(); return; }
   i += d;
   render();
 }
@@ -127,6 +128,8 @@ function closeWin() { ipcRenderer.send('action', { type:'close-whats-new' }); }
 ipcRenderer.on('whats-new', (_, data) => {
   steps = (data && data.steps) || [];
   i = 0;
+  const vistos = new Set((data && data.vistos) || []);
+  hayRecorrido = typeof TUTORIAL_STEPS !== 'undefined' && TUTORIAL_STEPS.some(s => !vistos.has(s.id));
   document.getElementById('badge').textContent = 'Novedades · ' + (data && data.version || '');
   if (data && data.title) document.getElementById('title').textContent = data.title;
   render();

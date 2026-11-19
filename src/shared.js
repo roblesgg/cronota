@@ -145,6 +145,8 @@ const TUTORIAL_STEPS = [
     title:'Guardar en una sección', text:'Archiva la tarea en una sección para tenerla ordenada, sin que ocupe sitio en el panel principal. Sigue estando en Tareas, y puedes retomarla cuando quieras.' },
   { id:'main-addtask',   window:'main', version:'1.2.19', selector:'.new-task-area .btn-primary',
     title:'Añadir tarea', text:'Crea una tarea nueva. En cuanto le des a play, empieza a contar el tiempo.' },
+  { id:'main-vertodas',  window:'main', version:'2.14.0', selector:'#verTodasBtn.visible',
+    title:'Todas tus tareas', text:'Aquí salen las que has usado hace poco. Las demás, también las guardadas en secciones, están en Tareas: este enlace te lleva y te dice cuántas hay.' },
 
   { id:'cal-grid',       window:'calendar', version:'1.2.19', selector:'#gridScroll',
     title:'La cuadrícula', text:'Arrastra sobre un hueco libre para crear una entrada a mano. Doble clic en un bloque abre sus detalles (su nombre y nota, solo de esa entrada) y, si está en marcha o ya ha terminado, puedes pausarla, reanudarla o reiniciarla con otra nota.' },
@@ -171,6 +173,8 @@ const TUTORIAL_STEPS = [
     title:'Mini calendario', text:'Para saltar rápido a otra semana o mes.' },
   { id:'cal-export',     window:'calendar', version:'1.2.19', selector:'.export-btn',
     title:'Exportar', text:'Descarga tus horas en un CSV listo para abrir en Excel, del rango que quieras.' },
+  { id:'cal-outlook',    window:'calendar', version:'2.12.0', selector:'.reunion-block',
+    title:'Tus reuniones de Outlook', text:'Salen como sugerencias de cristal. Un clic la añade a tus horas (lo que se solape se recorta), la × la descarta y el iconito de Outlook abre ese día en Outlook.' },
 
   { id:'grp-search',     window:'groups', version:'2.2.2', selector:'#searchInput',
     title:'Buscar entre lo guardado', text:'Escribe aquí para encontrar una tarea archivada, esté en la sección que esté.' },
@@ -209,8 +213,14 @@ const TUTORIAL_STEPS = [
     title:'Hora de salida', text:'Dile a qué hora terminas y te aviso si sigue habiendo una tarea en marcha. Puedes poner la misma hora toda la semana o una distinta cada día, cancelar los que no trabajes, y hasta que te pare la tarea sola.' },
   { id:'set-eyecare',    window:'settings', version:'2.4.0', selector:'.row:has(#eyeCareEnabled)',
     title:'Descansa la vista', text:'La regla 20-20-20: cada 20 minutos, 20 segundos mirando a lo lejos. Salen unos ojos con la cuenta atrás, y aquí eliges cada cuánto, cuánto duran, dónde aparecen y de qué tamaño.' },
+  { id:'set-temas',      window:'settings', version:'2.14.0', selector:'#themeGrid',
+    title:'Más temas', text:'Hay temas nuevos con brillo y clásicos, y más colores de acento (también uno azul Outlook).' },
+  { id:'set-outlook',    window:'settings', version:'2.12.0', selector:'.row:has(#outlookIcsUrl)',
+    title:'Conecta tu Outlook', text:'«Sacar el vínculo en Outlook» te lleva a publicar tu calendario. Pega aquí el vínculo ICS y tus reuniones saldrán en el Calendario. Solo se lee, nunca se cambia nada en Outlook.' },
+  { id:'set-llamadas',   window:'settings', version:'2.12.0', selector:'.row:has(#silenciarEnLlamada)',
+    title:'Sin avisos en llamadas', text:'Mientras Teams, Meet o Zoom usen el micrófono, Cronota no te saca ningún aviso.' },
   { id:'set-actions',    window:'settings', version:'2.2.2', selector:'.btn-grid',
-    title:'Copias de seguridad y más', text:'Exporta tus datos a un archivo y restáuralos cuando quieras. Aquí también repites este tutorial, revisas las novedades y buscas actualizaciones.' },
+    title:'Copias de seguridad y más', text:'Exporta tus datos a un archivo (con todos tus ajustes) y restáuralos cuando quieras. Aquí también repites este tutorial, revisas las novedades y abres Cronota en la Microsoft Store.' },
 ];
 
 function tutAllStepIds() { return TUTORIAL_STEPS.map(s => s.id); }
