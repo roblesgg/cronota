@@ -248,7 +248,7 @@ const NOVEDADES_2_9 = {
 const WHATS_NEW = {
   '2.16.0': { title: 'Novedades de Cronota 2.16', steps: [
     { icon:'spark', title:'Notas, a la vista',
-      text:'Una pestaña nueva, Notas: un mapa donde dejas tus notas sueltas y las colocas a tu gusto. Cada una con urgencia, recordatorio, sección y color, y casillas escribiendo [ ] al principio de una línea.' },
+      text:'Una pestaña nueva, Notas: tus notas sueltas en un mapa, o en cuadrícula, filas, por sección, urgencia o fecha. Clic derecho para todo: urgencia, recordatorio, vencimiento, sección, color… Y se escriben con Markdown.' },
     { icon:'folder', title:'Caja fuerte',
       text:'Dentro de Notas, notas que solo se ven con tu PIN o contraseña. Van cifradas y se cierran solas a los 5 minutos. Si olvidas el PIN no se pueden recuperar.' },
   ] },
@@ -2531,7 +2531,8 @@ function limpiarNota(n, base) {
   if (n.urgencia !== undefined) r.urgencia = URGENCIAS_NOTAS.includes(n.urgencia) ? n.urgencia : '';
   if (n.x !== undefined) r.x = numMapa(n.x);
   if (n.y !== undefined) r.y = numMapa(n.y);
-  if (n.seccion !== undefined) r.seccion = n.seccion && seccionesNotas().some(s => s.id === n.seccion) ? n.seccion : null;
+  // 2.16: las secciones de las notas son las de Tareas (pedido por Álvaro).
+  if (n.seccion !== undefined) r.seccion = n.seccion && (state.groups || []).some(g => g.id === n.seccion) ? n.seccion : null;
   if (n.color !== undefined) r.color = /^#[0-9a-fA-F]{6}$/.test(String(n.color || '')) ? n.color : null;
   if (n.recordatorio !== undefined) {
     const t = Number(n.recordatorio) || null;
@@ -2539,6 +2540,8 @@ function limpiarNota(n, base) {
     r.recordatorio = t;
   }
   if (n.hecha !== undefined) { r.hecha = !!n.hecha; r.hechaEn = r.hecha ? (r.hechaEn || Date.now()) : null; }
+  if (n.vence !== undefined) r.vence = Number(n.vence) || null;   // vencimiento: un día (su medianoche)
+  if (n.fijada !== undefined) r.fijada = !!n.fijada;              // fijada: siempre encima de las demás
   return r;
 }
 function crearNota(p) {
@@ -2572,6 +2575,14 @@ function moverNota(p) {
   if (i < 0) return;
   const [n] = lista.splice(i, 1);
   n.x = numMapa(p.x); n.y = numMapa(p.y);
+  lista.push(n);
+  saveData(); broadcastState();
+}
+function duplicarNota(id) {
+  const lista = notas();
+  const o = lista.find(x => x.id === id);
+  if (!o) return;
+  const n = { ...o, id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creada: Date.now(), x: (o.x || 0) + 28, y: (o.y || 0) + 28, avisada: false, hecha: false, hechaEn: null };
   lista.push(n);
   saveData(); broadcastState();
 }
@@ -2905,7 +2916,7 @@ const ACCIONES_DESHACIBLES = new Set([
   'move-task-to-group', 'set-group-palette', 'recolor-group-tasks', 'reorder-groups',
   'restore-and-start-task', 'edit-entry', 'delete-entry', 'add-calendar-entry', 'archive-purge',
   'descartar-reunion', 'restaurar-descartadas',
-  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
+  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'nota-duplicar', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
 ]);
 const pilaDeshacer = [], pilaRehacer = [];
 let ultimaFoto = { type: null, t: 0 };
@@ -3421,6 +3432,7 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'nota-editar': editarNota(payload); break;
     case 'nota-borrar': borrarNota(payload && payload.id); break;
     case 'nota-mover': moverNota(payload); break;
+    case 'nota-duplicar': duplicarNota(payload && payload.id); break;
     case 'notas-vaciar-hechas': vaciarHechas(); break;
     case 'nota-seccion-crear': crearSeccionNotas(payload); break;
     case 'nota-seccion-editar': editarSeccionNotas(payload); break;

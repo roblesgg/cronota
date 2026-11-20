@@ -50,10 +50,26 @@
   .mapa-vacio[hidden] { display:none; }
   .mapa-vacio { position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text3);font-size:13px;pointer-events:none;padding:20px; }
   .mapa-herr { position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:5; }
-  .mapa-herr button {
-    width:32px;height:32px;border-radius:12px;border:1px solid rgba(255,255,255,.14);color:var(--text);cursor:pointer;display:grid;place-items:center;
-    background:color-mix(in srgb, var(--bg2) 70%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  .mapa-herr button, .modos button {
+    width:32px;height:32px;border-radius:12px;border:1px solid rgba(255,255,255,.16);color:var(--text);cursor:pointer;display:grid;place-items:center;
+    background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--bg2) 45%, transparent);
+    -webkit-backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.7);backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.7);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 6px 14px -8px rgba(0,0,0,.55);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1), color .15s, background .2s;
   }
+  .mapa-herr button:hover, .modos button:hover { transform:scale(1.08); }
+  /* Maneras de ordenar (arriba a la izquierda del mapa). */
+  .modos { position:absolute;left:10px;top:10px;display:flex;gap:4px;z-index:5; }
+  .modos button { color:var(--text2); }
+  .modos button.activo { color:var(--accent);background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.3), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--accent2) 30%, transparent); }
+  /* Transición entre maneras: las notas se deslizan a su sitio nuevo, una tras otra. */
+  .lienzo.animando .nota { transition:left .65s cubic-bezier(.34,1.25,.64,1), top .65s cubic-bezier(.34,1.25,.64,1), width .5s cubic-bezier(.22,1,.36,1), height .5s cubic-bezier(.22,1,.36,1), opacity .3s, filter .3s; }
+  .lienzo.ordenado .nota { cursor:default; }
+  .lienzo.m-cuadricula .nota { height:168px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 78%, transparent);mask-image:linear-gradient(#000 78%, transparent); }
+  .lienzo.m-cuadricula .nota:hover { -webkit-mask-image:none;mask-image:none;overflow:auto; }
+  .grupo-cab { position:absolute;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);white-space:nowrap;animation:notaCae .5s cubic-bezier(.34,1.56,.64,1) both;pointer-events:none; }
+  .grupo-cab i { width:8px;height:8px;border-radius:50%;background:var(--c, var(--text3)); }
+  .grupo-cab span { color:var(--text3);font-weight:600; }
   .mapa-herr button:hover { background:var(--bg3); }
 
   /* Nota de cristal */
@@ -62,7 +78,7 @@
     background:
       radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.17), rgba(255,255,255,0) 60%),
       linear-gradient(160deg, color-mix(in srgb, var(--c) 34%, transparent), color-mix(in srgb, var(--c) 14%, transparent));
-    -webkit-backdrop-filter:blur(12px) saturate(1.6); backdrop-filter:blur(12px) saturate(1.6);
+    -webkit-backdrop-filter:url(#vidrio) blur(5px) saturate(1.7); backdrop-filter:url(#vidrio) blur(5px) saturate(1.7);
     border:1px solid color-mix(in srgb, var(--c) 40%, rgba(255,255,255,.18));
     box-shadow:inset 0 1px 1px rgba(255,255,255,.35), 0 10px 22px -12px rgba(0,0,0,.6);
     transition:box-shadow .25s, opacity .3s, filter .3s, scale .35s cubic-bezier(.34,1.56,.64,1);
@@ -81,7 +97,34 @@
   .nota.u-alta::after { content:'';position:absolute;inset:-3px;border-radius:21px;border:2px solid #f87171;opacity:.0;pointer-events:none;animation:halo 2.4s ease-in-out infinite; }
   @keyframes halo { 0%,100% { opacity:.15; } 50% { opacity:.7; } }
 
-  .nota-texto { font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word; }
+  .nota-texto { font-size:13.5px;line-height:1.4;word-break:break-word; }
+  /* 2.16: Markdown en las notas. */
+  .md-p { white-space:pre-wrap;min-height:1.2em; }
+  .md-h1 { font-size:17px;font-weight:800;margin:2px 0 4px;letter-spacing:-.01em; }
+  .md-h2 { font-size:15px;font-weight:750;margin:2px 0 3px; }
+  .md-h3 { font-size:13.5px;font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);margin:2px 0; }
+  .md-li { display:flex;gap:7px; }
+  .md-li::before { content:'';width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7;margin-top:.55em;flex-shrink:0; }
+  .md-ol { display:flex;gap:6px; }
+  .md-ol b { font-weight:700;opacity:.7;min-width:14px; }
+  .md-cita { border-left:3px solid color-mix(in srgb, var(--c) 70%, #fff);padding:1px 0 1px 9px;color:var(--text2);font-style:italic; }
+  .md-hr { height:1px;background:color-mix(in srgb, var(--text) 22%, transparent);margin:7px 0; }
+  .nota-texto code { font-family:ui-monospace, Consolas, monospace;font-size:12px;padding:1px 5px;border-radius:6px;background:rgba(0,0,0,.25); }
+  .nota-texto a { color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb, var(--c) 80%, #fff);text-underline-offset:2px;cursor:pointer; }
+  .nota-texto mark { background:color-mix(in srgb, #fbbf24 45%, transparent);color:inherit;border-radius:4px;padding:0 2px; }
+  /* Barra del editor (modo lápiz) y vista previa (modo ojo). */
+  .md-barra { display:flex;gap:3px;flex-wrap:wrap;align-items:center; }
+  .md-barra button {
+    min-width:30px;height:28px;padding:0 7px;border-radius:9px;border:1px solid rgba(255,255,255,.12);color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;
+    background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%), var(--bg2);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.25);display:grid;place-items:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .15s;
+  }
+  .md-barra button:hover { transform:translateY(-1px);background:var(--bg3); }
+  .md-barra .sep { width:1px;height:18px;background:var(--border);margin:0 3px; }
+  .md-barra .modo-md { margin-left:auto;display:flex;background:var(--bg2);border-radius:999px;padding:2px; }
+  .md-barra .modo-md button { border:none;background:transparent;box-shadow:none;border-radius:999px;color:var(--text2);height:24px; }
+  .md-barra .modo-md button.activo { background:color-mix(in srgb, var(--accent2) 30%, transparent);color:var(--text); }
+  .md-vista { min-height:110px;max-height:260px;overflow:auto;padding:12px 14px;border-radius:14px;background:var(--bg2);--c:var(--accent2); }
   /* Casillas propias: círculo de cristal; al marcarla se llena del acento y el check se dibuja. */
   .casilla { display:flex;gap:8px;align-items:flex-start;cursor:pointer;padding:2px 0;border-radius:8px; }
   .casilla .marca {
@@ -109,14 +152,31 @@
   .nota.cogida .nota-acc { opacity:0; }
   .nota-acc button {
     width:26px;height:26px;border-radius:9px;border:1px solid rgba(255,255,255,.18);color:var(--text);display:grid;place-items:center;cursor:pointer;
-    background:color-mix(in srgb, var(--bg2) 82%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-    box-shadow:0 6px 14px -8px rgba(0,0,0,.6);
+    background:
+      radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%),
+      color-mix(in srgb, var(--bg2) 45%, transparent);
+    -webkit-backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.8);backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.8);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.45), inset 0 -3px 6px -3px rgba(0,0,0,.35), 0 6px 14px -8px rgba(0,0,0,.6);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1), background .15s;
   }
+  .nota-acc button:hover { transform:scale(1.12); }
   .nota-acc button:hover { background:var(--bg3); }
   .nota-acc button.peligro:hover { background:var(--danger, #e5484d);color:#fff; }
 
+  /* Nota nueva escribiéndose en su sitio del mapa. */
+  .nota.borrador { cursor:text;animation:notaCae .45s cubic-bezier(.34,1.56,.64,1) both;--c:var(--accent2); }
+  .nota.borrador textarea {
+    width:100%;min-height:54px;resize:none;border:none !important;background:transparent !important;padding:0 !important;
+    color:var(--text);font:inherit;font-size:13.5px;line-height:1.4;outline:none;box-shadow:none !important;
+  }
+  .nota.borrador .pista { font-size:10.5px;color:var(--text2);margin-top:6px; }
+  .nota.fijada { box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent), 0 14px 28px -14px rgba(0,0,0,.65); }
+  .etq.vence-hoy { background:color-mix(in srgb, #fbbf24 34%, transparent); }
+  .etq.vence-pasado { background:color-mix(in srgb, #f87171 45%, transparent); }
+  .etq svg { flex-shrink:0; }
+
   /* Popups */
-  .pop-nota { width:390px; }
+  .pop-nota { width:390px;max-height:calc(100vh - 40px);overflow-y:auto; }
   .pop-nota textarea { min-height:110px;resize:vertical; }
   .fila { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
   .fila > label.et, .fila > span.et { font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);min-width:80px; }
@@ -130,9 +190,23 @@
   .colores button.sel { outline:2px solid var(--text);outline-offset:1px; }
   .colores button.ninguno { background:transparent;border:1.5px dashed var(--text3); }
   /* La fecha del recordatorio, con la letra de la app y el calendario en el tema de la app. */
-  #pnRecordatorio { font:inherit;font-size:13px;font-weight:600;color-scheme:dark;padding:10px 14px;background:var(--bg2) !important;border:1px solid transparent !important;border-radius:14px;color:var(--text); }
-  :root[data-scheme="light"] #pnRecordatorio { color-scheme:light; }
+  #pnRecordatorio, #pnVence { font:inherit;font-size:13px;font-weight:600;color-scheme:dark;padding:10px 14px;background:var(--bg2) !important;border:1px solid transparent !important;border-radius:14px;color:var(--text); }
+  :root[data-scheme="light"] #pnRecordatorio, :root[data-scheme="light"] #pnVence { color-scheme:light; }
   #pnRecordatorio::-webkit-calendar-picker-indicator { opacity:.6;cursor:pointer; }
+  /* Selector «avísame dentro de…» (2.16): número con − / + y la unidad. */
+  .dentro {
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px;border-radius:16px;
+    background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.14), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--bg2) 70%, transparent);
+    border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 1px rgba(255,255,255,.2);
+    -webkit-backdrop-filter:url(#vidrio) blur(4px);backdrop-filter:url(#vidrio) blur(4px);
+    animation:notaCae .4s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .dentro[hidden] { display:none; }
+  .paso { display:flex;align-items:center;gap:2px;background:var(--bg2);border-radius:999px;padding:3px; }
+  .paso button { width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--text);font:inherit;font-size:16px;cursor:pointer; }
+  .paso button:hover { background:var(--bg3); }
+  .paso input { width:44px !important;text-align:center;padding:4px !important;background:transparent !important;border:none !important;font-weight:750;font-size:14px !important; }
+  .dentro .que { font-size:11.5px;color:var(--text2);width:100%; }
   .rapidos { display:flex;gap:5px;flex-wrap:wrap; }
   .rapidos button { border:1px solid var(--border);background:transparent;color:var(--text2);font:inherit;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;cursor:pointer; }
   .rapidos button:hover { color:var(--text);background:var(--bg2); }
@@ -166,6 +240,17 @@
 <link rel="stylesheet" href="mac.css">
 </head>
 <body>
+<!-- Cristal líquido con deformación (2.16): filtros SVG que se usan como backdrop-filter. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="vidrio" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+    <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%275%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2714%27 y=%2714%27 width=%2772%27 height=%2772%27 rx=%2714%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
+    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.09" xChannelSelector="R" yChannelSelector="B"/>
+  </filter>
+  <filter id="vidrio-boton" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+    <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%278%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2724%27 y=%2724%27 width=%2752%27 height=%2752%27 rx=%2724%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
+    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.35" xChannelSelector="R" yChannelSelector="B"/>
+  </filter>
+</svg>
 <div class="app animate-in">
   <div class="win-drag" title="Arrastra para mover la ventana"></div>
   <div class="win-controls">
@@ -194,6 +279,15 @@
     <div class="mapa" id="mapa">
       <div class="lienzo" id="lienzo"></div>
       <div class="mapa-vacio" id="mapaVacio" hidden>Tu mapa está vacío.<br>Apunta algo arriba y colócalo donde quieras.</div>
+      <div class="modos" id="modos">
+        <button type="button" data-m="libre" title="Sueltas: cada una donde la dejes"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="6" rx="1.5"/><rect x="13" y="9" width="8" height="6" rx="1.5"/><rect x="5" y="14" width="8" height="6" rx="1.5"/></svg></button>
+        <button type="button" data-m="cuadricula" title="Cuadrícula: todas del mismo tamaño"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></button>
+        <button type="button" data-m="mosaico" title="Mosaico: columnas que se rellenan"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="11" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="6" rx="1.5"/><rect x="3" y="17" width="7.5" height="4" rx="1.5"/><rect x="13.5" y="12" width="7.5" height="9" rx="1.5"/></svg></button>
+        <button type="button" data-m="filas" title="Filas: una debajo de otra, a lo ancho"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4.5" rx="1.5"/><rect x="3" y="10" width="18" height="4.5" rx="1.5"/><rect x="3" y="16" width="18" height="4.5" rx="1.5"/></svg></button>
+        <button type="button" data-m="seccion" title="Por sección"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+        <button type="button" data-m="urgencia" title="Por urgencia"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5h.01"/></svg></button>
+        <button type="button" data-m="fecha" title="Por fecha: vencidas, hoy, esta semana…"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button>
+      </div>
       <div class="mapa-herr">
         <button type="button" title="Alejar" onclick="zoomEn(-0.15)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
         <button type="button" title="Acercar" onclick="zoomEn(0.15)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -210,7 +304,26 @@
 <div class="popup-backdrop" id="popNotaFondo" style="display:none" onclick="cerrarPopNota()"></div>
 <div class="entry-popup pop-nota" id="popNota" style="display:none">
   <div class="entry-popup-title">Nota</div>
-  <textarea id="pnTexto" maxlength="4000" placeholder="Escribe la nota… (una línea que empiece por [ ] es una casilla)"></textarea>
+  <div class="md-barra" id="mdBarra">
+    <button type="button" data-md="b" title="Negrita (Ctrl+B)"><b>B</b></button>
+    <button type="button" data-md="i" title="Cursiva (Ctrl+I)"><i>I</i></button>
+    <button type="button" data-md="s" title="Tachado"><s>S</s></button>
+    <button type="button" data-md="mark" title="Resaltar"><mark style="background:#fbbf2466;color:inherit;border-radius:3px;padding:0 2px">A</mark></button>
+    <span class="sep"></span>
+    <button type="button" data-md="h1" title="Título">H1</button>
+    <button type="button" data-md="h2" title="Subtítulo">H2</button>
+    <span class="sep"></span>
+    <button type="button" data-md="ul" title="Lista">•</button>
+    <button type="button" data-md="ol" title="Lista numerada">1.</button>
+    <button type="button" data-md="check" title="Casilla"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg></button>
+    <button type="button" data-md="quote" title="Cita"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h6v6H6l-2 4M14 7h6v6h-4l-2 4"/></svg></button>
+    <button type="button" data-md="code" title="Código">&lt;/&gt;</button>
+    <button type="button" data-md="link" title="Enlace"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>
+    <button type="button" data-md="hr" title="Separador">—</button>
+    <div class="modo-md"><button type="button" id="mdLapiz" class="activo" title="Escribir"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button type="button" id="mdOjo" title="Ver cómo queda"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+  </div>
+  <textarea id="pnTexto" maxlength="4000" placeholder="Escribe la nota… Admite Markdown: **negrita**, *cursiva*, # títulos, - listas, [ ] casillas, `código`…"></textarea>
+  <div class="md-vista nota-texto" id="pnVista" hidden></div>
   <div class="fila"><span class="et">Urgencia</span>
     <div class="seg" id="pnUrgencia">
       <button type="button" data-u="">Ninguna</button>
@@ -221,11 +334,16 @@
   </div>
   <div class="fila"><label class="et" for="pnRecordatorio">Recordar</label><input type="datetime-local" id="pnRecordatorio" style="flex:1"></div>
   <div class="rapidos" id="pnRapidos">
-    <button type="button" data-r="1h">En 1 hora</button>
-    <button type="button" data-r="tarde">Esta tarde 17:00</button>
-    <button type="button" data-r="manana">Mañana 9:00</button>
-    <button type="button" data-r="quitar">Sin recordatorio</button>
+    <button type="button" data-r="1h">1 hora</button>
+    <button type="button" data-r="2h">2 horas</button>
+    <button type="button" data-r="1d">1 día</button>
+    <button type="button" data-r="2d">2 días</button>
+    <button type="button" data-r="1s">1 semana</button>
+    <button type="button" data-r="otro">Otro…</button>
+    <button type="button" data-r="quitar">Quitar</button>
   </div>
+  <div class="dentro" id="pnDentro" hidden></div>
+  <div class="fila"><label class="et" for="pnVence">Vence</label><input type="date" id="pnVence" style="flex:1"></div>
   <div class="fila"><label class="et" for="pnSeccion">Sección</label><select id="pnSeccion" style="flex:1"></select></div>
   <div class="fila"><span class="et">Color</span><div class="colores" id="pnColores"></div></div>
   <div class="entry-popup-actions">
@@ -236,11 +354,18 @@
   </div>
 </div>
 
+<!-- «Avísame dentro de…» -->
+<div class="popup-backdrop" id="popDentroFondo" style="display:none" onclick="cerrarDentro()"></div>
+<div class="entry-popup" id="popDentro" style="display:none;width:400px">
+  <div class="entry-popup-title">Avísame dentro de…</div>
+  <div class="dentro" id="popDentroCuerpo"></div>
+</div>
+
 <!-- Sección de notas -->
 <div class="popup-backdrop" id="popSecFondo" style="display:none" onclick="cerrarPopSec()"></div>
 <div class="entry-popup" id="popSec" style="display:none;width:320px">
   <div class="entry-popup-title" id="popSecTitulo">Nueva sección</div>
-  <input type="text" id="psNombre" maxlength="40" placeholder="Nombre (p. ej. un cliente o un tema)">
+  <input type="text" id="psNombre" maxlength="40" placeholder="Nombre de la sección (la verás también en Tareas)">
   <div class="colores" id="psColores"></div>
   <div class="entry-popup-actions">
     <button class="btn-danger" id="psBorrar" onclick="borrarSeccion()">Borrar</button>
@@ -265,6 +390,7 @@
 <script src="shared.js"></script>
 <script src="movimiento.js"></script>
 <script src="glass.js"></script>
+<script src="radial.js"></script>
 <script>
 const { ipcRenderer } = require('electron');
 let currentState = null;
@@ -307,8 +433,10 @@ function encuadrar(animado) {
   const xs = ns.map(n => n.x), ys = ns.map(n => n.y);
   const minX = Math.min(...xs), minY = Math.min(...ys), maxX = Math.max(...xs) + ANCHO_NOTA, maxY = Math.max(...ys) + 140;
   const r = mapa.getBoundingClientRect();
-  const z = Math.max(0.4, Math.min(1, Math.min((r.width - 40) / (maxX - minX), (r.height - 40) / (maxY - minY))));
-  vista = { z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - (maxY - minY) * z) / 2 - minY * z };
+  // Arriba se deja sitio para los botones de ordenar.
+  const arriba = 58;
+  const z = Math.max(0.4, Math.min(1, Math.min((r.width - 40) / (maxX - minX), (r.height - arriba - 24) / (maxY - minY))));
+  vista = { z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: arriba + (r.height - arriba - (maxY - minY) * z) / 2 - minY * z };
   lienzo.style.transition = animado ? 'transform .45s cubic-bezier(.22,1,.36,1)' : '';
   aplicarVista();
 }
@@ -330,14 +458,59 @@ mapa.addEventListener('wheel', (e) => {
   if (e.ctrlKey) { zoomEn(-e.deltaY * 0.0015, e.clientX, e.clientY); return; }
   vista.x -= e.shiftKey ? e.deltaY : e.deltaX; vista.y -= e.shiftKey ? 0 : e.deltaY; aplicarVista();
 }, { passive: false });
-// Doble clic en el fondo: nota nueva ahí mismo.
+// Doble clic en el fondo: nota nueva escribiéndose ahí mismo.
 mapa.addEventListener('dblclick', (e) => {
   if (e.target.closest('.nota, .mapa-herr')) return;
   const p = aMapa(e.clientX, e.clientY);
-  const i = document.getElementById('apuntarInput');
-  pendienteEn = { x: p.x - 20, y: p.y - 16 };
-  i.focus(); i.placeholder = 'Escribe la nota y Enter: irá donde has hecho doble clic';
+  nuevaNotaEn(p.x - 24, p.y - 18);
 });
+// Clic derecho: el menú redondo (en el fondo, el del mapa; en una nota, el de la nota).
+mapa.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const el = e.target.closest('.nota');
+  if (el && el.classList.contains('borrador')) return;
+  if (el) { const n = (currentState.notas || []).find(x => x.id === el.dataset.id); if (n) menuNota(e, n); return; }
+  menuMapa(e);
+});
+
+// Borrador: una tarjeta con el cursor dentro, en su sitio. Enter guarda, Mayús+Enter salta de
+// línea, Esc (o quedarse vacía) la descarta.
+let borrador = null;
+function nuevaNotaEn(x, y, inicial, extra) {
+  cerrarBorrador(true);
+  const el = document.createElement('div');
+  el.className = 'nota borrador';
+  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.zIndex = '9998';
+  el.innerHTML = '<textarea maxlength="4000" placeholder="Escribe la nota…"></textarea><div class="pista">Enter guarda · Mayús+Enter, otra línea · Esc, nada</div>';
+  lienzo.appendChild(el);
+  const ta = el.querySelector('textarea');
+  ta.value = inicial || '';
+  const crecer = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+  ta.addEventListener('input', crecer);
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); cerrarBorrador(true); }
+    else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // En una lista de casillas, Enter abre otra casilla; Enter en una vacía, guarda.
+      const lineas = ta.value.split('\n'), ult = lineas[lineas.length - 1];
+      if (/^\[ \]\s*\S/.test(ult)) { ta.value += '\n[ ] '; crecer(); return; }
+      if (/^\[ \]\s*$/.test(ult) && lineas.length > 1) { lineas.pop(); ta.value = lineas.join('\n'); }
+      cerrarBorrador(false);
+    }
+  });
+  ta.addEventListener('blur', () => setTimeout(() => { if (borrador && borrador.el === el) cerrarBorrador(false); }, 120));
+  el.addEventListener('pointerdown', (e) => e.stopPropagation());
+  el.addEventListener('dblclick', (e) => e.stopPropagation());
+  borrador = { el, x, y, extra: extra || {} };
+  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); crecer(); }, 0);
+}
+function cerrarBorrador(descartar) {
+  if (!borrador) return;
+  const b = borrador; borrador = null;
+  const texto = b.el.querySelector('textarea').value.replace(/\n\[ \]\s*$/, '').trim();
+  b.el.remove();
+  if (!descartar && texto && texto !== '[ ]') enviar('nota-crear', { texto, seccion: filtroSeccion || null, x: b.x, y: b.y, ...b.extra });
+}
 function aMapa(cx, cy) { const r = mapa.getBoundingClientRect(); return { x: (cx - r.left - vista.x) / vista.z, y: (cy - r.top - vista.y) / vista.z }; }
 
 ipcRenderer.on('state', (_, s) => {
@@ -368,20 +541,28 @@ document.getElementById('apuntarInput').addEventListener('keydown', (e) => {
 });
 
 // ── Pintar ────────────────────────────────────────────────────────────────────
-function seccionDe(id) { return ((currentState && currentState.seccionesNotas) || []).find(s => s.id === id) || null; }
+// 2.16: las secciones son las de Tareas; su color, el primero de su paleta.
+function seccionesTareas() {
+  const pal = (currentState && currentState.palettes) || {};
+  return ((currentState && currentState.groups) || []).map((g, i) => ({ id: g.id, name: g.name, color: (pal[g.palette] && pal[g.palette].colors[0]) || COLORES_NOTA[(i * 5) % COLORES_NOTA.length] }));
+}
+function seccionDe(id) { return seccionesTareas().find(s => s.id === id) || null; }
 // Las que aún no tienen sitio (vienen de antes del mapa) se colocan en rejilla.
 function conSitio(lista) {
   let k = 0;
   return lista.map(n => (Number.isFinite(n.x) && Number.isFinite(n.y)) ? n : { ...n, x: (k % 3) * 260, y: Math.floor(k++ / 3) * 170 });
 }
-function notasVisibles() { return conSitio((currentState && currentState.notas) || []).filter(n => verHechas || !n.hecha); }
+function notasVisibles() {
+  const l = conSitio((currentState && currentState.notas) || []).filter(n => verHechas || !n.hecha);
+  return l.filter(n => !n.fijada).concat(l.filter(n => n.fijada));   // las fijadas, siempre encima
+}
 function encaja(n) { return (!filtroSeccion || n.seccion === filtroSeccion) && (!busqueda || n.texto.toLowerCase().includes(busqueda)); }
 // Cada segundo llega el estado (por los tiempos de las tareas): solo se repinta si cambia algo de
 // las notas, y nunca con una nota cogida (se soltaría de la mano).
 let arrastrandoNota = false, firmaPintada = '';
 function pintar(forzar) {
   if (!currentState || arrastrandoNota) return;
-  const firma = JSON.stringify([currentState.notas, currentState.seccionesNotas, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
+  const firma = JSON.stringify([currentState.notas, currentState.groups, currentState.palettes, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
   if (!forzar && firma === firmaPintada) return;
   firmaPintada = firma;
   pintarFiltros();
@@ -397,6 +578,7 @@ function pintar(forzar) {
   });
   ya.forEach((el, id) => { if (!quedan.has(id)) el.remove(); });
   document.getElementById('mapaVacio').hidden = vistas.length > 0;
+  colocar(false);
 }
 
 function pintarFiltros() {
@@ -413,7 +595,7 @@ function pintarFiltros() {
     f.appendChild(b);
   };
   chip('', 'Todas');
-  ((currentState && currentState.seccionesNotas) || []).forEach(s => chip(s.id, s.name, s.color));
+  seccionesTareas().forEach(s => chip(s.id, s.name, s.color));
   const mas = document.createElement('button'); mas.className = 'chip-sec mas'; mas.textContent = '+ Sección'; mas.onclick = () => abrirPopSec(null);
   f.appendChild(mas);
   const nHechas = ((currentState && currentState.notas) || []).filter(n => n.hecha).length;
@@ -450,7 +632,7 @@ const ICO = {
 
 function tarjeta(n) {
   const el = document.createElement('div');
-  el.className = 'nota' + (n.hecha ? ' hecha' : '') + (n.urgencia === 'alta' && !n.hecha ? ' u-alta' : '') + (encaja(n) ? '' : ' apagada');
+  el.className = 'nota' + (n.hecha ? ' hecha' : '') + (n.fijada ? ' fijada' : '') + (n.urgencia === 'alta' && !n.hecha ? ' u-alta' : '') + (encaja(n) ? '' : ' apagada');
   el.dataset.id = n.id;
   el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
   const sec = seccionDe(n.seccion);
@@ -458,29 +640,7 @@ function tarjeta(n) {
   if (color) el.style.setProperty('--c', color);
   // Texto, con las líneas «[ ]» / «[x]» como casillas (propias, no las del sistema).
   const txt = document.createElement('div'); txt.className = 'nota-texto';
-  n.texto.split('\n').forEach((linea, i, todas) => {
-    const m = linea.match(/^\s*(?:-\s*)?\[( |x|X)\]\s?(.*)$/);
-    if (m) {
-      const fila = document.createElement('div');
-      const hecho = m[1] !== ' ';
-      fila.className = 'casilla' + (hecho ? ' marcada' : '');
-      fila.setAttribute('role', 'checkbox'); fila.setAttribute('aria-checked', String(hecho)); fila.tabIndex = 0;
-      fila.innerHTML = `<span class="marca">${ICO.check}</span><span class="t">${esc(m[2])}</span>`;
-      const alternar = (e) => {
-        e.stopPropagation();
-        fila.classList.toggle('marcada');
-        const lineas = n.texto.split('\n');
-        lineas[i] = linea.replace(/\[( |x|X)\]/, fila.classList.contains('marcada') ? '[x]' : '[ ]');
-        setTimeout(() => enviar('nota-editar', { id: n.id, texto: lineas.join('\n') }), 320);   // que se vea el check dibujarse
-      };
-      fila.addEventListener('pointerdown', (e) => e.stopPropagation());
-      fila.onclick = alternar;
-      fila.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); alternar(e); } };
-      txt.appendChild(fila);
-    } else {
-      txt.appendChild(document.createTextNode(linea + (i < todas.length - 1 ? '\n' : '')));
-    }
-  });
+  pintarMarkdown(txt, n.texto, n.id);
   el.appendChild(txt);
   const meta = document.createElement('div'); meta.className = 'nota-meta';
   if (n.urgencia && URGENCIAS[n.urgencia]) meta.insertAdjacentHTML('beforeend', `<span class="etq u-${n.urgencia}">${URGENCIAS[n.urgencia]}</span>`);
@@ -489,7 +649,15 @@ function tarjeta(n) {
     const clase = !n.hecha && n.recordatorio <= Date.now() ? ' rec-vencido' : (d.toDateString() === new Date().toDateString() ? ' rec-hoy' : '');
     meta.insertAdjacentHTML('beforeend', `<span class="etq${clase}">${ICO.reloj}${textoRecordatorio(n.recordatorio)}</span>`);
   }
+  if (n.vence) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dias = Math.round((new Date(n.vence).setHours(0, 0, 0, 0) - hoy) / 86400000);
+    const txtV = dias === 0 ? 'Vence hoy' : dias === 1 ? 'Vence mañana' : dias < 0 ? (dias === -1 ? 'Venció ayer' : 'Venció ' + new Date(n.vence).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })) : 'Vence ' + new Date(n.vence).toLocaleDateString('es-ES', { weekday: dias < 7 ? 'long' : undefined, day: 'numeric', month: 'short' });
+    const cls = n.hecha ? '' : dias < 0 ? ' vence-pasado' : dias === 0 ? ' vence-hoy' : '';
+    meta.insertAdjacentHTML('beforeend', `<span class="etq${cls}">${IC.calendario.replace('viewBox', 'width="10" height="10" viewBox')}${txtV}</span>`);
+  }
   if (sec) meta.insertAdjacentHTML('beforeend', `<span class="etq">${esc(sec.name)}</span>`);
+  if (n.fijada) meta.insertAdjacentHTML('beforeend', `<span class="etq" title="Fijada encima">${IC.chincheta.replace('viewBox', 'width="10" height="10" viewBox')}</span>`);
   if (meta.children.length) el.appendChild(meta);
   const acc = document.createElement('div'); acc.className = 'nota-acc';
   acc.innerHTML = `<button title="${n.hecha ? 'Volver a pendiente' : 'Hecha'}" data-a="hecha">${n.hecha ? ICO.deshecha : ICO.hecha}</button><button title="Propiedades: urgencia, recordatorio, sección, color" data-a="editar">${ICO.editar}</button><button class="peligro" title="Borrar (Ctrl+Z lo deshace)" data-a="borrar">${ICO.borrar}</button>`;
@@ -507,6 +675,7 @@ function tarjeta(n) {
   el.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    if (modo !== 'libre') return;   // ordenadas: se colocan solas
     const ini = { cx: e.clientX, cy: e.clientY, x: n.x, y: n.y };
     let movida = false;
     el.setPointerCapture(e.pointerId);
@@ -527,24 +696,337 @@ function tarjeta(n) {
   });
   return el;
 }
-function irse(el, luego, animar) { if (!animar) { luego(); return; } el.classList.add('se-va'); setTimeout(luego, 240); }
+function irse(el, luego, animar) { if (!animar || !el) { luego(); return; } el.classList.add('se-va'); setTimeout(luego, 240); }
+
+// ── Maneras de ordenar ────────────────────────────────────────────────────────
+// Cada uno la ve como quiera en ese momento (se recuerda en este equipo). Las posiciones de
+// «sueltas» se guardan; las demás se calculan, y al cambiar las notas se deslizan a su sitio.
+const MODOS = ['libre', 'cuadricula', 'mosaico', 'filas', 'seccion', 'urgencia', 'fecha'];
+let modo = (() => { try { const m = localStorage.getItem('notas.modo'); return MODOS.includes(m) ? m : 'libre'; } catch { return 'libre'; } })();
+function pintarModos() { document.querySelectorAll('#modos button').forEach(b => b.classList.toggle('activo', b.dataset.m === modo)); }
+document.querySelectorAll('#modos button').forEach(b => b.onclick = () => cambiarModo(b.dataset.m));
+pintarModos();
+function cambiarModo(m) {
+  if (!MODOS.includes(m) || m === modo) return;
+  modo = m;
+  try { localStorage.setItem('notas.modo', m); } catch {}
+  pintarModos();
+  colocar(true);
+  if (m === 'libre') encuadrar(true);
+  else { vista = { x: 24, y: 92, z: Math.min(vista.z, 1) }; lienzo.style.transition = 'transform .55s cubic-bezier(.22,1,.36,1)'; aplicarVista(); }
+}
+const ANCHO_G = 16;
+function grupos(lista) {
+  if (modo === 'seccion') {
+    const g = seccionesTareas().map(sc => ({ clave: sc.id, nombre: sc.name, color: sc.color, notas: [] }));
+    g.push({ clave: '', nombre: 'Sin sección', color: null, notas: [] });
+    lista.forEach(n => (g.find(x => x.clave === (n.seccion || '')) || g[g.length - 1]).notas.push(n));
+    return g.filter(x => x.notas.length);
+  }
+  if (modo === 'urgencia') {
+    const g = [['alta', 'Urgente', '#f87171'], ['media', 'Media', '#fbbf24'], ['baja', 'Baja', '#60a5fa'], ['', 'Sin urgencia', null]].map(([c, nombre, color]) => ({ clave: c, nombre, color, notas: [] }));
+    lista.forEach(n => g.find(x => x.clave === (n.urgencia || '')).notas.push(n));
+    return g.filter(x => x.notas.length);
+  }
+  // Por fecha: la más próxima entre vencimiento y recordatorio.
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const g = [['vencidas', 'Vencidas', '#f87171'], ['hoy', 'Hoy', '#fbbf24'], ['manana', 'Mañana', '#fb923c'], ['semana', 'Esta semana', '#34d399'], ['luego', 'Más adelante', '#60a5fa'], ['sin', 'Sin fecha', null]].map(([c, nombre, color]) => ({ clave: c, nombre, color, notas: [] }));
+  lista.forEach(n => {
+    const fechas = [n.vence, n.recordatorio].filter(Boolean);
+    let k = 'sin';
+    if (fechas.length) {
+      const t = Math.min(...fechas), dd = Math.floor((new Date(t).setHours(0, 0, 0, 0) - hoy) / 86400000);
+      k = (!n.hecha && t < Date.now() && dd < 0) || (n.vence && dd < 0) ? 'vencidas' : dd <= 0 ? 'hoy' : dd === 1 ? 'manana' : dd < 7 ? 'semana' : 'luego';
+    }
+    g.find(x => x.clave === k).notas.push(n);
+  });
+  g.forEach(x => x.notas.sort((a, b) => Math.min(...[a.vence, a.recordatorio].filter(Boolean), Infinity) - Math.min(...[b.vence, b.recordatorio].filter(Boolean), Infinity)));
+  return g.filter(x => x.notas.length);
+}
+function colocar(animar) {
+  if (!currentState) return;
+  lienzo.querySelectorAll('.grupo-cab').forEach(x => x.remove());
+  const ordenado = modo !== 'libre';
+  ['m-cuadricula', 'm-mosaico', 'm-filas'].forEach(c => lienzo.classList.toggle(c, c === 'm-' + modo));
+  lienzo.classList.toggle('ordenado', ordenado);
+  if (animar) { lienzo.classList.add('animando'); clearTimeout(colocar.t); colocar.t = setTimeout(() => lienzo.classList.remove('animando'), 1100); }
+  const lista = notasVisibles();
+  const el = (n) => lienzo.querySelector(`.nota[data-id="${n.id}"]:not(.borrador)`);
+  const poner = (n, x, y, w, i) => {
+    const e = el(n); if (!e) return;
+    e.style.transitionDelay = animar ? Math.min(i * 22, 300) + 'ms' : '0ms';
+    e.style.width = (w || ANCHO_NOTA) + 'px';
+    e.style.left = x + 'px'; e.style.top = y + 'px';
+  };
+  if (!ordenado) { lista.forEach((n, i) => poner(n, n.x, n.y, ANCHO_NOTA, i)); return; }
+  // Orden de las ordenadas: fijadas primero, luego las más urgentes, luego las más nuevas.
+  const peso = { alta: 0, media: 1, baja: 2, '': 3 };
+  const orden = lista.slice().sort((a, b) => (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || peso[a.urgencia || ''] - peso[b.urgencia || ''] || (b.creada || 0) - (a.creada || 0));
+  const anchoVisible = Math.max(ANCHO_NOTA + 2 * ANCHO_G, (mapa.clientWidth - 30) / vista.z);
+  const cols = Math.max(1, Math.floor((anchoVisible + ANCHO_G) / (ANCHO_NOTA + ANCHO_G)));
+  const alto = (n, w) => { const e = el(n); if (!e) return 120; const antes = e.style.width; e.style.width = w + 'px'; const h = e.offsetHeight; e.style.width = antes; return h; };
+  if (modo === 'cuadricula') {
+    orden.forEach((n, i) => poner(n, (i % cols) * (ANCHO_NOTA + ANCHO_G), Math.floor(i / cols) * (168 + ANCHO_G), ANCHO_NOTA, i));
+  } else if (modo === 'mosaico') {
+    const y = new Array(cols).fill(0);
+    orden.forEach((n, i) => { const c = y.indexOf(Math.min(...y)); poner(n, c * (ANCHO_NOTA + ANCHO_G), y[c], ANCHO_NOTA, i); y[c] += alto(n, ANCHO_NOTA) + ANCHO_G; });
+  } else if (modo === 'filas') {
+    const w = Math.min(760, Math.max(ANCHO_NOTA, anchoVisible - 2 * ANCHO_G));
+    let y = 0;
+    orden.forEach((n, i) => { poner(n, 0, y, w, i); y += alto(n, w) + 10; });
+  } else {
+    grupos(orden).forEach((g, gi) => {
+      const x = gi * (ANCHO_NOTA + ANCHO_G * 2);
+      const cab = document.createElement('div');
+      cab.className = 'grupo-cab';
+      if (g.color) cab.style.setProperty('--c', g.color);
+      cab.innerHTML = `<i></i>${esc(g.nombre)} <span>${g.notas.length}</span>`;
+      cab.style.left = x + 'px'; cab.style.top = '-30px'; cab.style.animationDelay = (animar ? gi * 60 : 0) + 'ms';
+      lienzo.appendChild(cab);
+      let y = 0;
+      g.notas.forEach((n, i) => { poner(n, x, y, ANCHO_NOTA, gi * 3 + i); y += alto(n, ANCHO_NOTA) + ANCHO_G; });
+    });
+  }
+}
+// Si cambia el ancho del panel, las ordenadas se recolocan.
+new ResizeObserver(() => { if (modo !== 'libre') colocar(false); }).observe(mapa);
+
+// ── Menú redondo (clic derecho) ──────────────────────────────────────────────
+const sv = (d, extra) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${d}</svg>`;
+const IC = {
+  plus: sv('<path d="M12 5v14M5 12h14"/>'),
+  lista: sv('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>'),
+  ajustes: sv('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'),
+  hecha: sv('<path d="M5 12l5 5L20 7"/>'),
+  deshacer: sv('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>'),
+  urgencia: sv('<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5h.01"/>'),
+  reloj: sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  calendario: sv('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  seccion: sv('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  color: sv('<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.7-.9 1.4-1.9-.3-1.1.4-2.1 1.6-2.1h1.8a3.7 3.7 0 0 0 3.7-3.7C20.5 7.6 16.7 3.5 12 3.5z"/><circle cx="7.6" cy="11.5" r="1.2" fill="currentColor"/><circle cx="10.5" cy="7.6" r="1.2" fill="currentColor"/><circle cx="15.2" cy="8.4" r="1.2" fill="currentColor"/>'),
+  mas: sv('<circle cx="5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="19" cy="12" r="1.4" fill="currentColor"/>'),
+  borrar: sv('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>'),
+  chincheta: sv('<path d="M9 3h6l-1 6 3 3H7l3-3z"/><path d="M12 12v9"/>'),
+  dup: sv('<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>'),
+  copiar: sv('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),
+  pegar: sv('<path d="M9 4h6v3H9z"/><path d="M15 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>'),
+  ver: sv('<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>'),
+  menos: sv('<path d="M6 12h12"/>'),
+  punto: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3.4"/></svg>',
+};
+const dia = (desplaza, hora) => { const d = new Date(); d.setDate(d.getDate() + desplaza); d.setHours(hora == null ? 0 : hora, 0, 0, 0); return d.getTime(); };
+const proximo = (diaSemana, hora) => { const d = new Date(); const falta = ((diaSemana - d.getDay()) + 7) % 7 || 7; return dia(falta, hora); };
+const finDeMes = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getTime(); };
+
+function menuMapa(e) {
+  const p = aMapa(e.clientX, e.clientY);
+  let portapapeles = '';
+  try { portapapeles = require('electron').clipboard.readText().trim(); } catch {}
+  const items = [
+    { label: 'Nota aquí', hint: 'Escríbela en este sitio', icon: IC.plus, tone: 'accent', run: () => nuevaNotaEn(p.x - 24, p.y - 18) },
+    { label: 'Lista aquí', hint: 'Con casillas para ir marcando', icon: IC.lista, tone: 'success', run: () => nuevaNotaEn(p.x - 24, p.y - 18, '[ ] ') },
+    { label: 'Urgente aquí', hint: 'Nota con urgencia alta', icon: IC.urgencia, tone: 'danger', run: () => nuevaNotaEn(p.x - 24, p.y - 18, '', { urgencia: 'alta' }) },
+    portapapeles ? { label: 'Pegar como nota', hint: portapapeles.slice(0, 40), icon: IC.pegar, run: () => enviar('nota-crear', { texto: portapapeles.slice(0, 4000), seccion: filtroSeccion || null, x: p.x - 24, y: p.y - 18 }) } : null,
+    { label: 'Nueva sección', hint: 'Para agrupar notas', icon: IC.seccion, run: () => abrirPopSec(null) },
+    { label: 'Ordenar', hint: 'Sueltas, cuadrícula, por fecha…', icon: IC.ver,
+      sub: () => ({ kind: 'list', title: 'Ordenar las notas', items: [
+        ['libre', 'Sueltas'], ['cuadricula', 'Cuadrícula'], ['mosaico', 'Mosaico'], ['filas', 'Filas'], ['seccion', 'Por sección'], ['urgencia', 'Por urgencia'], ['fecha', 'Por fecha'],
+      ].map(([m, nombre]) => ({ label: nombre, icon: IC.punto, selected: modo === m, run: () => cambiarModo(m) })) }) },
+    { label: 'Ver todas', hint: 'Encuadrar el mapa', icon: IC.ver, run: () => encuadrar(true) },
+  ].filter(Boolean);
+  RadialMenu.open({ x: e.clientX, y: e.clientY, title: 'Mapa', subtitle: 'Notas', items });
+}
+
+function menuNota(e, n) {
+  const sec = seccionDe(n.seccion);
+  const color = n.color || (sec && sec.color) || '#8b93a7';
+  const editar = (patch) => enviar('nota-editar', { id: n.id, ...patch });
+  const items = [
+    { label: 'Propiedades', hint: 'Texto, urgencia, fechas…', icon: IC.ajustes, run: () => abrirPopNota(n.id) },
+    n.hecha
+      ? { label: 'Pendiente', hint: 'Volver a abrirla', icon: IC.deshacer, run: () => editar({ hecha: false }) }
+      : { label: 'Hecha', hint: 'Tacharla', icon: IC.hecha, tone: 'success', run: () => { const el = lienzo.querySelector(`.nota[data-id="${n.id}"]`); irse(el, () => editar({ hecha: true }), !!el && !verHechas); } },
+    { label: 'Urgencia', hint: n.urgencia ? URGENCIAS[n.urgencia] : 'Ninguna', icon: IC.urgencia, tone: n.urgencia === 'alta' ? 'danger' : undefined,
+      sub: () => ({ title: 'Urgencia', subtitle: 'De esta nota', items: [
+        { label: 'Ninguna', icon: IC.menos, selected: !n.urgencia, run: () => editar({ urgencia: '' }) },
+        { label: 'Baja', icon: IC.punto, color: '#60a5fa', selected: n.urgencia === 'baja', run: () => editar({ urgencia: 'baja' }) },
+        { label: 'Media', icon: IC.punto, color: '#fbbf24', selected: n.urgencia === 'media', run: () => editar({ urgencia: 'media' }) },
+        { label: 'Alta', icon: IC.punto, color: '#f87171', tone: 'danger', selected: n.urgencia === 'alta', run: () => editar({ urgencia: 'alta' }) },
+      ] }) },
+    { label: 'Recordar', hint: n.recordatorio ? textoRecordatorio(n.recordatorio) : 'Aviso con fecha y hora', icon: IC.reloj,
+      sub: () => ({ kind: 'list', title: 'Recordármelo', items: [
+        { label: 'Dentro de 1 hora', icon: IC.reloj, run: () => editar({ recordatorio: dentroDe(1, 'h') }) },
+        { label: 'Dentro de 2 horas', icon: IC.reloj, run: () => editar({ recordatorio: dentroDe(2, 'h') }) },
+        { label: 'Dentro de 1 día', icon: IC.reloj, run: () => editar({ recordatorio: dentroDe(1, 'd') }) },
+        { label: 'Dentro de 2 días', icon: IC.reloj, run: () => editar({ recordatorio: dentroDe(2, 'd') }) },
+        { label: 'Dentro de 1 semana', icon: IC.reloj, run: () => editar({ recordatorio: dentroDe(1, 's') }) },
+        { separator: true },
+        { label: 'Otro…', hint: 'Minutos, horas, días, semanas o meses', icon: IC.reloj, run: () => abrirDentro(n.id) },
+        { label: 'Elegir fecha y hora…', icon: IC.calendario, run: () => abrirPopNota(n.id, 'pnRecordatorio') },
+        n.recordatorio ? { label: 'Quitar recordatorio', icon: IC.menos, tone: 'danger', run: () => editar({ recordatorio: null }) } : null,
+      ].filter(Boolean) }) },
+    { label: 'Vence', hint: n.vence ? new Date(n.vence).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Fecha límite', icon: IC.calendario,
+      sub: () => ({ kind: 'list', title: 'Fecha límite', items: [
+        { label: 'Hoy', icon: IC.calendario, run: () => editar({ vence: dia(0) }) },
+        { label: 'Mañana', icon: IC.calendario, run: () => editar({ vence: dia(1) }) },
+        { label: 'Este viernes', icon: IC.calendario, run: () => editar({ vence: new Date().getDay() === 5 ? dia(0) : proximo(5) }) },
+        { label: 'La semana que viene', icon: IC.calendario, run: () => editar({ vence: proximo(1) }) },
+        { label: 'Fin de mes', icon: IC.calendario, run: () => editar({ vence: finDeMes() }) },
+        { separator: true },
+        { label: 'Elegir fecha…', icon: IC.calendario, run: () => abrirPopNota(n.id, 'pnVence') },
+        n.vence ? { label: 'Quitar fecha límite', icon: IC.menos, tone: 'danger', run: () => editar({ vence: null }) } : null,
+      ].filter(Boolean) }) },
+    { label: 'Sección', hint: sec ? sec.name : 'Sin sección', icon: IC.seccion,
+      sub: () => ({ kind: 'list', title: 'Sección', items: [
+        { label: 'Sin sección', icon: IC.menos, selected: !n.seccion, run: () => editar({ seccion: null }) },
+        ...(seccionesTareas().map(sc => ({ label: sc.name, color: sc.color, selected: n.seccion === sc.id, run: () => editar({ seccion: sc.id }) }))),
+        { separator: true },
+        { label: 'Sección nueva…', icon: IC.plus, run: () => abrirPopSec(null) },
+      ] }) },
+    { label: 'Color', hint: 'De la tarjeta', icon: IC.color,
+      sub: () => ({ kind: 'swatches', title: 'Color', subtitle: 'De la tarjeta', items: [
+        { label: 'El de su sección', color: (sec && sec.color) || '#8b93a7', selected: !n.color, run: () => editar({ color: null }) },
+        ...COLORES_NOTA.map(c => ({ label: c, color: c, selected: n.color === c, run: () => editar({ color: c }) })),
+      ] }) },
+    { label: 'Más', hint: 'Fijar, duplicar, copiar…', icon: IC.mas,
+      sub: () => ({ title: 'Más', subtitle: 'Opciones', items: [
+        { label: n.fijada ? 'Desfijar' : 'Fijar encima', icon: IC.chincheta, tone: 'accent', run: () => editar({ fijada: !n.fijada }) },
+        { label: 'Duplicar', icon: IC.dup, run: () => enviar('nota-duplicar', { id: n.id }) },
+        { label: 'Copiar texto', icon: IC.copiar, run: () => { try { require('electron').clipboard.writeText(n.texto); } catch {} } },
+        { label: 'Añadir casilla', hint: 'Una línea [ ] al final', icon: IC.lista, run: () => abrirPopNotaConCasilla(n.id) },
+      ] }) },
+    { label: 'Borrar', hint: 'Ctrl+Z lo deshace', icon: IC.borrar, tone: 'danger', run: () => { const el = lienzo.querySelector(`.nota[data-id="${n.id}"]`); irse(el, () => enviar('nota-borrar', { id: n.id }), !!el); } },
+  ];
+  RadialMenu.open({ x: e.clientX, y: e.clientY, title: textoPlano(n.texto.split('\n')[0]).slice(0, 26), subtitle: sec ? sec.name : 'Nota', color, items });
+}
+function abrirPopNotaConCasilla(id) {
+  abrirPopNota(id);
+  const ta = document.getElementById('pnTexto');
+  ta.value = ta.value.replace(/\s+$/, '') + '\n[ ] ';
+  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 0);
+}
+
+// ── Markdown ──────────────────────────────────────────────────────────────────
+// Lo justo para que las notas queden bonitas: títulos, negrita, cursiva, tachado, resaltado,
+// código, enlaces, listas, citas, separadores y casillas (las propias, que se marcan desde la nota).
+const BT = String.fromCharCode(96);   // la comilla invertida del código
+// Una línea sin las marcas de Markdown (para títulos cortos, como el del menú redondo).
+function textoPlano(t) {
+  return String(t || '').replace(/^\s*(?:-\s*)?\[( |x|X)\]\s*|^#{1,3}\s+|^\s*[-*•>]\s+/, '').replace(/\*\*|__|~~|==|[*_]/g, '').split(BT).join('');
+}
+function mdLinea(t) {
+  let h = esc(t);
+  h = h.replace(new RegExp(BT + '([^' + BT + ']+)' + BT, 'g'), '<code>$1</code>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(new RegExp('__([^_]+)__', 'g'), '<b>$1</b>');
+  h = h.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>').replace(/(^|\W)_([^_\s][^_]*)_(?=\W|$)/g, '$1<i>$2</i>');
+  h = h.replace(/~~([^~]+)~~/g, '<s>$1</s>').replace(/==([^=]+)==/g, '<mark>$1</mark>');
+  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a data-url="$2">$1</a>');
+  return h;
+}
+function pintarMarkdown(cont, texto, idNota) {
+  cont.innerHTML = '';
+  const lineas = String(texto || '').split('\n');
+  lineas.forEach((linea, i) => {
+    const casilla = linea.match(/^\s*(?:-\s*)?\[( |x|X)\]\s?(.*)$/);
+    let el;
+    if (casilla) {
+      const hecho = casilla[1] !== ' ';
+      el = document.createElement('div');
+      el.className = 'casilla' + (hecho ? ' marcada' : '');
+      el.setAttribute('role', 'checkbox'); el.setAttribute('aria-checked', String(hecho)); el.tabIndex = 0;
+      el.innerHTML = `<span class="marca">${ICO.check}</span><span class="t">${mdLinea(casilla[2])}</span>`;
+      if (idNota) {
+        const alternar = (e) => {
+          e.stopPropagation();
+          el.classList.toggle('marcada');
+          const ls = lineas.slice();
+          ls[i] = linea.replace(/\[( |x|X)\]/, el.classList.contains('marcada') ? '[x]' : '[ ]');
+          setTimeout(() => enviar('nota-editar', { id: idNota, texto: ls.join('\n') }), 320);   // que se vea el check dibujarse
+        };
+        el.addEventListener('pointerdown', (e) => e.stopPropagation());
+        el.onclick = alternar;
+        el.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); alternar(e); } };
+      }
+    } else {
+      let m;
+      el = document.createElement('div');
+      if ((m = linea.match(/^(#{1,3})\s+(.*)$/))) { el.className = 'md-h' + m[1].length; el.innerHTML = mdLinea(m[2]); }
+      else if ((m = linea.match(/^\s*[-*•]\s+(.*)$/))) { el.className = 'md-li'; el.innerHTML = `<span>${mdLinea(m[1])}</span>`; }
+      else if ((m = linea.match(/^\s*(\d+)[.)]\s+(.*)$/))) { el.className = 'md-ol'; el.innerHTML = `<b>${m[1]}.</b><span>${mdLinea(m[2])}</span>`; }
+      else if ((m = linea.match(/^>\s?(.*)$/))) { el.className = 'md-cita'; el.innerHTML = mdLinea(m[1]); }
+      else if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(linea)) { el.className = 'md-hr'; }
+      else { el.className = 'md-p'; el.innerHTML = mdLinea(linea); }
+    }
+    cont.appendChild(el);
+  });
+  // Enlaces: se abren en el navegador (solo http/https).
+  cont.querySelectorAll('a[data-url]').forEach(a => {
+    a.addEventListener('pointerdown', (e) => e.stopPropagation());
+    a.onclick = (e) => { e.stopPropagation(); try { require('electron').shell.openExternal(a.dataset.url); } catch {} };
+  });
+}
+
+// Barra del editor: envuelve lo seleccionado o pone el prefijo a las líneas elegidas.
+function mdEnvolver(pre, post, ejemplo) {
+  const ta = document.getElementById('pnTexto');
+  const a = ta.selectionStart, b = ta.selectionEnd, sel = ta.value.slice(a, b) || ejemplo;
+  ta.setRangeText(pre + sel + post, a, b, 'end');
+  if (a === b) { ta.selectionStart = a + pre.length; ta.selectionEnd = a + pre.length + sel.length; }
+  ta.focus();
+}
+function mdPrefijo(prefijo) {
+  const ta = document.getElementById('pnTexto');
+  const ini = ta.value.lastIndexOf('\n', ta.selectionStart - 1) + 1;
+  let fin = ta.value.indexOf('\n', ta.selectionEnd); if (fin < 0) fin = ta.value.length;
+  let k = 0;
+  const nuevo = ta.value.slice(ini, fin).split('\n').map(l => (typeof prefijo === 'function' ? prefijo(++k) : prefijo) + l.replace(/^(#{1,3}\s+|[-*•]\s+|\d+[.)]\s+|>\s?|\[( |x|X)\]\s?)/, '')).join('\n');
+  ta.setRangeText(nuevo, ini, fin, 'end');
+  ta.focus();
+}
+const MD_ACCIONES = {
+  b: () => mdEnvolver('**', '**', 'negrita'), i: () => mdEnvolver('*', '*', 'cursiva'), s: () => mdEnvolver('~~', '~~', 'tachado'),
+  mark: () => mdEnvolver('==', '==', 'resaltado'), code: () => mdEnvolver(BT, BT, 'código'),
+  link: () => mdEnvolver('[', '](https://)', 'texto del enlace'),
+  h1: () => mdPrefijo('# '), h2: () => mdPrefijo('## '), ul: () => mdPrefijo('- '), ol: () => mdPrefijo(k => k + '. '),
+  check: () => mdPrefijo('[ ] '), quote: () => mdPrefijo('> '),
+  hr: () => { const ta = document.getElementById('pnTexto'); ta.setRangeText('\n---\n', ta.selectionStart, ta.selectionEnd, 'end'); ta.focus(); },
+};
+document.querySelectorAll('#mdBarra [data-md]').forEach(b => b.onclick = () => { if (!document.getElementById('pnTexto').hidden) MD_ACCIONES[b.dataset.md](); });
+document.getElementById('pnTexto').addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const k = e.key.toLowerCase();
+  if (k === 'b' || k === 'i') { e.preventDefault(); MD_ACCIONES[k](); }
+});
+function modoEditor(ver) {
+  const ta = document.getElementById('pnTexto'), vista = document.getElementById('pnVista');
+  document.getElementById('mdLapiz').classList.toggle('activo', !ver);
+  document.getElementById('mdOjo').classList.toggle('activo', ver);
+  ta.hidden = ver; vista.hidden = !ver;
+  document.querySelectorAll('#mdBarra [data-md]').forEach(b => { b.style.opacity = ver ? '.35' : ''; b.disabled = ver; });
+  if (ver) { vista.style.setProperty('--c', popColor || (seccionDe(document.getElementById('pnSeccion').value) || {}).color || 'var(--accent2)'); pintarMarkdown(vista, ta.value, null); }
+  else ta.focus();
+}
+document.getElementById('mdLapiz').onclick = () => modoEditor(false);
+document.getElementById('mdOjo').onclick = () => modoEditor(true);
 
 // ── Propiedades de una nota ───────────────────────────────────────────────────
 let popId = null, popColor = null, popUrgencia = '';
 function aLocal(ms) { const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
-function abrirPopNota(id) {
+function abrirPopNota(id, foco) {
   const n = (currentState.notas || []).find(x => x.id === id);
   if (!n) return;
   popId = id; popColor = n.color || null; popUrgencia = n.urgencia || '';
   document.getElementById('pnTexto').value = n.texto;
   const sel = document.getElementById('pnSeccion');
-  sel.innerHTML = '<option value="">Sin sección</option>' + (currentState.seccionesNotas || []).map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">Sin sección</option>' + seccionesTareas().map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
   sel.value = n.seccion || '';
   document.getElementById('pnRecordatorio').value = n.recordatorio ? aLocal(n.recordatorio) : '';
-  pintarUrgenciaPop(); pintarColoresPop();
+  document.getElementById('pnVence').value = n.vence ? aLocal(n.vence).slice(0, 10) : '';
+  pintarUrgenciaPop(); pintarColoresPop(); modoEditor(false);
+  document.getElementById('pnDentro').hidden = true;
   document.getElementById('popNotaFondo').style.display = 'block';
   document.getElementById('popNota').style.display = 'flex';
-  setTimeout(() => document.getElementById('pnTexto').focus(), 0);
+  setTimeout(() => document.getElementById(foco || 'pnTexto').focus(), 0);
 }
 function pintarUrgenciaPop() { document.querySelectorAll('#pnUrgencia button').forEach(b => b.classList.toggle('activo', b.dataset.u === popUrgencia)); }
 document.querySelectorAll('#pnUrgencia button').forEach(b => b.onclick = () => { popUrgencia = b.dataset.u; pintarUrgenciaPop(); });
@@ -553,21 +1035,67 @@ function pintarColoresPop() {
   const nada = document.createElement('button'); nada.className = 'ninguno' + (!popColor ? ' sel' : ''); nada.title = 'Sin color (el de su sección)'; nada.onclick = () => { popColor = null; pintarColoresPop(); }; c.appendChild(nada);
   COLORES_NOTA.forEach(col => { const b = document.createElement('button'); b.style.background = col; if (popColor === col) b.className = 'sel'; b.onclick = () => { popColor = col; pintarColoresPop(); }; c.appendChild(b); });
 }
+// Atajos del recordatorio: dentro de 1 h, 2 h, 1 día, 2 días, 1 semana; «Otro…» abre el selector.
+const RAPIDOS = { '1h': [1, 'h'], '2h': [2, 'h'], '1d': [1, 'd'], '2d': [2, 'd'], '1s': [1, 's'] };
+const UNIDADES = [['min', 'Minutos'], ['h', 'Horas'], ['d', 'Días'], ['s', 'Semanas'], ['mes', 'Meses']];
+function dentroDe(n, u) {
+  const d = new Date();
+  if (u === 'min') d.setMinutes(d.getMinutes() + n);
+  else if (u === 'h') d.setHours(d.getHours() + n);
+  else if (u === 'd') d.setDate(d.getDate() + n);
+  else if (u === 's') d.setDate(d.getDate() + 7 * n);
+  else if (u === 'mes') d.setMonth(d.getMonth() + n);
+  d.setSeconds(0, 0);
+  return d.getTime();
+}
+// Selector propio: − número + y la unidad; enseña cuándo avisará y llama a poner(ms).
+function selectorDentro(cont, poner, textoBoton) {
+  let n = 30, u = 'min';
+  cont.innerHTML = `<div class="paso"><button type="button" data-p="-">−</button><input type="number" min="1" max="999" value="30"><button type="button" data-p="+">+</button></div>
+    <div class="seg">${UNIDADES.map(([k, t]) => `<button type="button" data-u="${k}">${t}</button>`).join('')}</div>
+    <div class="que"></div>
+    <button type="button" class="btn-primary" style="margin-left:auto">${textoBoton || 'Poner'}</button>`;
+  const inp = cont.querySelector('input'), que = cont.querySelector('.que');
+  const pintar = () => {
+    cont.querySelectorAll('[data-u]').forEach(b => b.classList.toggle('activo', b.dataset.u === u));
+    inp.value = n;
+    que.textContent = 'Avisará ' + textoRecordatorio(dentroDe(n, u)).toLowerCase();
+  };
+  cont.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { n = Math.max(1, Math.min(999, n + (b.dataset.p === '+' ? 1 : -1))); pintar(); });
+  inp.oninput = () => { n = Math.max(1, Math.min(999, parseInt(inp.value, 10) || 1)); que.textContent = 'Avisará ' + textoRecordatorio(dentroDe(n, u)).toLowerCase(); };
+  inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); poner(dentroDe(n, u)); } };
+  cont.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { u = b.dataset.u; pintar(); });
+  cont.querySelector('.btn-primary').onclick = () => poner(dentroDe(n, u));
+  pintar();
+  setTimeout(() => { inp.focus(); inp.select(); }, 0);
+}
 document.querySelectorAll('#pnRapidos button').forEach(b => b.onclick = () => {
   const i = document.getElementById('pnRecordatorio');
-  const d = new Date();
-  if (b.dataset.r === 'quitar') { i.value = ''; return; }
-  if (b.dataset.r === '1h') d.setTime(Date.now() + 3600000);
-  if (b.dataset.r === 'tarde') { d.setHours(17, 0, 0, 0); if (d < new Date()) d.setDate(d.getDate() + 1); }
-  if (b.dataset.r === 'manana') { d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); }
-  i.value = aLocal(d.getTime());
+  const dentro = document.getElementById('pnDentro');
+  if (b.dataset.r === 'quitar') { i.value = ''; dentro.hidden = true; return; }
+  if (b.dataset.r === 'otro') {
+    dentro.hidden = !dentro.hidden;
+    if (!dentro.hidden) selectorDentro(dentro, (ms) => { i.value = aLocal(ms); dentro.hidden = true; });
+    return;
+  }
+  const [n, u] = RAPIDOS[b.dataset.r];
+  i.value = aLocal(dentroDe(n, u));
+  dentro.hidden = true;
 });
+// Desde el menú redondo, «Otro…» sale en su propia ventanita de cristal.
+function abrirDentro(idNota) {
+  const fondo = document.getElementById('popDentroFondo'), pop = document.getElementById('popDentro');
+  fondo.style.display = 'block'; pop.style.display = 'flex';
+  selectorDentro(document.getElementById('popDentroCuerpo'), (ms) => { enviar('nota-editar', { id: idNota, recordatorio: ms }); cerrarDentro(); }, 'Avisarme');
+}
+function cerrarDentro() { document.getElementById('popDentroFondo').style.display = 'none'; document.getElementById('popDentro').style.display = 'none'; }
 function cerrarPopNota() { popId = null; document.getElementById('popNotaFondo').style.display = 'none'; document.getElementById('popNota').style.display = 'none'; }
 function guardarPopNota() {
   const texto = document.getElementById('pnTexto').value.trim();
   if (!texto) { borrarDesdePop(); return; }
   const r = document.getElementById('pnRecordatorio').value;
-  enviar('nota-editar', { id: popId, texto, urgencia: popUrgencia, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null });
+  const v = document.getElementById('pnVence').value;
+  enviar('nota-editar', { id: popId, texto, urgencia: popUrgencia, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null, vence: v ? new Date(v + 'T00:00').getTime() : null });
   cerrarPopNota();
 }
 function borrarDesdePop() {
@@ -580,11 +1108,11 @@ function borrarDesdePop() {
 let secId = null, secColor = COLORES_NOTA[6];
 function abrirPopSec(id) {
   const s = id ? seccionDe(id) : null;
-  secId = s ? id : null; secColor = s ? s.color : COLORES_NOTA[((currentState.seccionesNotas || []).length * 3) % COLORES_NOTA.length];
+  secId = s ? id : null; secColor = null;
   document.getElementById('popSecTitulo').textContent = s ? 'Sección' : 'Nueva sección';
   document.getElementById('psNombre').value = s ? s.name : '';
-  document.getElementById('psBorrar').style.display = s ? '' : 'none';
-  pintarColoresSec();
+  document.getElementById('psBorrar').style.display = 'none';   // se borran desde Tareas
+  document.getElementById('psColores').innerHTML = '<div style="font-size:12px;color:var(--text2);line-height:1.4">Es una sección de Tareas: su color sale de su paleta (en Tareas, el botón de colores de la sección).</div>';
   document.getElementById('popSecFondo').style.display = 'block';
   document.getElementById('popSec').style.display = 'flex';
   setTimeout(() => document.getElementById('psNombre').focus(), 0);
@@ -597,8 +1125,8 @@ function cerrarPopSec() { document.getElementById('popSecFondo').style.display =
 function guardarSeccion() {
   const name = document.getElementById('psNombre').value.trim();
   if (!name) return;
-  if (secId) enviar('nota-seccion-editar', { id: secId, name, color: secColor });
-  else enviar('nota-seccion-crear', { name, color: secColor });
+  if (secId) enviar('rename-group', { groupId: secId, name });
+  else enviar('create-group', { name });
   cerrarPopSec();
 }
 document.getElementById('psNombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') guardarSeccion(); });
@@ -623,7 +1151,7 @@ function cerrarConf() { document.getElementById('popConfFondo').style.display = 
 // Ctrl+Z / Ctrl+Y fuera de los campos de texto: deshacer y rehacer, como en el calendario.
 document.addEventListener('keydown', (e) => {
   const enCampo = e.target.closest && e.target.closest('input, textarea, select');
-  if (e.key === 'Escape') { cerrarPopNota(); cerrarPopSec(); cerrarConf(); return; }
+  if (e.key === 'Escape') { cerrarPopNota(); cerrarPopSec(); cerrarConf(); cerrarDentro(); return; }
   if (enCampo || !(e.ctrlKey || e.metaKey)) return;
   if (e.key.toLowerCase() === 'z') { e.preventDefault(); enviar(e.shiftKey ? 'redo' : 'undo'); }
   if (e.key.toLowerCase() === 'y') { e.preventDefault(); enviar('redo'); }
