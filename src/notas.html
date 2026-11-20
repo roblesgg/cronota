@@ -342,6 +342,8 @@
   .sel-lista { display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto; }
   .sel-lista button { display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:12px;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left; }
   .sel-lista button:hover { background:var(--bg3); }
+  .sel-lista button svg, .selector svg:not(.rueda svg) { width:14px;height:14px;flex-shrink:0; }
+  .sel-lista button svg { opacity:.75; }
   .sel-lista button.elegido { background:color-mix(in srgb, var(--accent2) 24%, transparent); }
   .sel-lista i { width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--c, transparent);border:1.5px solid var(--c, var(--text3)); }
   .rapidos { display:flex;gap:5px;flex-wrap:wrap; }
