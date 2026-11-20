@@ -443,10 +443,25 @@
       </div>
       <div class="pal-hint">Cada tarea nueva de esta sección coge un tono al azar de su paleta: se distinguen entre ellas y se reconoce de quién son de un vistazo.</div>
       <div class="pal-list" id="palList"></div>
-      <div class="entry-popup-actions">
+      <div class="entry-popup-actions" id="palAcciones">
         <button class="btn-ghost" id="palRepintar" onclick="repintarSeccion()">Repintar sus tareas</button>
         <div style="flex:1"></div>
         <button class="btn-primary" onclick="cerrarPaletas()">Hecho</button>
+      </div>
+      <!-- 2.15: paleta personalizada (para un cliente). -->
+      <div class="pal-editor" id="palEditor" hidden>
+        <input type="text" id="palEdNombre" maxlength="30" placeholder="Nombre de la paleta (p. ej. el cliente)">
+        <div class="pal-ed-label">Sus colores <span id="palEdCuenta"></span></div>
+        <div class="pal-ed-colores" id="palEdColores"></div>
+        <div class="pal-ed-label">Añadir</div>
+        <div class="pal-ed-sugeridos" id="palEdSugeridos"></div>
+        <label class="pal-ed-libre"><input type="color" id="palEdLibre" value="#4f8df5"> Otro color…</label>
+        <div class="entry-popup-actions">
+          <button class="btn-danger" id="palEdBorrar" onclick="borrarPaletaEditada()" hidden>Borrar</button>
+          <div style="flex:1"></div>
+          <button class="btn-ghost" onclick="cerrarEditorPaleta()">Cancelar</button>
+          <button class="btn-primary" onclick="guardarPaletaEditada()">Guardar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1382,6 +1397,7 @@ function abrirPaletas(groupId, ancla) {
 }
 
 function cerrarPaletas() {
+  if (!document.getElementById('palEditor').hidden) cerrarEditorPaleta();
   palGrupoId = null;
   document.getElementById('palBackdrop').style.display = 'none';
   bocadilloPaletas.cerrar();
@@ -1407,7 +1423,24 @@ function pintarPaletas() {
     list.appendChild(b);
   };
   fila('', 'Sin paleta', []);
-  Object.entries(currentState.palettes || {}).forEach(([k, p]) => fila(k, p.name, p.colors));
+  // 2.15: primero las tuyas (con lápiz para editarlas) y luego las de serie.
+  const todas = Object.entries(currentState.palettes || {});
+  todas.filter(([, p]) => p.propia).forEach(([k, p]) => {
+    fila(k, p.name, p.colors);
+    const ed = document.createElement('span');
+    ed.className = 'pal-editar'; ed.title = 'Editar esta paleta'; ed.setAttribute('role', 'button'); ed.tabIndex = 0;
+    ed.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+    ed.onclick = (e) => { e.stopPropagation(); abrirEditorPaleta(k); };
+    list.lastElementChild.insertBefore(ed, list.lastElementChild.querySelector('.pal-check'));
+  });
+  const nueva = document.createElement('button');
+  nueva.type = 'button'; nueva.className = 'pal-row pal-nueva';
+  nueva.innerHTML = '<span class="pal-sw vacia"></span><span class="pal-name">+ Paleta personalizada</span>';
+  nueva.onclick = () => abrirEditorPaleta(null);
+  list.appendChild(nueva);
+  const sep = document.createElement('div'); sep.className = 'pal-sep'; sep.textContent = 'De serie';
+  list.appendChild(sep);
+  todas.filter(([, p]) => !p.propia).forEach(([k, p]) => fila(k, p.name, p.colors));
   const n = currentState.tasks.filter(t => !t.deleted && t.groupId === g.id).length;
   const rep = document.getElementById('palRepintar');
   rep.disabled = !pal || !n;
@@ -1426,8 +1459,79 @@ function repintarSeccion() {
     () => ipcRenderer.send('action', { type: 'recolor-group-tasks', payload: { groupId: g.id } }));
 }
 
+// ── 2.15: editor de paletas personalizadas ──
+let palEdId = null, palEdColores = [];
+function abrirEditorPaleta(id) {
+  const p = id && currentState.palettes ? currentState.palettes[id] : null;
+  palEdId = p ? id : null;
+  palEdColores = p ? p.colors.slice() : [];
+  const g = (currentState.groups || []).find(x => x.id === palGrupoId);
+  document.getElementById('palEdNombre').value = p ? p.name : (g ? g.name : '');
+  document.getElementById('palEdBorrar').hidden = !p;
+  ['palList', 'palAcciones'].forEach(x => { document.getElementById(x).style.display = 'none'; });
+  document.querySelector('#palPop .pal-hint').hidden = true;
+  document.getElementById('palEditor').hidden = false;
+  const sug = document.getElementById('palEdSugeridos');
+  sug.innerHTML = '';
+  COLORS.forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pal-ed-sw'; b.style.background = c; b.title = c;
+    b.onclick = () => anadirColorPaleta(c);
+    sug.appendChild(b);
+  });
+  pintarColoresEditor();
+  bocadilloPaletas.recolocar && bocadilloPaletas.recolocar();
+  setTimeout(() => document.getElementById('palEdNombre').focus(), 0);
+}
+function anadirColorPaleta(c) {
+  c = String(c || '').toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(c) || palEdColores.includes(c)) return;
+  if (palEdColores.length >= 12) { showAlertPopup('Una paleta puede tener hasta 12 colores'); return; }
+  palEdColores.push(c);
+  pintarColoresEditor();
+}
+function pintarColoresEditor() {
+  const cont = document.getElementById('palEdColores');
+  cont.innerHTML = '';
+  if (!palEdColores.length) {
+    const v = document.createElement('div'); v.className = 'pal-ed-vacio'; v.textContent = 'Toca colores de abajo para añadirlos';
+    cont.appendChild(v);
+  }
+  palEdColores.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pal-ed-sw puesto'; b.style.background = c; b.title = 'Quitar ' + c;
+    b.innerHTML = '<span>×</span>';
+    b.onclick = () => { palEdColores.splice(i, 1); pintarColoresEditor(); };
+    cont.appendChild(b);
+  });
+  document.getElementById('palEdCuenta').textContent = palEdColores.length ? `(${palEdColores.length}/12)` : '';
+  document.querySelectorAll('#palEdSugeridos .pal-ed-sw').forEach(b => b.classList.toggle('usado', palEdColores.includes(b.title)));
+}
+document.getElementById('palEdLibre').addEventListener('change', (e) => anadirColorPaleta(e.target.value));
+function cerrarEditorPaleta() {
+  document.getElementById('palEditor').hidden = true;
+  ['palList', 'palAcciones'].forEach(x => { document.getElementById(x).style.display = ''; });
+  document.querySelector('#palPop .pal-hint').hidden = false;
+  pintarPaletas();
+}
+function guardarPaletaEditada() {
+  const name = document.getElementById('palEdNombre').value.trim();
+  if (!name) { showAlertPopup('Ponle un nombre a la paleta'); return; }
+  if (!palEdColores.length) { showAlertPopup('Añade al menos un color'); return; }
+  ipcRenderer.send('action', { type: 'guardar-paleta', payload: { id: palEdId, name, colors: palEdColores, groupId: palEdId ? undefined : palGrupoId } });
+  cerrarEditorPaleta();
+}
+function borrarPaletaEditada() {
+  if (!palEdId) return;
+  const p = currentState.palettes[palEdId];
+  showConfirmPopup('Borrar paleta', `La paleta «${p ? p.name : ''}» se borra. Las secciones que la usaban se quedan sin paleta; sus tareas conservan sus colores.`, 'Borrar',
+    () => { ipcRenderer.send('action', { type: 'borrar-paleta', payload: { id: palEdId } }); cerrarEditorPaleta(); });
+}
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && palGrupoId && document.getElementById('confirmPopup').style.display === 'none') cerrarPaletas();
+  if (e.key === 'Escape' && palGrupoId && document.getElementById('confirmPopup').style.display === 'none') {
+    if (!document.getElementById('palEditor').hidden) cerrarEditorPaleta(); else cerrarPaletas();
+  }
 });
 
 // ---------- Popup crear / renombrar sección ----------

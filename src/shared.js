@@ -3,11 +3,15 @@
 // repetían enseguida y el calendario se volvía ilegible en cuanto tenías unas cuantas
 // tareas. Todos con suficiente cuerpo para que el texto encima se lea (ver
 // contrastTextColor, que elige blanco o negro segun la luminosidad).
+// 2.15: 48 colores (doce familias en tres tonos): se añaden lima, cielo, violeta, fucsia,
+// tierra y pizarra.
 const COLORS = [
-  // índigo    azul       turquesa   verde      ámbar      naranja    rojo       rosa
-  '#818cf8', '#60a5fa', '#22d3ee', '#34d399', '#fbbf24', '#fb923c', '#f87171', '#f472b6',  // claros
-  '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ef4444', '#ec4899',  // medios
-  '#4338ca', '#1d4ed8', '#0e7490', '#047857', '#b45309', '#c2410c', '#b91c1c', '#a21caf',  // oscuros
+  // índigo    azul       cielo      turquesa   verde      lima       ámbar      naranja    rojo       rosa       fucsia     violeta
+  '#818cf8', '#60a5fa', '#7dd3fc', '#22d3ee', '#34d399', '#a3e635', '#fbbf24', '#fb923c', '#f87171', '#f472b6', '#e879f9', '#c4b5fd',  // claros
+  '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#10b981', '#65a30d', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#d946ef', '#8b5cf6',  // medios
+  '#4338ca', '#1d4ed8', '#0369a1', '#0e7490', '#047857', '#3f6212', '#b45309', '#c2410c', '#b91c1c', '#be185d', '#a21caf', '#6d28d9',  // oscuros
+  // tierra    arena      pizarra    grafito
+  '#d6a36a', '#c2925e', '#94a3b8', '#64748b', '#8d6e63', '#a16207', '#475569', '#334155', '#78716c', '#57534e', '#0f766e', '#1e40af',  // neutros
 ];
 
 // Modo "embed": la página va dentro de un iframe del dock (barra flotante), no como

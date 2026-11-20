@@ -62,7 +62,8 @@ const APP_ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
 // Para las ventanas, el .ico (16-256 px): el PNG es de 2000×2000 y se decodificaba
 // entero (~16 MB) cada vez que se creaba una ventana, como el recordatorio.
 const WINDOW_ICON_PATH = path.join(__dirname, 'assets', 'icon.ico');
-const TASK_COLORS = ['#6366f1','#f472b6','#34d399','#fbbf24','#60a5fa','#f87171','#a78bfa','#2dd4bf'];
+// 2.15: más colores en la rueda automática (se repetían enseguida con ocho).
+const TASK_COLORS = ['#6366f1','#f472b6','#34d399','#fbbf24','#60a5fa','#f87171','#a78bfa','#2dd4bf','#fb923c','#a3e635','#38bdf8','#e879f9','#facc15','#14b8a6','#f43f5e','#8b5cf6'];
 // ── Temas de color ───────────────────────────────────────────────────────────
 // Los temas, los acentos y la paleta resuelta viven en themes.js (también los usan las
 // herramientas de captura de tools/).
@@ -245,6 +246,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.15.0': { title: 'Novedades de Cronota 2.15', steps: [
+    { icon:'spark', title:'Paletas a tu gusto para cada cliente',
+      text:'En Tareas, el botón de colores de cada sección tiene «+ Paleta personalizada»: elige sus colores y cada tarea nueva de ese cliente coge uno. Hay más paletas de serie y más colores para las tareas.' },
+    { icon:'reloj', title:'Más cómodo al crear',
+      text:'Puedes crear una tarea sin empezarla, y en el calendario «+ Nueva tarea» está abajo a la izquierda y usa lo que escribiste en el buscador.' },
+  ] },
   '2.14.0': { title: 'Novedades de Cronota 2.14', steps: [
     { icon:'folder', title:'Tus horas en OneDrive o Google Drive',
       text:'En Ajustes → General → Sincronizar eliges uno con un clic, sin cuentas en Cronota: tus horas y tus ajustes se guardan en tu nube y en otro PC eliges lo mismo para tenerlos allí.' },
@@ -446,6 +453,7 @@ let settings = {
   archiveDays: 30,      // días sin usar una tarea antes de que pase al Archivador (0 = nunca)
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
   outlookIcsUrl: '',   // 2.12: enlace ICS de «Publicar un calendario» de Outlook ('' = sin conectar)
+  paletasPropias: {},  // 2.15: paletas hechas por el usuario { id: { name, colors } }
   silenciarEnLlamada: true,   // 2.12: sin avisos mientras alguna app use el micrófono (una llamada)
   nube: '',              // 2.14: 'onedrive' | 'gdrive' | '' (sin sincronizar). Ver nube.js
   nubeVersion: 0,        // marca del último archivo de la nube que este PC conoce
@@ -538,7 +546,7 @@ const AJUSTES_QUE_SE_SINCRONIZAN = ['reminderMinutes', 'imputeUrl', 'imputeUrls'
   'eyeCareEnabled', 'eyeCareEvery', 'eyeCareRest', 'eyeCarePos', 'eyeCareSize', 'eyeCareSoloOjos', 'widgetAutoHide', 'widgetAutoHideSeconds',
   'colorMode', 'bgOpacity', 'liquidGlass', 'blurEnabled', 'theme', 'accent', 'groupSort', 'groupSortDir', 'weekDays', 'weekOverrides',
   'dockBarColor', 'dockBarGlass', 'dockBarOpacity', 'dockBarWidth', 'dockBarLength', 'dockNearDistance', 'dockCloseMode', 'dockCloseSeconds',
-  'archiveDays', 'outlookIcsUrl', 'silenciarEnLlamada'];
+  'archiveDays', 'outlookIcsUrl', 'silenciarEnLlamada', 'paletasPropias'];
 function ajustesQueViajan() {
   const r = {};
   AJUSTES_QUE_SE_SINCRONIZAN.forEach(k => { if (settings[k] !== undefined) r[k] = settings[k]; });
@@ -822,7 +830,7 @@ function colorForNewTask(groupId, manualColor) {
   const g = groupId && state.groups.find(x => x.id === groupId);
   if (g && g.palette) {
     const enUso = state.tasks.filter(t => t.groupId === g.id && !t.deleted).map(t => t.color);
-    const c = colorFromGroupPalette(g.palette, enUso);
+    const c = colorFromGroupPalette(g.palette, enUso, Math.random, todasLasPaletas());
     if (c) return c;
   }
   return nextAutoColor();
@@ -1017,10 +1025,48 @@ function createGroup(name) {
 
 // Paleta de la sección (ver palettes.js). Sin paleta, sus tareas nuevas siguen la rueda de
 // colores de siempre.
+// 2.15: las de serie más las personalizadas (settings.paletasPropias), marcadas con propia.
+function todasLasPaletas() {
+  const r = { ...GROUP_PALETTES };
+  const p = settings.paletasPropias && typeof settings.paletasPropias === 'object' ? settings.paletasPropias : {};
+  Object.entries(p).forEach(([k, v]) => {
+    if (v && typeof v.name === 'string' && Array.isArray(v.colors) && v.colors.length) r[k] = { name: v.name, colors: v.colors.slice(0, 12), propia: true };
+  });
+  return r;
+}
+const esColorHex = (c) => /^#[0-9a-fA-F]{6}$/.test(String(c || ''));
+function guardarPaletaPropia(p) {
+  if (!p) return;
+  const nombre = String(p.name || '').trim().slice(0, 30);
+  const colores = [...new Set((Array.isArray(p.colors) ? p.colors : []).filter(esColorHex).map(c => c.toLowerCase()))].slice(0, 12);
+  if (!nombre || !colores.length) return;
+  const propias = { ...(settings.paletasPropias || {}) };
+  const id = p.id && propias[p.id] ? p.id : 'p' + Date.now().toString(36);
+  propias[id] = { name: nombre, colors: colores };
+  settings.paletasPropias = propias;
+  saveSettings();
+  // Recién hecha para una sección: se le pone ya.
+  const g = p.groupId && state.groups.find(x => x.id === p.groupId);
+  if (g) { g.palette = id; saveData(); }
+  broadcastState();
+}
+function borrarPaletaPropia(id) {
+  const propias = { ...(settings.paletasPropias || {}) };
+  if (!id || !propias[id]) return;
+  delete propias[id];
+  settings.paletasPropias = propias;
+  saveSettings();
+  // Las secciones que la usaban se quedan sin paleta (sus tareas conservan sus colores).
+  let cambia = false;
+  state.groups.forEach(g => { if (g.palette === id) { delete g.palette; cambia = true; } });
+  if (cambia) saveData();
+  broadcastState();
+}
+
 function setGroupPalette(groupId, palette) {
   const g = state.groups.find(x => x.id === groupId);
   if (!g) return;
-  if (palette && GROUP_PALETTES[palette]) g.palette = palette;
+  if (palette && todasLasPaletas()[palette]) g.palette = palette;
   else delete g.palette;
   saveData(); broadcastState();
 }
@@ -1032,7 +1078,7 @@ function recolorGroupTasks(groupId) {
   if (!g || !g.palette) return;
   const usados = [];
   state.tasks.filter(t => t.groupId === g.id && !t.deleted).forEach(t => {
-    t.color = colorFromGroupPalette(g.palette, usados);
+    t.color = colorFromGroupPalette(g.palette, usados, Math.random, todasLasPaletas()) || t.color;
     usados.push(t.color);
   });
   saveData(); broadcastState();
@@ -2553,7 +2599,7 @@ function getSerializableState() {
       };
     }),
     groups: sortedGroups(),
-    palettes: GROUP_PALETTES,
+    palettes: todasLasPaletas(),
     activeTaskId: state.activeTaskId,
     activeSubId: state.activeSubId || null,
     todayTotal: totalTodaySeconds(),
@@ -2752,6 +2798,8 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'delete-group':  deleteGroup(payload.groupId); break;
     case 'move-task-to-group': moveTaskToGroup(payload.taskId, payload.groupId); break;
     case 'set-group-palette': setGroupPalette(payload.groupId, payload.palette); break;
+    case 'guardar-paleta': guardarPaletaPropia(payload); break;   // 2.15
+    case 'borrar-paleta': borrarPaletaPropia(payload && payload.id); break;
     case 'recolor-group-tasks': recolorGroupTasks(payload.groupId); break;
     case 'set-eye-care': {
       const p = payload || {};
