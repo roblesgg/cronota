@@ -822,7 +822,11 @@ function pintar(forzar) {
     const nueva = tarjeta(n);
     nueva.style.zIndex = String(i + 1);
     const vieja = ya.get(n.id);
-    if (vieja) { nueva.style.animation = 'none'; vieja.replaceWith(nueva); } else lienzo.appendChild(nueva);
+    if (vieja) {
+      nueva.style.animation = 'none';
+      ['left', 'top', 'width'].forEach(p => { if (vieja.style[p]) nueva.style[p] = vieja.style[p]; });
+      vieja.replaceWith(nueva);
+    } else lienzo.appendChild(nueva);
     quedan.add(n.id);
   });
   ya.forEach((el, id) => { if (!quedan.has(id)) el.remove(); });
@@ -983,7 +987,7 @@ function empezarReorden(e, el, n) {
     if (!movida && Math.hypot(dx, dy) < 4) return;
     if (!movida) {
       movida = true; arrastrandoNota = true;
-      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, celdaIni: celdasActuales.get(n.id), celdasBase: new Map(celdasActuales) };
+      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, celdaIni: celdasActuales.get(n.id), celdasBase: new Map(celdasActuales), huecosBase: huecos.slice(), ordenBase: ultimoOrden.slice() };
       celdasTemp = new Map(celdasActuales);
       el.classList.add('cogida'); el.style.zIndex = '9999'; el.style.transition = 'none';
     }
@@ -1024,7 +1028,9 @@ function empezarReorden(e, el, n) {
       return;
     }
     // Se guarda el orden de todas (y, si cambió de columna, su propiedad).
-    const lista = r.ids.map((id, i) => ({ id, orden: i }));
+    const fij = new Set(((currentState && currentState.notas) || []).filter(x => x.fijada).map(x => x.id));
+    const ids = r.ids.filter(id => fij.has(id)).concat(r.ids.filter(id => !fij.has(id)));
+    const lista = ids.map((id, i) => ({ id, orden: i }));
     if (r.grupo !== grupoIni && r.grupo !== undefined) { const p = propiedadDeColumna(r.grupo); if (p) Object.assign(lista.find(x => x.id === n.id), p); }
     aplicarLocal(lista);
     enviar('notas-editar', { lista });
@@ -1157,8 +1163,9 @@ let reorden = null, ultimoOrden = [], huecos = [], columnas = [];
 let celdasTemp = null, celdasActuales = new Map(), recolocarT = 0;   // cuadrícula libre: celda provisional al arrastrar
 // Dónde iría la nota si la sueltas en (x, y) del mapa: en qué columna y delante de cuál.
 function destinoReorden(x, y) {
-  const otras = huecos.filter(h => h.id !== reorden.id);
-  if (modo === 'seccion' || modo === 'urgencia' || modo === 'fecha') {
+  const columnasModo = modo === 'seccion' || modo === 'urgencia' || modo === 'fecha';
+  const otras = (columnasModo ? huecos : (reorden.huecosBase || huecos)).filter(h => h.id !== reorden.id);
+  if (columnasModo) {
     const col = columnas.reduce((m, c) => Math.abs(c.x + ANCHO_NOTA / 2 - x) < Math.abs(m.x + ANCHO_NOTA / 2 - x) ? c : m, columnas[0] || { clave: null, x: 0 });
     const enCol = otras.filter(h => h.clave === col.clave);
     const antes = enCol.find(h => y < h.y + h.h / 2);
@@ -1168,8 +1175,9 @@ function destinoReorden(x, y) {
   if (!otras.length) return { antesDe: null };
   const c = otras.reduce((m, h) => Math.hypot(h.x + h.w / 2 - x, h.y + h.h / 2 - y) < Math.hypot(m.x + m.w / 2 - x, m.y + m.h / 2 - y) ? h : m);
   const detras = modo === 'filas' ? y > c.y + c.h / 2 : (x > c.x + c.w / 2 || y > c.y + c.h * 0.75);
-  const i = ultimoOrden.filter(id => id !== reorden.id).indexOf(c.id);
-  const lista = ultimoOrden.filter(id => id !== reorden.id);
+  const base = (reorden.ordenBase || ultimoOrden).filter(id => id !== reorden.id);
+  const i = base.indexOf(c.id);
+  const lista = base;
   return { antesDe: detras ? (lista[i + 1] || null) : c.id };
 }
 function aplicarDestino(d) {
