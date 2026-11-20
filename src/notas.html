@@ -120,17 +120,13 @@
   .nota.hecha { opacity:.55; }
   .nota.hecha .nota-texto { text-decoration:line-through; }
   @keyframes notaCae { from { opacity:0; transform:translateY(-12px) scale(.92); filter:blur(5px); } to { opacity:1; transform:none; filter:none; } }
-  /* Hecha (2.16): un check grande que se dibuja, destello verde, chispas y sale flotando. */
-  .nota.se-hace { animation:hechaSale .75s cubic-bezier(.5,0,.75,0) .38s both;box-shadow:0 0 0 2px #34d399, 0 0 34px -4px #34d399aa; }
-  .nota.se-hace::before { content:'';position:absolute;inset:0;border-radius:inherit;background:color-mix(in srgb, #34d399 30%, transparent);animation:hechaBrillo .45s ease-out both; }
-  .nota .gran-check { position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:3; }
-  .nota .gran-check svg { width:64px;height:64px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4)); }
-  .nota .gran-check path { stroke-dasharray:40;stroke-dashoffset:40;animation:hechaTrazo .35s cubic-bezier(.65,0,.35,1) forwards; }
-  .nota .chispa { position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:#34d399;pointer-events:none;z-index:3;animation:hechaChispa .6s cubic-bezier(.2,.8,.3,1) .15s both; }
-  @keyframes hechaTrazo { to { stroke-dashoffset:0; } }
-  @keyframes hechaBrillo { from { opacity:0; } 40% { opacity:1; } to { opacity:.6; } }
-  @keyframes hechaChispa { from { transform:translate(0,0) scale(1);opacity:1; } to { transform:translate(var(--dx), var(--dy)) scale(.2);opacity:0; } }
-  @keyframes hechaSale { to { opacity:0;transform:translateY(-46px) scale(.82) rotate(-3deg);filter:blur(3px); } }
+  /* Hecha (2.16): se comprime (se aplasta hacia su centro) y desaparece, con un toque verde. */
+  .nota.se-hace { pointer-events:none;animation:hechaComprime .5s cubic-bezier(.55,0,.75,.2) both;box-shadow:0 0 0 2px #34d39999, 0 0 26px -6px #34d399aa; }
+  @keyframes hechaComprime {
+    0% { transform:none; opacity:1; }
+    28% { transform:scale(1.04, .9); }
+    100% { transform:scale(.55, 0); opacity:0; filter:blur(2px); }
+  }
   @keyframes notaSeVa { to { opacity:0; transform:scale(.88); filter:blur(6px); } }
   /* Urgencia alta: un halo que respira. */
   .nota.u-alta::after { content:'';position:absolute;inset:-3px;border-radius:21px;border:2px solid #f87171;opacity:.0;pointer-events:none;animation:halo 2.4s ease-in-out infinite; }
@@ -1035,17 +1031,7 @@ function empezarReorden(e, el, n) {
 function hacerHecha(el, luego) {
   if (!el) { luego(); return; }
   el.classList.add('se-hace');
-  const ck = document.createElement('div'); ck.className = 'gran-check';
-  ck.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-  el.appendChild(ck);
-  for (let i = 0; i < 10; i++) {
-    const c = document.createElement('span'); c.className = 'chispa';
-    const a = (i / 10) * Math.PI * 2, d = 70 + (i % 3) * 22;
-    c.style.setProperty('--dx', Math.cos(a) * d + 'px'); c.style.setProperty('--dy', Math.sin(a) * d * 0.7 + 'px');
-    if (i % 2) c.style.background = '#a7f3d0';
-    el.appendChild(c);
-  }
-  setTimeout(luego, 1050);
+  setTimeout(luego, 480);
 }
 function irse(el, luego, animar) { if (!animar || !el) { luego(); return; } el.classList.add('se-va'); setTimeout(luego, 240); }
 
