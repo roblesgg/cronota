@@ -1,6 +1,6 @@
 # Roadmap de Cronota
 
-Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.5 publicada (envío 13); 2.14.7 enviada a certificación (envío 14, lleva también la 2.14.6). Solo se publica en la Store.
+Última revisión: 19 de noviembre de 2026 · Publicada: 2.13.0 (Microsoft Store); 2.14.7 publicada (envío 14); 2.14.8 enviada a certificación (envío 15). Solo se publica en la Store.
 
 Las peticiones nuevas que vayan saliendo se apuntan en la fase que toque (las pequeñas, en la siguiente actualización pendiente) para no publicar cambios sueltos.
 
@@ -49,7 +49,7 @@ Lo aprendido:
 - **2.14.5** (19-11-2026, envío 13 mandado a certificación con la 2.14.4 dentro): en Ajustes → General → Sincronizar, «Cambiar carpeta…» elige en qué carpeta de OneDrive o Google Drive se guarda (por defecto «Cronota»; tiene que estar dentro del servicio). Se guarda relativa a la raíz (settings.nubeCarpeta), así vale en otro PC aunque su OneDrive esté en otra ruta. Probado simulando OneDrive.
 - **2.14.6** (19-11-2026, salió dentro de la 2.14.7): arreglado que una tarea no se pudiera parar. Pausar solo cerraba la última entrada de la tarea; si detrás de la que corría había otra (una reunión de Outlook añadida para más tarde, una pegada o duplicada), la que corría seguía abierta y la rueda ya la daba por parada. Ahora se busca la entrada sin fin (entradaEnCurso), pausar cierra cualquier entrada abierta, y una entrada colgada tiene «Parar» en la rueda del calendario. Probado sin abrir ventanas.
 - **2.14.7** (19-11-2026, envío 14 mandado a certificación con la 2.14.6 dentro; el paquete se subió dos veces y hubo que quitar el repetido antes de guardar): en Tareas → Nueva, botón «Crear» para crear la tarea sin ponerla en marcha (el de siempre pasa a llamarse «▶ Crear y empezar»).
-- **2.14.8** (20-11-2026, sin enviar): en el calendario, en «Nueva entrada», «+ Nueva tarea» sale de la lista y pasa a un botón abajo a la izquierda (en la fila de Cancelar y Guardar). Cambia la ventana a crear tarea con lo escrito en el buscador ya puesto como nombre; «← Elegir una tarea» vuelve. Si la búsqueda no encuentra nada, «Crear «…»» o Enter la crean.
+- **2.14.8** (20-11-2026, envío 15 mandado a certificación; ojo: arrastrar el .appx con la zona gris a la vista y solo cuando ya esté en Descargas): en el calendario, en «Nueva entrada», «+ Nueva tarea» sale de la lista y pasa a un botón abajo a la izquierda (en la fila de Cancelar y Guardar). Cambia la ventana a crear tarea con lo escrito en el buscador ya puesto como nombre; «← Elegir una tarea» vuelve. Si la búsqueda no encuentra nada, «Crear «…»» o Enter la crean.
 - **Desinstalar la versión vieja** (17-11-2026): la de la Store no puede borrar nada fuera de su paquete (Windows le da su propia copia del registro y de AppData). Abriendo el desinstalador viejo con el Explorador se ejecuta de verdad, pero sin `/currentuser` deja los accesos directos y la entrada de «Aplicaciones instaladas». Además cierra también la de la Store, que se llama igual (`imputa.me.exe`).
 
 ### Fase 1 · La píldora entre pantallas (2.10)
