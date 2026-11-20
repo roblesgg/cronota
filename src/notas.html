@@ -205,7 +205,14 @@
   .vivo.vacio::before { content:attr(data-vacio);position:absolute;left:14px;top:12px;right:14px;color:var(--text3);font-size:13px;pointer-events:none; }
   .vivo-linea { min-height:1.45em;border-radius:6px; }
   .vivo-linea > div { min-height:1.45em; }
-  .vivo-linea.activa { outline:none;white-space:pre-wrap;font-family:ui-monospace, Consolas, monospace;font-size:12.5px;line-height:1.45em;padding:0 4px;margin:0 -4px;background:color-mix(in srgb, var(--accent2) 12%, transparent);caret-color:var(--accent); }
+  .vivo-linea.activa { outline:none;white-space:pre-wrap;line-height:1.45em;padding:0 4px;margin:0 -4px;border-radius:6px;background:color-mix(in srgb, var(--accent2) 10%, transparent);caret-color:var(--accent); }
+  .vivo-linea.activa .mk { color:var(--text3);font-weight:500;font-style:normal;text-decoration:none;font-size:.9em; }
+  .vivo-linea.activa .h1 { font-size:17px;font-weight:800; }
+  .vivo-linea.activa .h2 { font-size:15px;font-weight:750; }
+  .vivo-linea.activa .h3 { font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:var(--text2); }
+  .vivo-linea.activa .cita { font-style:italic;color:var(--text2); }
+  .vivo-linea.activa code { font-family:ui-monospace, Consolas, monospace;font-size:12px;background:rgba(0,0,0,.25);border-radius:5px; }
+  .vivo-linea.activa mark { background:color-mix(in srgb, #fbbf24 45%, transparent);color:inherit;border-radius:3px; }
   .md-vista { min-height:110px;max-height:260px;overflow:auto;padding:12px 14px;border-radius:14px;background:var(--bg2);--c:var(--accent2); }
   /* Casillas propias: círculo de cristal; al marcarla se llena del acento y el check se dibuja. */
   .casilla { display:flex;gap:8px;align-items:flex-start;padding:2px 0;border-radius:8px; }
@@ -1385,12 +1392,26 @@ function pintarMarkdown(cont, texto, idNota) {
 }
 
 // Barra del editor: envuelve lo seleccionado o pone el prefijo a las líneas elegidas.
-function mdEnvolver(pre, post, ejemplo) {
+// Como en Word: sin seleccionar, empieza a escribir con ese estilo; si ya estás dentro (justo
+// antes de la marca de cierre), pulsar otra vez te saca y sigues escribiendo normal.
+function mdEnvolver(pre, post) {
   if (vivoActiva < 0) vivoActivar(vivoLineas.length - 1, null);
   const el = vivoEl(); const [a, b] = vivoSeleccion(el);
-  const l = vivoLineas[vivoActiva], sel = l.slice(a, b) || ejemplo;
+  const l = vivoLineas[vivoActiva];
+  if (a === b) {
+    if (l.startsWith(post, a) && l.lastIndexOf(pre, a - 1) >= 0) { vivoPintar([a + post.length, a + post.length]); return; }   // salir
+    vivoLineas[vivoActiva] = l.slice(0, a) + pre + post + l.slice(a);
+    vivoPintar([a + pre.length, a + pre.length]);
+    return;
+  }
+  const sel = l.slice(a, b);
+  // Si lo seleccionado ya tiene ese estilo, se le quita.
+  if (l.slice(a - pre.length, a) === pre && l.slice(b, b + post.length) === post) {
+    vivoLineas[vivoActiva] = l.slice(0, a - pre.length) + sel + l.slice(b + post.length);
+    vivoPintar([a - pre.length, b - pre.length]); return;
+  }
   vivoLineas[vivoActiva] = l.slice(0, a) + pre + sel + post + l.slice(b);
-  vivoPintar([a + pre.length, a + pre.length + sel.length]);
+  vivoPintar([a + pre.length, b + pre.length]);
 }
 const PREFIJO_MD = /^(\s*(?:-\s*)?\[( |x|X)\]\s?|#{1,3}\s+|\s*[-*•]\s+|\s*\d+[.)]\s+|>\s?)/;
 function mdPrefijo(prefijo) {
@@ -1408,7 +1429,7 @@ function mdPrefijo(prefijo) {
 const MD_ACCIONES = {
   b: () => mdEnvolver('**', '**', 'negrita'), i: () => mdEnvolver('*', '*', 'cursiva'), s: () => mdEnvolver('~~', '~~', 'tachado'),
   mark: () => mdEnvolver('==', '==', 'resaltado'), code: () => mdEnvolver(BT, BT, 'código'),
-  link: () => mdEnvolver('[', '](https://)', 'texto del enlace'),
+  link: () => mdEnvolver('[', '](https://)'),
   h1: () => mdPrefijo('# '), h2: () => mdPrefijo('## '), ul: () => mdPrefijo('- '), ol: () => mdPrefijo(k => k + '. '),
   check: () => mdPrefijo('[ ] '), quote: () => mdPrefijo('> '),
   hr: () => { const i = vivoActiva < 0 ? vivoLineas.length - 1 : vivoActiva; vivoLineas.splice(i + 1, 0, '---', ''); vivoActiva = i + 2; vivoPintar([0, 0]); },
@@ -1423,6 +1444,32 @@ function vivoSync() {
   vivo.classList.toggle('vacio', vivoLineas.length === 1 && !vivoLineas[0] && vivoActiva < 0);
 }
 function vivoPoner(texto) { vivoLineas = String(texto || '').split('\n'); vivoActiva = -1; vivoPintar(); }
+// Resalta la línea que se edita: el texto es el mismo (con sus marcas) pero con su estilo, y las
+// marcas en tenue. Como el texto no cambia, el cursor se recoloca por posición.
+function resaltarLinea(l) {
+  const mk = (t) => '<span class="mk">' + esc(t) + '</span>';
+  let pre = '', resto = l, clase = '';
+  let m;
+  if ((m = l.match(/^(#{1,3}\s+)(.*)$/))) { pre = mk(m[1]); resto = m[2]; clase = 'h' + m[1].trim().length; }
+  else if ((m = l.match(/^(\s*(?:-\s*)?\[(?: |x|X)\]\s?|\s*[-*•]\s+|\s*\d+[.)]\s+)(.*)$/))) { pre = mk(m[1]); resto = m[2]; }
+  else if ((m = l.match(/^(>\s?)(.*)$/))) { pre = mk(m[1]); resto = m[2]; clase = 'cita'; }
+  // En línea: cada marca a su sitio, con el trozo de dentro con su estilo.
+  const reglas = [[BT, BT, 'code'], ['**', '**', 'b'], ['__', '__', 'b'], ['~~', '~~', 's'], ['==', '==', 'mark'], ['*', '*', 'i'], ['_', '_', 'i']];
+  let html = '', i = 0;
+  while (i < resto.length) {
+    let hecho = false;
+    for (const [a, b, tag] of reglas) {
+      if (!resto.startsWith(a, i)) continue;
+      const j = resto.indexOf(b, i + a.length);
+      if (j <= i + a.length - 1 || j < 0) continue;
+      if (a.length === 1 && (resto[i + 1] === a || resto[i + 1] === ' ')) continue;   // * suelto o el de **
+      html += mk(a) + '<' + tag + '>' + esc(resto.slice(i + a.length, j)) + '</' + tag + '>' + mk(b);
+      i = j + b.length; hecho = true; break;
+    }
+    if (!hecho) { html += esc(resto[i]); i++; }
+  }
+  return pre + (clase ? '<span class="' + clase + '">' + html + '</span>' : html) || '';
+}
 // Posición del cursor dentro de la línea activa (en caracteres).
 function vivoSeleccion(el) {
   const sel = window.getSelection();
@@ -1431,10 +1478,17 @@ function vivoSeleccion(el) {
   const med = (nodo, off) => { const r = document.createRange(); r.selectNodeContents(el); r.setEnd(nodo, off); return r.toString().length; };
   return [med(r0.startContainer, r0.startOffset), med(r0.endContainer, r0.endOffset)];
 }
+function puntoEn(el, k) {
+  const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let nodo, ultimo = null;
+  while ((nodo = tw.nextNode())) { ultimo = nodo; if (k <= nodo.textContent.length) return [nodo, k]; k -= nodo.textContent.length; }
+  if (ultimo) return [ultimo, ultimo.textContent.length];
+  const t = el.appendChild(document.createTextNode('')); return [t, 0];
+}
 function vivoCursor(el, a, b) {
-  const t = el.firstChild || el.appendChild(document.createTextNode(''));
-  const n = t.textContent.length, r = document.createRange();
-  r.setStart(t, Math.min(a, n)); r.setEnd(t, Math.min(b == null ? a : b, n));
+  const r = document.createRange();
+  const [n1, o1] = puntoEn(el, a); r.setStart(n1, o1);
+  const [n2, o2] = puntoEn(el, b == null ? a : b); r.setEnd(n2, o2);
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
 }
 function vivoPintar(cursor) {
@@ -1446,7 +1500,7 @@ function vivoPintar(cursor) {
     if (i === vivoActiva) {
       el.classList.add('activa');
       el.contentEditable = 'plaintext-only'; el.spellcheck = false;
-      el.textContent = l;
+      el.innerHTML = resaltarLinea(l);
     } else {
       pintarMarkdown(el, l, null);
       // Las casillas también se marcan desde aquí.
@@ -1509,6 +1563,10 @@ vivo.addEventListener('input', (e) => {
   const t = el.textContent;
   if (t.includes('\n')) { const partes = t.split('\n'); vivoLineas.splice(vivoActiva, 1, ...partes); vivoActiva += partes.length - 1; vivoPintar([partes[partes.length - 1].length, null]); return; }
   vivoLineas[vivoActiva] = t; vivoSync();
+  if (e.isComposing) return;
+  const [a, b] = vivoSeleccion(el);
+  el.innerHTML = resaltarLinea(t);
+  vivoCursor(el, a, b);
 });
 vivo.addEventListener('paste', (e) => {
   const el = vivoEl(); if (!el) return;

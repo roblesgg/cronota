@@ -33,21 +33,42 @@ function fechaLocal(d) {
 // Una copia al día, con el mismo formato que «Exportar copia» (se restaura desde Ajustes igual).
 // Si no hay nada que guardar no se escribe: si un día la app arrancara vacía por lo que fuera,
 // no debe ir desplazando a las copias buenas.
-function copiaDelDia(estado, ajustes) {
+function copiaDelDia(estado, ajustes, carpetaArchivos) {
   try {
-    if (!(estado.tasks || []).length && !(estado.groups || []).length) return false;
+    if (!(estado.tasks || []).length && !(estado.groups || []).length && !(estado.notas || []).length) return false;
     const dir = carpetaCopias();
     const fichero = path.join(dir, `cronota-copia-${fechaLocal(new Date())}.json`);
     if (fs.existsSync(fichero)) return false;
     // 2.14.1: también los ajustes y las sugerencias descartadas, como «Exportar copia».
     const copia = { cronotaBackup: true, version: 2, exportedAt: new Date().toISOString(), tasks: estado.tasks || [], groups: estado.groups || [], outlookDescartadas: estado.outlookDescartadas || [], notas: estado.notas || [], seccionesNotas: estado.seccionesNotas || [], cajaFuerte: estado.cajaFuerte || null, settings: ajustes || undefined };
     escribirAtomico(fichero, JSON.stringify(copia, null, 2));
+    // Los archivos de las notas, en una carpeta común de las copias (solo los que falten).
+    copiarArchivosNotas(carpetaArchivos, path.join(dir, 'archivos de notas'), ficherosEnNotas(estado));
     const nuestras = fs.readdirSync(dir).filter((n) => /^cronota-copia-\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
     nuestras.slice(0, Math.max(0, nuestras.length - COPIAS_A_GUARDAR))
       .forEach((n) => { try { fs.unlinkSync(path.join(dir, n)); } catch {} });
     return true;
   } catch { return false; }
 }
+
+// 2.16: los archivos de las notas. Copia de «de» a «a» los que estén en uso y falten allí (no se
+// vuelven a copiar los que ya estén: los nombres son únicos y no cambian).
+function copiarArchivosNotas(de, a, ficheros) {
+  let n = 0;
+  try {
+    if (!de || !a || !fs.existsSync(de)) return 0;
+    const usar = ficheros ? new Set(ficheros) : null;
+    fs.mkdirSync(a, { recursive: true });
+    fs.readdirSync(de).forEach(f => {
+      if (usar && !usar.has(f)) return;
+      const destino = path.join(a, f);
+      if (fs.existsSync(destino)) return;
+      try { fs.copyFileSync(path.join(de, f), destino); n++; } catch {}
+    });
+  } catch {}
+  return n;
+}
+const ficherosEnNotas = (estado) => ((estado && estado.notas) || []).filter(x => x && x.archivo && x.archivo.fichero).map(x => x.archivo.fichero);
 
 // Ajustes que no se restauran desde una copia: dependen de la versión o de este equipo.
 // 2.14.1: tampoco la nube elegida (cada PC elige la suya en Ajustes).
@@ -89,4 +110,4 @@ function arranqueDeSesion() {
   } catch { return false; }
 }
 
-module.exports = { configurar, carpetaCopias, copiaDelDia, ajustesTraspasables, arranqueDeSesion };
+module.exports = { configurar, carpetaCopias, copiaDelDia, ajustesTraspasables, arranqueDeSesion, copiarArchivosNotas, ficherosEnNotas };

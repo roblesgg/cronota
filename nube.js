@@ -107,6 +107,8 @@ function crear(o) {
       const ajustes = o.ajustesParaSubir ? o.ajustesParaSubir() : undefined;
       escribirAtomico(f, JSON.stringify({ cronotaSync: 2, equipo, guardado, tasks: e.tasks, groups: e.groups, activeTaskId: e.activeTaskId || null, activeSubId: e.activeSubId || null, outlookDescartadas: e.outlookDescartadas || [], notas: e.notas || [], seccionesNotas: e.seccionesNotas || [], cajaFuerte: e.cajaFuerte || null, settings: ajustes }));
       aj().nubeVersion = guardado; aj().nubePendiente = false; o.guardar();
+      // 2.16: los archivos de las notas viajan aparte, a «archivos» (solo los que falten).
+      if (o.archivos) { try { o.archivos.subir(path.join(path.dirname(f), 'archivos')); } catch {} }
       cambiarEstado({ ultima: guardado, error: null });
     } catch (err) { cambiarEstado({ error: 'No se pudo guardar en la carpeta: ' + String((err && err.message) || err) }); }
   }
@@ -140,6 +142,7 @@ function crear(o) {
     if (Array.isArray(remoto.seccionesNotas)) datos.seccionesNotas = remoto.seccionesNotas;
     if (remoto.cajaFuerte !== undefined) datos.cajaFuerte = remoto.cajaFuerte;
     o.aplicar(datos);
+    if (o.archivos) { try { o.archivos.bajar(path.join(path.dirname(f), 'archivos')); } catch {} }
     if (remoto.settings && typeof remoto.settings === 'object' && o.aplicarAjustes) o.aplicarAjustes(remoto.settings);
     aj().nubeVersion = remoto.guardado; o.guardar();
     cambiarEstado({ ultima: remoto.guardado, error: null });

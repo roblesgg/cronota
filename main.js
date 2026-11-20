@@ -3652,6 +3652,9 @@ ipcMain.handle('export-backup', async (_e, extra) => {
     const local = extra && extra.local && typeof extra.local === 'object' ? extra.local : {};
     const payload = { cronotaBackup: true, version: 2, appVersion: app.getVersion(), exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups, outlookDescartadas: state.outlookDescartadas || [], notas: state.notas || [], seccionesNotas: state.seccionesNotas || [], cajaFuerte: state.cajaFuerte || null, settings, local };
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+    // 2.16: los archivos de las notas, en una carpeta al lado con el mismo nombre.
+    const usados = copias.ficherosEnNotas(state);
+    if (usados.length) copias.copiarArchivosNotas(carpetaArchivosNotas(), filePath.replace(/\.json$/i, '') + ' (archivos de notas)', usados);
     return { ok: true, path: filePath };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
@@ -3696,6 +3699,7 @@ ipcMain.handle('import-backup', async () => {
       else conflicts.push({ kind: 'group', id: g.id, key: `group:${g.id}`, name: g.name, localName: local.name });
     });
     pendingImport = raw;
+    pendingImport.__ruta = filePaths[0];
     const hasSettings = !!(raw.settings && typeof raw.settings === 'object');
     return { ok: true, newCount, sameCount, conflicts, hasSettings };
   } catch (e) {
@@ -3725,6 +3729,12 @@ ipcMain.handle('apply-import-backup', async (_e, payload) => {
   if (Array.isArray(raw.seccionesNotas)) raw.seccionesNotas.forEach(s => { if (s && s.id && !seccionesNotas().some(x => x.id === s.id)) seccionesNotas().push(s); });
   if (Array.isArray(raw.notas)) raw.notas.forEach(n => { if (n && n.id && !notas().some(x => x.id === n.id)) notas().push(n); });
   if (raw.cajaFuerte && raw.cajaFuerte.datos && !(state.cajaFuerte && state.cajaFuerte.datos)) state.cajaFuerte = raw.cajaFuerte;
+  // Los archivos de las notas: de la carpeta de al lado de la copia, o de la de las copias automáticas.
+  if (raw.__ruta) {
+    const usados = copias.ficherosEnNotas(raw);
+    if (usados.length) [raw.__ruta.replace(/\.json$/i, '') + ' (archivos de notas)', path.join(path.dirname(raw.__ruta), 'archivos de notas')]
+      .forEach(dir => copias.copiarArchivosNotas(dir, carpetaArchivosNotas(), usados));
+  }
   // 2.14.1: las sugerencias de Outlook descartadas se suman a las de aquí.
   if (Array.isArray(raw.outlookDescartadas) && raw.outlookDescartadas.length) {
     state.outlookDescartadas = [...new Set([...(state.outlookDescartadas || []), ...raw.outlookDescartadas.map(String)])].slice(-500);
@@ -4038,6 +4048,10 @@ function arrancarNube() {
       ajustes: () => settings,
       guardar: () => saveSettingsSoon(),
       ajustesParaSubir: () => { const a = ajustesQueViajan(); firmaAjustesNube = JSON.stringify(a); return a; },
+      archivos: {   // 2.16: los archivos de las notas
+        subir: (dir) => copias.copiarArchivosNotas(carpetaArchivosNotas(), dir, copias.ficherosEnNotas(state)),
+        bajar: (dir) => { if (copias.copiarArchivosNotas(dir, carpetaArchivosNotas(), copias.ficherosEnNotas(state))) broadcastState(); },
+      },
       aplicarAjustes: aplicarAjustesDeOtroPC,
       avisar: (title, body) => { try { new Notification({ title, body }).show(); } catch {} },
       alCambiarEstado: avisarNube,
@@ -4213,8 +4227,8 @@ app.whenReady().then(() => {
   // 2.9.2: una copia al día en Documentos\Cronota\Copias automáticas. La versión de la Store
   // guarda sus datos dentro del paquete, y Windows los borra si se desinstala.
   if (app.isPackaged) {
-    copias.copiaDelDia(state, settings);
-    setInterval(() => copias.copiaDelDia(state, settings), 3 * 60 * 60 * 1000);
+    copias.copiaDelDia(state, settings, carpetaArchivosNotas());
+    setInterval(() => copias.copiaDelDia(state, settings, carpetaArchivosNotas()), 3 * 60 * 60 * 1000);
   }
 });
 
