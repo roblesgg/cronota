@@ -775,6 +775,14 @@ ipcRenderer.on('state', (_, s) => {
   if (!antes && primeraVez) { primeraVez = false; setTimeout(() => encuadrar(false), 50); }
 });
 ipcRenderer.send('action', { type: 'get-state' });
+// 2.16: una vez, fuera las celdas de la cuadrícula guardadas con la lógica vieja (guardaba las de
+// todas al ancho de aquel momento y luego salían en una o dos columnas).
+setTimeout(() => {
+  try { if (localStorage.getItem('notas.celdasLimpias')) return; } catch { return; }
+  const con = ((currentState && currentState.notas) || []).filter(n => n.celda);
+  if (con.length) enviar('notas-editar', { lista: con.map(n => ({ id: n.id, celda: null })) });
+  try { localStorage.setItem('notas.celdasLimpias', '1'); } catch {}
+}, 2500);
 
 // ── Apuntar ───────────────────────────────────────────────────────────────────
 let pendienteEn = null;
@@ -992,7 +1000,7 @@ function empezarReorden(e, el, n) {
     if (!movida && Math.hypot(dx, dy) < 4) return;
     if (!movida) {
       movida = true; arrastrandoNota = true;
-      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, celdaIni: celdasActuales.get(n.id), celdasBase: new Map(celdasActuales), huecosBase: huecos.slice(), ordenBase: ultimoOrden.slice() };
+      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, columnas: columnas.map(c => c.clave), celdaIni: celdasActuales.get(n.id), celdasBase: new Map(celdasActuales), huecosBase: huecos.slice(), ordenBase: ultimoOrden.slice() };
       celdasTemp = new Map(celdasActuales);
       el.classList.add('cogida'); el.style.zIndex = '9999'; el.style.transition = 'none';
     }
@@ -1026,16 +1034,18 @@ function empezarReorden(e, el, n) {
     if (modo === 'cuadricula') {
       // Se guardan las celdas de todas (así no se mueven solas al añadir otras).
       const fijas = celdasTemp || celdasActuales; celdasTemp = null;
-      const lista = [...fijas].map(([id, c]) => ({ id, celda: c }));
+      // Solo las que cambian de celda (la que mueves y, si había otra, esa): las demás se acomodan solas.
+      const lista = [...fijas].filter(([id, c]) => { const a = r.celdasBase.get(id); return id === n.id || !a || a.c !== c.c || a.f !== c.f; }).map(([id, c]) => ({ id, celda: c }));
       aplicarLocal(lista);
       enviar('notas-editar', { lista });
       colocar(true);
       return;
     }
     // Se guarda el orden de todas (y, si cambió de columna, su propiedad).
-    const fij = new Set(((currentState && currentState.notas) || []).filter(x => x.fijada).map(x => x.id));
-    const ids = r.ids.filter(id => fij.has(id)).concat(r.ids.filter(id => !fij.has(id)));
-    const lista = ids.map((id, i) => ({ id, orden: i }));
+    const vistas = new Set(r.ids);
+    const resto = ((currentState && currentState.notas) || []).filter(x => !vistas.has(x.id))
+      .sort((a, b) => ((a.orden != null) - (b.orden != null)) || (a.orden || 0) - (b.orden || 0) || (b.creada || 0) - (a.creada || 0)).map(x => x.id);
+    const lista = r.ids.concat(resto).map((id, i) => ({ id, orden: i }));
     if (r.grupo !== grupoIni && r.grupo !== undefined) { const p = propiedadDeColumna(r.grupo); if (p) Object.assign(lista.find(x => x.id === n.id), p); }
     aplicarLocal(lista);
     enviar('notas-editar', { lista });
@@ -1074,7 +1084,12 @@ const ANCHO_G = 16;
 // las columnas vacías (para poder soltar en ellas).
 function grupos(lista, forzado, todas) {
   const meter = (g, n, clave) => (g.find(x => x.clave === (forzado && n.id === forzado.id ? forzado.clave : clave)) || g[g.length - 1]).notas.push(n);
-  const fin = (g) => g.filter(x => x.notas.length || todas);
+  const fin = (g) => {
+    if (!todas) return g.filter(x => x.notas.length);
+    const fijas = (reorden && reorden.columnas) || [];
+    const delante = fijas.map(k => g.find(x => x.clave === k)).filter(Boolean);
+    return delante.concat(g.filter(x => !fijas.includes(x.clave)));
+  };
   if (modo === 'seccion') {
     const g = seccionesTareas().map(sc => ({ clave: sc.id, nombre: sc.name, color: sc.color, notas: [] }));
     g.push({ clave: '', nombre: 'Sin sección', color: null, notas: [] });
@@ -1119,16 +1134,18 @@ function colocar(animar) {
   if (!ordenado) { lista.forEach((n, i) => poner(n, n.x, n.y, ANCHO_NOTA, i)); return; }
   // Orden de las ordenadas: fijadas primero, luego las más urgentes, luego las más nuevas.
   const peso = { alta: 0, media: 1, baja: 2, '': 3 };
-  let orden = lista.slice().sort((a, b) => (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0)
-    || ((a.orden != null) - (b.orden != null)) || ((a.orden != null && b.orden != null) ? a.orden - b.orden : 0)
-    || peso[a.urgencia || ''] - peso[b.urgencia || ''] || (b.creada || 0) - (a.creada || 0));
+  // El orden guardado manda; las que aún no tienen (nuevas) van delante, las urgentes y nuevas primero.
+  let orden = lista.slice().sort((a, b) => ((a.orden != null) - (b.orden != null))
+    || ((a.orden != null && b.orden != null) ? a.orden - b.orden : 0)
+    || peso[a.urgencia || ''] - peso[b.urgencia || ''] || (b.creada || 0) - (a.creada || 0) || (a.id < b.id ? -1 : 1));
   // Mientras arrastras una: el orden provisional (las demás se apartan para hacerle hueco).
   if (reorden) orden = reorden.ids.map(id => orden.find(n => n.id === id)).filter(Boolean);
   ultimoOrden = orden.map(n => n.id);
   huecos = [];
   const anchoVisible = Math.max(ANCHO_NOTA + 2 * ANCHO_G, (mapa.clientWidth - 30) / vista.z);
   const cols = Math.max(1, Math.floor((anchoVisible + ANCHO_G) / (ANCHO_NOTA + ANCHO_G)));
-  const alto = (n, w) => { const e = el(n); if (!e) return 120; const antes = e.style.width; e.style.width = w + 'px'; const h = e.offsetHeight; e.style.width = antes; return h; };
+  // Altura con el ancho final (sin transición: si no, se mide a mitad de animación y se montan o dejan huecos).
+  const alto = (n, w) => { const e = el(n); if (!e) return 120; const tr = e.style.transition, antes = e.style.width; e.style.transition = 'none'; e.style.width = w + 'px'; const h = e.offsetHeight; e.style.width = antes; void e.offsetWidth; e.style.transition = tr; return h; };
   if (modo === 'cuadricula') {
     // Cuadrícula libre: cada nota en su celda (nota.celda = { c, f }); si la sueltas en una
     // ocupada, se cambian el sitio. Las que no tienen celda llenan los huecos libres en orden.
