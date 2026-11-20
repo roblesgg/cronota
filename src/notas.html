@@ -983,7 +983,7 @@ function empezarReorden(e, el, n) {
     if (!movida && Math.hypot(dx, dy) < 4) return;
     if (!movida) {
       movida = true; arrastrandoNota = true;
-      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, celdaIni: celdasActuales.get(n.id) };
+      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, celdaIni: celdasActuales.get(n.id), celdasBase: new Map(celdasActuales) };
       celdasTemp = new Map(celdasActuales);
       el.classList.add('cogida'); el.style.zIndex = '9999'; el.style.transition = 'none';
     }
@@ -996,9 +996,10 @@ function empezarReorden(e, el, n) {
         const clave = c.c + ',' + c.f;
         if (reorden.celdaClave === clave) return;
         reorden.celdaClave = clave;
-        const temp = new Map(celdasActuales);
+        // Siempre desde cómo estaban al cogerla: si pasas por encima de otra, no se queda cambiada.
+        const temp = new Map(reorden.celdasBase);
         const mia = reorden.celdaIni;
-        const otra = [...celdasActuales].find(([id, cc]) => id !== n.id && cc.c === c.c && cc.f === c.f);
+        const otra = [...reorden.celdasBase].find(([id, cc]) => id !== n.id && cc.c === c.c && cc.f === c.f);
         temp.set(n.id, c);
         if (otra) temp.set(otra[0], mia);   // la que estaba ahí pasa a la de la que arrastras
         celdasTemp = temp;
@@ -1016,13 +1017,16 @@ function empezarReorden(e, el, n) {
     if (modo === 'cuadricula') {
       // Se guardan las celdas de todas (así no se mueven solas al añadir otras).
       const fijas = celdasTemp || celdasActuales; celdasTemp = null;
-      enviar('notas-editar', { lista: [...fijas].map(([id, c]) => ({ id, celda: c })) });
+      const lista = [...fijas].map(([id, c]) => ({ id, celda: c }));
+      aplicarLocal(lista);
+      enviar('notas-editar', { lista });
       colocar(true);
       return;
     }
     // Se guarda el orden de todas (y, si cambió de columna, su propiedad).
     const lista = r.ids.map((id, i) => ({ id, orden: i }));
     if (r.grupo !== grupoIni && r.grupo !== undefined) { const p = propiedadDeColumna(r.grupo); if (p) Object.assign(lista.find(x => x.id === n.id), p); }
+    aplicarLocal(lista);
     enviar('notas-editar', { lista });
     colocar(true);
   };
@@ -1184,6 +1188,10 @@ function aplicarDestino(d) {
   if (cambia) colocar(true);
 }
 // Lo que cambia al soltar en otra columna.
+function aplicarLocal(lista) {
+  const ns = (currentState && currentState.notas) || [];
+  lista.forEach(p => { const n = ns.find(x => x.id === p.id); if (n) Object.assign(n, p); });
+}
 function propiedadDeColumna(clave) {
   if (modo === 'seccion') return { seccion: clave || null };
   if (modo === 'urgencia') return { urgencia: clave || '' };
