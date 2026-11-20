@@ -2542,6 +2542,7 @@ function limpiarNota(n, base) {
   if (n.hecha !== undefined) { r.hecha = !!n.hecha; r.hechaEn = r.hecha ? (r.hechaEn || Date.now()) : null; }
   if (n.vence !== undefined) r.vence = Number(n.vence) || null;   // vencimiento: un día (su medianoche)
   if (n.fijada !== undefined) r.fijada = !!n.fijada;              // fijada: siempre encima de las demás
+  if (n.orden !== undefined) r.orden = Number.isFinite(Number(n.orden)) ? Number(n.orden) : null;   // orden en las vistas ordenadas
   return r;
 }
 function crearNota(p) {
@@ -2595,6 +2596,15 @@ function moverNotas(lista) {
     const [n] = ns.splice(i, 1);
     n.x = numMapa(p.x); n.y = numMapa(p.y);
     ns.push(n);
+  });
+  saveData(); broadcastState();
+}
+// Varias notas con cambios (orden y, al soltar en otra columna, su sección, urgencia o fecha).
+function editarNotas(lista) {
+  const ns = notas();
+  (Array.isArray(lista) ? lista : []).forEach(p => {
+    const i = ns.findIndex(x => x.id === (p && p.id));
+    if (i >= 0) ns[i] = limpiarNota(p, ns[i]);
   });
   saveData(); broadcastState();
 }
@@ -2944,7 +2954,7 @@ const ACCIONES_DESHACIBLES = new Set([
   'move-task-to-group', 'set-group-palette', 'recolor-group-tasks', 'reorder-groups',
   'restore-and-start-task', 'edit-entry', 'delete-entry', 'add-calendar-entry', 'archive-purge',
   'descartar-reunion', 'restaurar-descartadas',
-  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'nota-duplicar', 'notas-mover', 'notas-borrar', 'notas-pegar', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
+  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'nota-duplicar', 'notas-mover', 'notas-borrar', 'notas-pegar', 'notas-editar', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
 ]);
 const pilaDeshacer = [], pilaRehacer = [];
 let ultimaFoto = { type: null, t: 0 };
@@ -3463,6 +3473,7 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'nota-duplicar': duplicarNota(payload && payload.id); break;
     case 'notas-mover': moverNotas(payload && payload.lista); break;
     case 'notas-borrar': borrarNotas(payload && payload.ids); break;
+    case 'notas-editar': editarNotas(payload && payload.lista); break;
     case 'notas-pegar': pegarNotas(payload && payload.lista); break;
     case 'notas-vaciar-hechas': vaciarHechas(); break;
     case 'nota-seccion-crear': crearSeccionNotas(payload); break;

@@ -64,7 +64,7 @@
   .modos button.activo { color:var(--accent);background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.3), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--accent2) 30%, transparent); }
   /* Transición entre maneras: las notas se deslizan a su sitio nuevo, una tras otra. */
   .lienzo.animando .nota { transition:left .65s cubic-bezier(.34,1.25,.64,1), top .65s cubic-bezier(.34,1.25,.64,1), width .5s cubic-bezier(.22,1,.36,1), height .5s cubic-bezier(.22,1,.36,1), opacity .3s, filter .3s; }
-  .lienzo.ordenado .nota { cursor:default; }
+  .lienzo.ordenado .nota { cursor:grab; }
   .lienzo.m-cuadricula .nota { height:168px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 78%, transparent);mask-image:linear-gradient(#000 78%, transparent); }
   .lienzo.m-cuadricula .nota:hover { -webkit-mask-image:none;mask-image:none;overflow:auto; }
   .grupo-cab { position:absolute;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);white-space:nowrap;animation:notaCae .5s cubic-bezier(.34,1.56,.64,1) both;pointer-events:none; }
@@ -854,7 +854,7 @@ function tarjeta(n) {
       marcarSeleccion(); return;
     }
     if (!seleccion.has(n.id)) { seleccion = new Set([n.id]); marcarSeleccion(); }
-    if (modo !== 'libre') return;   // ordenadas: se colocan solas
+    if (modo !== 'libre') { empezarReorden(e, el, n); return; }
     // Se mueven todas las elegidas a la vez.
     const grupo = [...seleccion].map(id => {
       const nn = (currentState.notas || []).find(x => x.id === id), ee = lienzo.querySelector(`.nota[data-id="${id}"]`);
@@ -882,6 +882,37 @@ function tarjeta(n) {
   });
   return el;
 }
+// Coger una nota en una vista ordenada: va con el ratón y las demás le hacen hueco.
+function empezarReorden(e, el, n) {
+  const ini = { cx: e.clientX, cy: e.clientY, x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0 };
+  let movida = false, raf = 0;
+  el.setPointerCapture(e.pointerId);
+  const grupoIni = grupoDe(n);
+  const mover = (ev) => {
+    const dx = (ev.clientX - ini.cx) / vista.z, dy = (ev.clientY - ini.cy) / vista.z;
+    if (!movida && Math.hypot(dx, dy) < 4) return;
+    if (!movida) {
+      movida = true; arrastrandoNota = true;
+      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni };
+      el.classList.add('cogida'); el.style.zIndex = '9999'; el.style.transition = 'none';
+    }
+    el.style.left = (ini.x + dx) + 'px'; el.style.top = (ini.y + dy) + 'px';
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (reorden) aplicarDestino(destinoReorden(ini.x + dx + ANCHO_NOTA / 2, ini.y + dy + 20)); });
+  };
+  const soltar = () => {
+    el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar); el.removeEventListener('pointercancel', soltar);
+    if (!movida) return;
+    const r = reorden; reorden = null; arrastrandoNota = false;
+    el.classList.remove('cogida'); el.style.transition = '';
+    // Se guarda el orden de todas (y, si cambió de columna, su propiedad).
+    const lista = r.ids.map((id, i) => ({ id, orden: i }));
+    if (r.grupo !== grupoIni && r.grupo !== undefined) { const p = propiedadDeColumna(r.grupo); if (p) Object.assign(lista.find(x => x.id === n.id), p); }
+    enviar('notas-editar', { lista });
+    colocar(true);
+  };
+  el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
+}
+
 // Marcar como hecha, con su animación (si no se ve la nota, directamente).
 function hacerHecha(el, luego) {
   if (!el) { luego(); return; }
@@ -918,17 +949,21 @@ function cambiarModo(m) {
   else { vista = { x: 24, y: 92, z: Math.min(vista.z, 1) }; lienzo.style.transition = 'transform .55s cubic-bezier(.22,1,.36,1)'; aplicarVista(); }
 }
 const ANCHO_G = 16;
-function grupos(lista) {
+// forzado: { id, clave } mientras se arrastra una nota a otra columna. todas: enseñar también
+// las columnas vacías (para poder soltar en ellas).
+function grupos(lista, forzado, todas) {
+  const meter = (g, n, clave) => (g.find(x => x.clave === (forzado && n.id === forzado.id ? forzado.clave : clave)) || g[g.length - 1]).notas.push(n);
+  const fin = (g) => g.filter(x => x.notas.length || todas);
   if (modo === 'seccion') {
     const g = seccionesTareas().map(sc => ({ clave: sc.id, nombre: sc.name, color: sc.color, notas: [] }));
     g.push({ clave: '', nombre: 'Sin sección', color: null, notas: [] });
-    lista.forEach(n => (g.find(x => x.clave === (n.seccion || '')) || g[g.length - 1]).notas.push(n));
-    return g.filter(x => x.notas.length);
+    lista.forEach(n => meter(g, n, n.seccion || ''));
+    return fin(g);
   }
   if (modo === 'urgencia') {
     const g = [['alta', 'Urgente', '#f87171'], ['media', 'Media', '#fbbf24'], ['baja', 'Baja', '#60a5fa'], ['', 'Sin urgencia', null]].map(([c, nombre, color]) => ({ clave: c, nombre, color, notas: [] }));
-    lista.forEach(n => g.find(x => x.clave === (n.urgencia || '')).notas.push(n));
-    return g.filter(x => x.notas.length);
+    lista.forEach(n => meter(g, n, n.urgencia || ''));
+    return fin(g);
   }
   // Por fecha: la más próxima entre vencimiento y recordatorio.
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
@@ -940,10 +975,9 @@ function grupos(lista) {
       const t = Math.min(...fechas), dd = Math.floor((new Date(t).setHours(0, 0, 0, 0) - hoy) / 86400000);
       k = (!n.hecha && t < Date.now() && dd < 0) || (n.vence && dd < 0) ? 'vencidas' : dd <= 0 ? 'hoy' : dd === 1 ? 'manana' : dd < 7 ? 'semana' : 'luego';
     }
-    g.find(x => x.clave === k).notas.push(n);
+    meter(g, n, k);
   });
-  g.forEach(x => x.notas.sort((a, b) => Math.min(...[a.vence, a.recordatorio].filter(Boolean), Infinity) - Math.min(...[b.vence, b.recordatorio].filter(Boolean), Infinity)));
-  return g.filter(x => x.notas.length);
+  return fin(g);
 }
 function colocar(animar) {
   if (!currentState) return;
@@ -956,6 +990,7 @@ function colocar(animar) {
   const el = (n) => lienzo.querySelector(`.nota[data-id="${n.id}"]:not(.borrador)`);
   const poner = (n, x, y, w, i) => {
     const e = el(n); if (!e) return;
+    if (reorden && n.id === reorden.id) { e.style.width = (w || ANCHO_NOTA) + 'px'; return; }
     e.style.transitionDelay = animar ? Math.min(i * 22, 300) + 'ms' : '0ms';
     e.style.width = (w || ANCHO_NOTA) + 'px';
     e.style.left = x + 'px'; e.style.top = y + 'px';
@@ -963,22 +998,30 @@ function colocar(animar) {
   if (!ordenado) { lista.forEach((n, i) => poner(n, n.x, n.y, ANCHO_NOTA, i)); return; }
   // Orden de las ordenadas: fijadas primero, luego las más urgentes, luego las más nuevas.
   const peso = { alta: 0, media: 1, baja: 2, '': 3 };
-  const orden = lista.slice().sort((a, b) => (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || peso[a.urgencia || ''] - peso[b.urgencia || ''] || (b.creada || 0) - (a.creada || 0));
+  let orden = lista.slice().sort((a, b) => (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0)
+    || ((a.orden != null) - (b.orden != null)) || ((a.orden != null && b.orden != null) ? a.orden - b.orden : 0)
+    || peso[a.urgencia || ''] - peso[b.urgencia || ''] || (b.creada || 0) - (a.creada || 0));
+  // Mientras arrastras una: el orden provisional (las demás se apartan para hacerle hueco).
+  if (reorden) orden = reorden.ids.map(id => orden.find(n => n.id === id)).filter(Boolean);
+  ultimoOrden = orden.map(n => n.id);
+  huecos = [];
   const anchoVisible = Math.max(ANCHO_NOTA + 2 * ANCHO_G, (mapa.clientWidth - 30) / vista.z);
   const cols = Math.max(1, Math.floor((anchoVisible + ANCHO_G) / (ANCHO_NOTA + ANCHO_G)));
   const alto = (n, w) => { const e = el(n); if (!e) return 120; const antes = e.style.width; e.style.width = w + 'px'; const h = e.offsetHeight; e.style.width = antes; return h; };
   if (modo === 'cuadricula') {
-    orden.forEach((n, i) => poner(n, (i % cols) * (ANCHO_NOTA + ANCHO_G), Math.floor(i / cols) * (168 + ANCHO_G), ANCHO_NOTA, i));
+    orden.forEach((n, i) => { const x = (i % cols) * (ANCHO_NOTA + ANCHO_G), y = Math.floor(i / cols) * (168 + ANCHO_G); huecos.push({ id: n.id, x, y, w: ANCHO_NOTA, h: 168 }); poner(n, x, y, ANCHO_NOTA, i); });
   } else if (modo === 'mosaico') {
     const y = new Array(cols).fill(0);
-    orden.forEach((n, i) => { const c = y.indexOf(Math.min(...y)); poner(n, c * (ANCHO_NOTA + ANCHO_G), y[c], ANCHO_NOTA, i); y[c] += alto(n, ANCHO_NOTA) + ANCHO_G; });
+    orden.forEach((n, i) => { const c = y.indexOf(Math.min(...y)), h = alto(n, ANCHO_NOTA); huecos.push({ id: n.id, x: c * (ANCHO_NOTA + ANCHO_G), y: y[c], w: ANCHO_NOTA, h }); poner(n, c * (ANCHO_NOTA + ANCHO_G), y[c], ANCHO_NOTA, i); y[c] += h + ANCHO_G; });
   } else if (modo === 'filas') {
     const w = Math.min(760, Math.max(ANCHO_NOTA, anchoVisible - 2 * ANCHO_G));
     let y = 0;
-    orden.forEach((n, i) => { poner(n, 0, y, w, i); y += alto(n, w) + 10; });
+    orden.forEach((n, i) => { const h = alto(n, w); huecos.push({ id: n.id, x: 0, y, w, h }); poner(n, 0, y, w, i); y += h + 10; });
   } else {
-    grupos(orden).forEach((g, gi) => {
+    columnas = [];
+    grupos(orden, reorden && reorden.grupo != null ? { id: reorden.id, clave: reorden.grupo } : null, !!reorden).forEach((g, gi) => {
       const x = gi * (ANCHO_NOTA + ANCHO_G * 2);
+      columnas.push({ clave: g.clave, x });
       const cab = document.createElement('div');
       cab.className = 'grupo-cab';
       if (g.color) cab.style.setProperty('--c', g.color);
@@ -986,10 +1029,56 @@ function colocar(animar) {
       cab.style.left = x + 'px'; cab.style.top = '-30px'; cab.style.animationDelay = (animar ? gi * 60 : 0) + 'ms';
       lienzo.appendChild(cab);
       let y = 0;
-      g.notas.forEach((n, i) => { poner(n, x, y, ANCHO_NOTA, gi * 3 + i); y += alto(n, ANCHO_NOTA) + ANCHO_G; });
+      g.notas.forEach((n, i) => { const h = alto(n, ANCHO_NOTA); huecos.push({ id: n.id, x, y, w: ANCHO_NOTA, h, clave: g.clave }); poner(n, x, y, ANCHO_NOTA, gi * 3 + i); y += h + ANCHO_G; });
     });
   }
 }
+// ── Mover en las vistas ordenadas ─────────────────────────────────────────────
+let reorden = null, ultimoOrden = [], huecos = [], columnas = [];
+// Dónde iría la nota si la sueltas en (x, y) del mapa: en qué columna y delante de cuál.
+function destinoReorden(x, y) {
+  const otras = huecos.filter(h => h.id !== reorden.id);
+  if (modo === 'seccion' || modo === 'urgencia' || modo === 'fecha') {
+    const col = columnas.reduce((m, c) => Math.abs(c.x + ANCHO_NOTA / 2 - x) < Math.abs(m.x + ANCHO_NOTA / 2 - x) ? c : m, columnas[0] || { clave: null, x: 0 });
+    const enCol = otras.filter(h => h.clave === col.clave);
+    const antes = enCol.find(h => y < h.y + h.h / 2);
+    return { grupo: col.clave, antesDe: antes ? antes.id : (enCol.length ? '__fin__' + col.clave : null) };
+  }
+  // Cuadrícula, mosaico y filas: la más cercana; delante o detrás según el lado.
+  if (!otras.length) return { antesDe: null };
+  const c = otras.reduce((m, h) => Math.hypot(h.x + h.w / 2 - x, h.y + h.h / 2 - y) < Math.hypot(m.x + m.w / 2 - x, m.y + m.h / 2 - y) ? h : m);
+  const detras = modo === 'filas' ? y > c.y + c.h / 2 : (x > c.x + c.w / 2 || y > c.y + c.h * 0.75);
+  const i = ultimoOrden.filter(id => id !== reorden.id).indexOf(c.id);
+  const lista = ultimoOrden.filter(id => id !== reorden.id);
+  return { antesDe: detras ? (lista[i + 1] || null) : c.id };
+}
+function aplicarDestino(d) {
+  const lista = ultimoOrden.filter(id => id !== reorden.id);
+  let i = lista.length;
+  if (d.antesDe && !String(d.antesDe).startsWith('__fin__')) i = lista.indexOf(d.antesDe);
+  else if (d.antesDe && String(d.antesDe).startsWith('__fin__')) {
+    // Al final de su columna: detrás de la última nota de esa columna.
+    const ult = huecos.filter(h => h.clave === d.grupo && h.id !== reorden.id).pop();
+    i = ult ? lista.indexOf(ult.id) + 1 : lista.length;
+  }
+  lista.splice(i < 0 ? lista.length : i, 0, reorden.id);
+  const cambia = lista.join() !== reorden.ids.join() || d.grupo !== reorden.grupo;
+  reorden.ids = lista;
+  if (d.grupo !== undefined) reorden.grupo = d.grupo;
+  if (cambia) colocar(true);
+}
+// Lo que cambia al soltar en otra columna.
+function propiedadDeColumna(clave) {
+  if (modo === 'seccion') return { seccion: clave || null };
+  if (modo === 'urgencia') return { urgencia: clave || '' };
+  if (modo === 'fecha') {
+    if (clave === 'vencidas') return null;   // no se «vence» a propósito: se queda como estaba
+    return { vence: { hoy: dia(0), manana: dia(1), semana: dia(Math.min(6, Math.max(2, 5 - ((new Date().getDay() + 6) % 7)))), luego: dia(14), sin: null }[clave] };
+  }
+  return null;
+}
+function grupoDe(n) { const h = huecos.find(x => x.id === n.id); return h ? h.clave : undefined; }
+
 // Si cambia el ancho del panel, las ordenadas se recolocan.
 new ResizeObserver(() => { if (modo !== 'libre') colocar(false); }).observe(mapa);
 
