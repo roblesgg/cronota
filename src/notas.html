@@ -21,8 +21,7 @@
   .btn-pildora:hover { color:var(--text);background:var(--bg3);transform:translateY(-1px); }
   .btn-pildora.activo { color:var(--accent);border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
 
-  .apuntar { display:flex;gap:8px;align-items:center;flex-shrink:0; }
-  .apuntar input { flex:1; }
+  .btn-pildora.primaria { background:color-mix(in srgb, var(--accent2) 30%, transparent);color:var(--text);border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
 
   /* Filtros: no esconden nada, apagan lo que no encaja (todo sigue a la vista). */
   .filtros { display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex-shrink:0; }
@@ -46,7 +45,8 @@
     background-size:24px 24px;
   }
   .mapa.moviendo { cursor:grabbing; }
-  .lienzo { position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform; }
+  .lienzo { position:absolute;left:0;top:0;transform-origin:0 0; }
+  .mapa.moviendose .lienzo { will-change:transform; }
   .mapa-vacio[hidden] { display:none; }
   .mapa-vacio { position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text3);font-size:13px;pointer-events:none;padding:20px; }
   .mapa-herr { position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:5; }
@@ -60,6 +60,9 @@
   .mapa-herr button:hover, .modos button:hover { transform:scale(1.08); }
   /* Maneras de ordenar (arriba a la izquierda del mapa). */
   .modos { position:absolute;left:10px;top:10px;display:flex;gap:4px;z-index:5; }
+  .pista-raton { position:absolute;right:10px;top:10px;z-index:5;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--text3);cursor:help;
+    background:color-mix(in srgb, var(--bg2) 55%, transparent);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);border:1px solid rgba(255,255,255,.1);transition:color .2s; }
+  .pista-raton:hover { color:var(--text); }
   .modos button { color:var(--text2); }
   .modos button.activo { color:var(--accent);background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.3), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--accent2) 30%, transparent); }
   /* Transición entre maneras: las notas se deslizan a su sitio nuevo, una tras otra. */
@@ -85,7 +88,7 @@
     border:1px solid color-mix(in srgb, var(--c) 40%, rgba(255,255,255,.18));
     box-shadow:inset 0 1px 1px rgba(255,255,255,.45), inset 0 0 0 1px rgba(255,255,255,.06), inset 0 -10px 18px -12px rgba(0,0,0,.35), inset 6px 0 10px -10px rgba(255,255,255,.35), 0 10px 22px -12px rgba(0,0,0,.6);
     transition:box-shadow .25s, opacity .3s, filter .3s, scale .35s cubic-bezier(.34,1.56,.64,1);
-    animation:notaCae .55s cubic-bezier(.34,1.56,.64,1) both;
+    animation:notaCae .42s cubic-bezier(.22,1,.36,1) both;
     --c:#8b93a7;
   }
   /* La deformación va solo en las notas (Álvaro: también mientras se mueven); los botones, solo desenfoque. */
@@ -95,6 +98,30 @@
   .nota:hover { box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 16px 30px -14px rgba(0,0,0,.65); }
   /* Notas con archivo (2.16). */
   .nota.con-archivo { padding:8px 8px 10px; }
+  .nota.recibe { outline:2px dashed var(--accent);outline-offset:3px; }
+  /* Los demás archivos de una nota, en chips */
+  .adj-tarjeta { display:flex;flex-wrap:wrap;gap:5px;margin-top:8px; }
+  .adj-tarjeta button { display:flex;align-items:center;gap:5px;max-width:100%;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:var(--text);font:inherit;font-size:11px;font-weight:650;padding:3px 9px 3px 7px;border-radius:999px;cursor:pointer; }
+  .adj-tarjeta button:hover { background:rgba(255,255,255,.08); }
+  .adj-tarjeta svg { width:11px;height:11px;flex-shrink:0;color:#38bdf8; }
+  .adj-tarjeta span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px; }
+  /* Ventana de la nota: adjuntos y soltar archivos */
+  .adjuntos { display:flex;flex-direction:column;gap:5px; }
+  .adjuntos[hidden] { display:none; }
+  .adj-tit { font-size:11px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:2px 2px 1px; }
+  .adj-fila { display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);animation:popIn .22s cubic-bezier(.2,.8,.2,1); }
+  .adj-fila.se-ve { cursor:pointer; }
+  .adj-fila.se-ve:hover { background:rgba(255,255,255,.08); }
+  .adj-fila img { width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0; }
+  .adj-fila img.icono { object-fit:contain;background:transparent; }
+  .adj-ext { width:34px;height:34px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;font-size:10px;font-weight:800;text-transform:uppercase;background:color-mix(in srgb, #38bdf8 22%, transparent);color:#7dd3fc; }
+  .adj-nom { flex:1;min-width:0;font-size:12.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .adj-tam { font-size:11px;color:var(--text3);flex-shrink:0; }
+  .adj-quitar { width:22px;height:22px;border-radius:50%;border:none;background:transparent;color:var(--text3);display:grid;place-items:center;cursor:pointer;flex-shrink:0; }
+  .adj-quitar:hover { background:rgba(255,255,255,.1);color:var(--text); }
+  .pop-nota.soltando { outline:2px dashed var(--accent);outline-offset:-8px; }
+  .pop-nota.soltando::after { content:'Suelta para adjuntar';position:absolute;inset:0;display:grid;place-items:center;font-weight:750;font-size:15px;color:var(--text);
+    background:color-mix(in srgb, var(--accent2) 18%, rgba(0,0,0,.45));border-radius:inherit;pointer-events:none;z-index:5; }
   .archivo-prev { position:relative;border-radius:12px;overflow:hidden;background:rgba(0,0,0,.25);display:grid;place-items:center;min-height:70px;max-height:220px; }
   .archivo-prev img { width:100%;max-height:220px;object-fit:cover;display:block;border-radius:12px;pointer-events:none; }
   .archivo-prev img.icono { width:56px;height:56px;object-fit:contain;margin:16px auto; }
@@ -121,10 +148,14 @@
   .mapa.panear, .mapa.panear .nota { cursor:grabbing !important; }
   .nota.cogida { cursor:grabbing;scale:1.04;box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 26px 44px -16px rgba(0,0,0,.7);animation:none;z-index:4; }
   .nota.apagada { opacity:.22;filter:saturate(.4); }
-  .nota.se-va { animation:notaSeVa .28s cubic-bezier(.4,0,1,1) both; }
+  .nota.se-va { animation:notaSeVa .26s cubic-bezier(.4,0,.2,1) both !important;pointer-events:none; }
   .nota.hecha { opacity:.55; }
   .nota.hecha .nota-texto { text-decoration:line-through; }
-  @keyframes notaCae { from { opacity:0; transform:translateY(-12px) scale(.92); filter:blur(5px); } to { opacity:1; transform:none; filter:none; } }
+  @keyframes notaCae { from { opacity:0; transform:translateY(6px) scale(.97); filter:blur(6px); } to { opacity:1; transform:none; filter:none; } }
+  .nota.recien { animation:notaNace .5s cubic-bezier(.22,1,.36,1) both; }
+  .nota.recien::before { content:'';position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 22px -4px color-mix(in srgb, var(--accent) 55%, transparent);animation:brilloNace 1.4s .15s ease-out both; }
+  @keyframes notaNace { from { opacity:0; transform:scale(.94); filter:blur(8px); } 60% { filter:blur(0); } to { opacity:1; transform:none; filter:none; } }
+  @keyframes brilloNace { from { opacity:1; } to { opacity:0; } }
   /* Hecha (2.16): se comprime (se aplasta hacia su centro) y desaparece, con un toque verde. */
   .nota.se-hace { pointer-events:none;animation:hechaComprime .5s cubic-bezier(.55,0,.75,.2) both;box-shadow:0 0 0 2px #34d39999, 0 0 26px -6px #34d399aa; }
   @keyframes hechaComprime {
@@ -132,7 +163,14 @@
     28% { transform:scale(1.04, .9); }
     100% { transform:scale(.55, 0); opacity:0; filter:blur(2px); }
   }
-  @keyframes notaSeVa { to { opacity:0; transform:scale(.88); filter:blur(6px); } }
+  /* Hecha: un sello verde con el check que se dibuja; luego la nota sube un poco y se desvanece */
+  .nota.se-completa { animation:none !important;transition:none !important;pointer-events:none;will-change:transform, opacity, filter; }
+  .hecha-sello { position:absolute;inset:0;border-radius:inherit;display:grid;place-items:center;pointer-events:none;z-index:3;
+    background:color-mix(in srgb, #34d399 18%, rgba(10,20,16,.35));-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px); }
+  .hecha-sello i { width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#34d399;box-shadow:0 6px 18px -4px rgba(52,211,153,.6), inset 0 1px 1px rgba(255,255,255,.5); }
+  .hecha-sello svg { width:20px;height:20px; }
+  .hecha-sello path { stroke-dasharray:24;stroke-dashoffset:24; }
+  @keyframes notaSeVa { from { opacity:1; transform:none; filter:none; } to { opacity:0; transform:translateY(4px) scale(.95); filter:blur(5px); } }
   /* Urgencia alta: un halo que respira. */
   .nota.u-alta::after { content:'';position:absolute;inset:-3px;border-radius:21px;border:2px solid #f8717199;box-shadow:0 0 14px -2px #f8717166;pointer-events:none; }
   @keyframes halo { 0%,100% { opacity:.15; } 50% { opacity:.7; } }
@@ -202,11 +240,13 @@
     min-height:120px;max-height:300px;overflow:auto;padding:12px 14px;border-radius:14px;background:var(--bg2);cursor:text;
     border:1.5px solid transparent;transition:border-color .2s;--c:var(--accent2);position:relative;
   }
-  .vivo.foco { border-color:color-mix(in srgb, var(--accent) 60%, transparent); }
+  .vivo.foco { border-color:color-mix(in srgb, var(--accent) 35%, transparent); }
   .vivo.vacio::before { content:attr(data-vacio);position:absolute;left:14px;top:12px;right:14px;color:var(--text3);font-size:13px;pointer-events:none; }
   .vivo-linea { min-height:1.45em;border-radius:6px; }
   .vivo-linea > div { min-height:1.45em; }
-  .vivo-linea.activa { outline:none;white-space:pre-wrap;line-height:1.45em;padding:0 4px;margin:0 -4px;border-radius:6px;background:color-mix(in srgb, var(--accent2) 10%, transparent);caret-color:var(--accent); }
+  .vivo-linea.activa { white-space:pre-wrap;line-height:1.45em;caret-color:var(--accent); }
+  /* Sin recuadro ni fondo en la línea que se escribe: se ve como cualquier editor */
+  .vivo-linea.activa, .vivo-linea.activa:focus, .vivo-linea.activa:focus-visible { outline:none !important;box-shadow:none !important;border:none !important;background:transparent !important; }
   .vivo-linea.activa .mk { color:var(--text3);font-weight:500;font-style:normal;text-decoration:none;font-size:.9em; }
   .vivo-linea.activa .h1 { font-size:17px;font-weight:800; }
   .vivo-linea.activa .h2 { font-size:15px;font-weight:750; }
@@ -374,10 +414,13 @@
   .caja-cerrada input::placeholder { letter-spacing:normal;font-size:13px; }
   .caja-error { color:var(--danger, #e5484d);font-size:12.5px;min-height:16px; }
   .enlace { background:none;border:none;color:var(--text3);font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline; }
-  .caja-abierta { flex:1;min-height:0;display:flex;flex-direction:column;gap:10px; }
-  .caja-lista { flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:14px 6px 6px 2px; }
-  .nota.segura { position:relative;width:auto;--c:#8b5cf6;cursor:default;user-select:text; }
-  .nota.segura .nota-titulo { font-weight:700;font-size:13.5px;margin-bottom:3px; }
+  /* La pizarra de la caja: un borde del color de acento para saber dónde estás */
+  body.en-caja .mapa { box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent), inset 0 0 40px -10px color-mix(in srgb, var(--accent2) 35%, transparent); }
+  .pide-secreto { gap:10px; }
+  .aviso-flotante { position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;max-width:calc(100% - 40px);padding:9px 16px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text);
+    background:color-mix(in srgb, var(--bg) 70%, transparent);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 12px 30px -12px rgba(0,0,0,.6);animation:popIn .22s cubic-bezier(.2,.8,.2,1);transition:opacity .35s, transform .35s; }
+  .aviso-flotante.fuera { opacity:0;transform:translate(-50%, 8px); }
   .caja-aviso { font-size:11.5px;color:var(--text3); }
   .vacio { font-size:12.5px;color:var(--text3);text-align:center;padding:16px; }
 </style>
@@ -408,6 +451,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/><path d="M7 13h7M7 17h4"/></svg>
       <span id="titulo">Notas</span>
     </div>
+    <button class="btn-pildora primaria" id="btnNueva" onclick="notaEnCentro()" title="Nota nueva (N). También: doble clic o clic derecho en el mapa">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Nota</span>
+    </button>
     <button class="btn-pildora" id="btnCaja" onclick="alternarCaja()" title="Notas protegidas con PIN o contraseña">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       <span>Caja fuerte</span>
@@ -416,13 +463,10 @@
 
   <!-- Mapa de notas -->
   <div id="vistaMapa" style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0">
-    <div class="apuntar">
-      <input type="text" id="apuntarInput" maxlength="4000" placeholder="Apunta algo y Enter: cae en el centro del mapa" autocomplete="off">
-    </div>
     <div class="filtros" id="filtros"></div>
     <div class="mapa" id="mapa">
       <div class="lienzo" id="lienzo"></div>
-      <div class="mapa-vacio" id="mapaVacio" hidden>Tu mapa está vacío.<br>Apunta algo arriba y colócalo donde quieras.</div>
+      <div class="mapa-vacio" id="mapaVacio" hidden>Tu mapa está vacío.<br>Doble clic donde quieras para escribir una nota.</div>
       <div class="modos" id="modos">
         <button type="button" data-m="libre" title="Sueltas: cada una donde la dejes"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="6" rx="1.5"/><rect x="13" y="9" width="8" height="6" rx="1.5"/><rect x="5" y="14" width="8" height="6" rx="1.5"/></svg></button>
         <button type="button" data-m="cuadricula" title="Cuadrícula: todas del mismo tamaño"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></button>
@@ -431,6 +475,15 @@
         <button type="button" data-m="seccion" title="Por sección"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
         <button type="button" data-m="urgencia" title="Por urgencia"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5h.01"/></svg></button>
         <button type="button" data-m="fecha" title="Por fecha: vencidas, hoy, esta semana…"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button>
+      </div>
+      <!-- Pista: con el clic derecho arrastrando se mueve la pizarra -->
+      <div class="pista-raton" title="Mantén el clic derecho y arrastra para moverte por la pizarra (clic derecho sin mover: el menú)">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="11" y="9" width="10" height="15" rx="5"/>
+          <path d="M16 9v5M11 14h10"/>
+          <path d="M16 9.4a4.6 4.6 0 0 1 4.6 4.6H16z" fill="var(--accent)" stroke="var(--accent)"/>
+          <path d="M16 2.5v3M14.5 4l1.5-1.5L17.5 4M16 29.5v-3M14.5 28l1.5 1.5 1.5-1.5M2.5 16.5h3M4 15l-1.5 1.5L4 18M29.5 16.5h-3M28 15l1.5 1.5L28 18"/>
+        </svg>
       </div>
       <div class="mapa-herr">
         <button type="button" title="Alejar" onclick="zoomEn(-0.15)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
@@ -447,7 +500,7 @@
 <!-- Propiedades de una nota -->
 <div class="popup-backdrop" id="popNotaFondo" style="display:none" onclick="cerrarPopNota()"></div>
 <div class="entry-popup pop-nota" id="popNota" style="display:none">
-  <div class="entry-popup-title" style="display:flex;align-items:center;gap:8px"><span style="flex:1">Nota</span><div class="modo-md" id="mdModo"></div></div>
+  <div class="entry-popup-title" style="display:flex;align-items:center;gap:8px"><span style="flex:1" id="pnTituloPop">Nota</span><div class="modo-md" id="mdModo"></div></div>
   <div class="md-barra" id="mdBarra">
     <button type="button" data-md="b" title="Negrita (Ctrl+B)"><b>B</b></button>
     <button type="button" data-md="i" title="Cursiva (Ctrl+I)"><i>I</i></button>
@@ -473,6 +526,7 @@
   <div class="vivo nota-texto" id="pnVivo" data-vacio="Escribe la nota… Admite Markdown: **negrita**, *cursiva*, # títulos, - listas, 1. números, [ ] casillas"></div>
   <div class="md-vista nota-texto" id="pnVista" hidden></div>
   <div class="props" id="pnProps"></div>
+  <div class="adjuntos" id="pnAdjuntos" hidden></div>
   <div hidden id="pnViejos">
   <div class="fila"><span class="et">Urgencia</span>
     <div class="seg" id="pnUrgencia">
@@ -498,10 +552,10 @@
   <div class="fila"><span class="et">Color</span><div class="colores" id="pnColores"></div></div>
   </div>
   <div class="entry-popup-actions">
-    <button class="btn-danger" onclick="borrarDesdePop()">Borrar</button>
+    <button class="btn-danger" id="pnBorrar" onclick="borrarDesdePop()">Borrar</button>
     <div style="flex:1"></div>
     <button class="btn-ghost" onclick="cerrarPopNota()">Cancelar</button>
-    <button class="btn-primary" onclick="guardarPopNota()">Guardar</button>
+    <button class="btn-primary" id="pnGuardar" onclick="guardarPopNota()">Guardar</button>
   </div>
 </div>
 
@@ -552,7 +606,13 @@ const ANCHO_NOTA = 230;
 const COLORES_NOTA = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399', '#2dd4bf', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#e879f9', '#f472b6'];
 const URGENCIAS = { baja: 'Baja', media: 'Media', alta: 'Urgente' };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const enviar = (type, payload) => ipcRenderer.send('action', { type, payload });
+let enCaja = false;   // 2.16: en la pizarra de la caja fuerte
+// Dentro de la caja, lo que se hace con las notas (y Ctrl+Z) va marcado para que main lo cifre.
+const enviar = (type, payload) => {
+  if (enCaja && /^(notas?-|undo$|redo$)/.test(type) && !/^nota-seccion/.test(type)) payload = { ...(payload || {}), caja: true };
+  ipcRenderer.send('action', { type, payload });
+};
+function notasActuales() { if (!currentState) return []; return (enCaja ? currentState.cajaNotas : currentState.notas) || []; }
 
 const mapa = document.getElementById('mapa');
 const lienzo = document.getElementById('lienzo');
@@ -606,7 +666,7 @@ aplicarVista();
 // Botón izquierdo en un hueco: recuadro para seleccionar notas.
 let pan = null, panMovido = false, marco = null;
 mapa.addEventListener('pointerdown', (e) => {
-  if (e.target.closest('.mapa-herr, .modos')) return;
+  if (e.target.closest('.mapa-herr, .modos, .pista-raton')) return;
   if (e.button === 2 || e.button === 1) {
     pan = { sx: e.clientX, sy: e.clientY, x: vista.x, y: vista.y }; panMovido = false;
     lienzo.style.transition = '';
@@ -653,7 +713,7 @@ mapa.addEventListener('wheel', (e) => {
 }, { passive: false });
 // Doble clic en el fondo: nota nueva escribiéndose ahí mismo.
 mapa.addEventListener('dblclick', (e) => {
-  if (e.target.closest('.nota, .mapa-herr, .modos')) return;
+  if (e.target.closest('.nota, .mapa-herr, .modos, .pista-raton')) return;
   const p = aMapa(e.clientX, e.clientY);
   nuevaNotaEn(p.x - 24, p.y - 18);
 });
@@ -663,7 +723,7 @@ mapa.addEventListener('contextmenu', (e) => {
   if (panMovido) { panMovido = false; return; }   // era para mover la pizarra
   const el = e.target.closest('.nota');
   if (el && el.classList.contains('borrador')) return;
-  if (el) { const n = (currentState.notas || []).find(x => x.id === el.dataset.id); if (n) menuNota(e, n); return; }
+  if (el) { const n = notasActuales().find(x => x.id === el.dataset.id); if (n) menuNota(e, n); return; }
   menuMapa(e);
 });
 
@@ -674,14 +734,29 @@ const archivos = (accion, extra) => ipcRenderer.invoke('notas-archivos', { accio
 ['dragover', 'drop'].forEach(t => document.addEventListener(t, (e) => { if ([...(e.dataTransfer ? e.dataTransfer.types : [])].includes('Files')) e.preventDefault(); }));
 let contadorArrastre = 0;
 mapa.addEventListener('dragenter', (e) => { if ([...e.dataTransfer.types].includes('Files')) { contadorArrastre++; mapa.classList.add('soltando'); } });
-mapa.addEventListener('dragleave', () => { if (--contadorArrastre <= 0) { contadorArrastre = 0; mapa.classList.remove('soltando'); } });
-mapa.addEventListener('dragover', (e) => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+mapa.addEventListener('dragleave', () => { if (--contadorArrastre <= 0) { contadorArrastre = 0; mapa.classList.remove('soltando'); lienzo.querySelectorAll('.nota.recibe').forEach(x => x.classList.remove('recibe')); } });
+mapa.addEventListener('dragover', (e) => {
+  if (![...e.dataTransfer.types].includes('Files')) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+  const sobre = !enCaja && e.target.closest && e.target.closest('.nota:not(.borrador)');
+  lienzo.querySelectorAll('.nota.recibe').forEach(x => { if (x !== sobre) x.classList.remove('recibe'); });
+  if (sobre) sobre.classList.add('recibe');
+});
 mapa.addEventListener('drop', async (e) => {
   if (![...e.dataTransfer.types].includes('Files')) return;
   e.preventDefault(); contadorArrastre = 0; mapa.classList.remove('soltando');
+  if (enCaja) { avisar('En la caja fuerte no se pueden soltar archivos: no irían cifrados'); return; }
   const { webUtils } = require('electron');
   const rutas = [...e.dataTransfer.files].map(fl => { try { return webUtils && webUtils.getPathForFile ? webUtils.getPathForFile(fl) : fl.path; } catch { return fl.path; } }).filter(Boolean);
   if (!rutas.length) return;
+  // Encima de una nota: se le adjunta (se queda con su texto); el resto, notas nuevas.
+  const sobre = e.target.closest && e.target.closest('.nota:not(.borrador)');
+  lienzo.querySelectorAll('.nota.recibe').forEach(x => x.classList.remove('recibe'));
+  if (sobre) {
+    const ra = await archivos('adjuntar', { id: sobre.dataset.id, rutas });
+    avisar(ra && ra.error ? ra.error : (ra.adjuntados === 1 ? 'Archivo adjuntado a la nota' : ra.adjuntados + ' archivos adjuntados a la nota'));
+    return;
+  }
   const p = aMapa(e.clientX, e.clientY);
   const r = await archivos('soltar', { rutas, x: p.x - 40, y: p.y - 40, seccion: filtroSeccion || null });
   if (r && r.avisos && r.avisos.length) confirmar('Algunos no se han añadido', r.avisos.join('\n'), 'Vale', () => {});
@@ -689,9 +764,10 @@ mapa.addEventListener('drop', async (e) => {
 // Visor: imágenes y PDF dentro; texto, también; lo demás, con su programa.
 const EXT_IMAGEN = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'avif'];
 const EXT_TEXTO = ['txt', 'md', 'csv', 'json', 'log', 'xml', 'js', 'ts', 'css', 'html', 'ps1', 'sql', 'yml', 'yaml', 'ini'];
-async function abrirVisor(n) {
+async function abrirVisor(n, cual) {
   cerrarVisor();
-  const a = n.archivo; if (!a) return;
+  const a = cual || n.archivo; if (!a) return;
+  const ref = { id: n.id, fichero: a.fichero };
   const fondo = document.createElement('div'); fondo.className = 'visor-fondo'; fondo.id = 'visorFondo'; fondo.onclick = cerrarVisor;
   const v = document.createElement('div'); v.className = 'visor'; v.id = 'visor';
   v.innerHTML = `<div class="visor-cab"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b>
@@ -701,19 +777,19 @@ async function abrirVisor(n) {
   document.body.append(fondo, v);
   v.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
     if (b.dataset.a === 'cerrar') return cerrarVisor();
-    const r = await archivos(b.dataset.a, { id: n.id });
+    const r = await archivos(b.dataset.a, ref);
     if (r && r.error) confirmar('No se ha podido', r.error, 'Vale', () => {});
   });
   const cuerpo = v.querySelector('.visor-cuerpo');
-  const { ruta } = await archivos('ruta', { id: n.id });
+  const { ruta } = await archivos('ruta', ref);
   const ext = (a.ext || '').toLowerCase();
   if (!ruta) { cuerpo.innerHTML = `<div class="sin">${a.miniatura ? `<img src="${a.miniatura}" style="max-width:280px">` : ''}<span>Este archivo se añadió en otro PC: aquí solo está su vista previa.</span></div>`; return; }
   const url = require('url').pathToFileURL(ruta).href;
   if (EXT_IMAGEN.includes(ext)) cuerpo.innerHTML = `<img src="${url}" alt="">`;
   else if (ext === 'pdf') cuerpo.innerHTML = `<iframe src="${url}"></iframe>`;
-  else if (EXT_TEXTO.includes(ext)) { const t = await archivos('texto', { id: n.id }); cuerpo.innerHTML = '<pre></pre>'; cuerpo.firstChild.textContent = t.texto != null ? t.texto : (t.error || ''); }
+  else if (EXT_TEXTO.includes(ext)) { const t = await archivos('texto', ref); cuerpo.innerHTML = '<pre></pre>'; cuerpo.firstChild.textContent = t.texto != null ? t.texto : (t.error || ''); }
   else cuerpo.innerHTML = `<div class="sin">${a.miniatura ? `<img src="${a.miniatura}" style="max-width:280px;border-radius:12px">` : ''}<span>Este tipo de archivo se abre con su programa.</span><button class="btn-primary" id="visorAbrir">Abrir con su programa</button></div>`;
-  const ab = document.getElementById('visorAbrir'); if (ab) ab.onclick = () => archivos('abrir', { id: n.id });
+  const ab = document.getElementById('visorAbrir'); if (ab) ab.onclick = () => archivos('abrir', ref);
 }
 function cerrarVisor() { ['visor', 'visorFondo'].forEach(id => { const x = document.getElementById(id); if (x) x.remove(); }); }
 
@@ -725,51 +801,43 @@ mapa.addEventListener('pointerleave', () => { ratonMapa = null; });
 function marcarSeleccion() {
   lienzo.querySelectorAll('.nota[data-id]').forEach(el => el.classList.toggle('elegida', seleccion.has(el.dataset.id)));
 }
-function elegidas() { return ((currentState && currentState.notas) || []).filter(n => seleccion.has(n.id)); }
+function elegidas() { return notasActuales().filter(n => seleccion.has(n.id)); }
 
-// Borrador: una tarjeta con el cursor dentro, en su sitio. Enter guarda, Mayús+Enter salta de
-// línea, Esc (o quedarse vacía) la descarta.
-let borrador = null;
+// Nota nueva: se abre la ventana completa de la nota (editor con formato y propiedades) y, al
+// guardar, la nota cae en el sitio donde se pidió.
+let borrador = null;   // { x, y } mientras se escribe una nota nueva
 function nuevaNotaEn(x, y, inicial, extra) {
-  cerrarBorrador(true);
-  const el = document.createElement('div');
-  el.className = 'nota borrador';
-  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.zIndex = '9998';
-  el.innerHTML = '<textarea maxlength="4000" placeholder="Escribe la nota…"></textarea><div class="pista">Enter guarda · Mayús+Enter, otra línea · Esc, nada</div>';
-  lienzo.appendChild(el);
-  const ta = el.querySelector('textarea');
-  ta.value = inicial || '';
-  const crecer = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
-  ta.addEventListener('input', crecer);
-  ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); cerrarBorrador(true); }
-    else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      // En una lista de casillas, Enter abre otra casilla; Enter en una vacía, guarda.
-      const lineas = ta.value.split('\n'), ult = lineas[lineas.length - 1];
-      if (/^\[ \]\s*\S/.test(ult)) { ta.value += '\n[ ] '; crecer(); return; }
-      if (/^\[ \]\s*$/.test(ult) && lineas.length > 1) { lineas.pop(); ta.value = lineas.join('\n'); }
-      cerrarBorrador(false);
-    }
-  });
-  ta.addEventListener('blur', () => setTimeout(() => { if (borrador && borrador.el === el) cerrarBorrador(false); }, 120));
-  el.addEventListener('pointerdown', (e) => e.stopPropagation());
-  el.addEventListener('dblclick', (e) => e.stopPropagation());
-  borrador = { el, x, y, extra: extra || {} };
-  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); crecer(); }, 0);
+  cerrarPopNota();
+  extra = extra || {};
+  borrador = { x, y };
+  popId = null; popColor = extra.color || null; popUrgencia = extra.urgencia || ''; popArchivos = [];
+  vivoPoner(inicial || '');
+  document.getElementById('pnSeccion').value = extra.seccion !== undefined ? extra.seccion : (filtroSeccion || '');
+  document.getElementById('pnRecordatorio').value = '';
+  document.getElementById('pnVence').value = '';
+  pintarUrgenciaPop(); pintarColoresPop(); modoEditor(false);
+  document.getElementById('pnDentro').hidden = true;
+  pintarProps();
+  document.getElementById('pnTituloPop').textContent = 'Nota nueva';
+  document.getElementById('pnBorrar').style.display = 'none';
+  document.getElementById('pnGuardar').textContent = 'Crear';
+  document.getElementById('popNotaFondo').style.display = 'block';
+  document.getElementById('popNota').style.display = 'flex';
+  setTimeout(() => vivoActivar(Math.max(0, vivoLineas.length - 1), null), 0);
 }
-function cerrarBorrador(descartar) {
-  if (!borrador) return;
-  const b = borrador; borrador = null;
-  const texto = b.el.querySelector('textarea').value.replace(/\n\[ \]\s*$/, '').trim();
-  b.el.remove();
-  if (!descartar && texto && texto !== '[ ]') enviar('nota-crear', { texto, seccion: filtroSeccion || null, x: b.x, y: b.y, ...b.extra });
+// En el centro de lo que se ve (botón «Nota» y la tecla N), un poco movida para no taparse.
+function notaEnCentro() {
+  const r = mapa.getBoundingClientRect();
+  const c = aMapa(r.left + r.width / 2, r.top + r.height / 2);
+  const n = notasActuales().length;
+  nuevaNotaEn(c.x - ANCHO_NOTA / 2 + ((n * 37) % 90) - 45, c.y - 40 + ((n * 53) % 70) - 35);
 }
 function aMapa(cx, cy) { const r = mapa.getBoundingClientRect(); return { x: (cx - r.left - vista.x) / vista.z, y: (cy - r.top - vista.y) / vista.z }; }
 
 ipcRenderer.on('state', (_, s) => {
   const antes = currentState;
   currentState = s;
+  if (enCaja) mostrarVista();
   pintar();
   pintarBotonCaja();
   if (!antes && primeraVez) { primeraVez = false; setTimeout(() => encuadrar(false), 50); }
@@ -779,28 +847,10 @@ ipcRenderer.send('action', { type: 'get-state' });
 // todas al ancho de aquel momento y luego salían en una o dos columnas).
 setTimeout(() => {
   try { if (localStorage.getItem('notas.celdasLimpias')) return; } catch { return; }
-  const con = ((currentState && currentState.notas) || []).filter(n => n.celda);
+  const con = notasActuales().filter(n => n.celda);
   if (con.length) enviar('notas-editar', { lista: con.map(n => ({ id: n.id, celda: null })) });
   try { localStorage.setItem('notas.celdasLimpias', '1'); } catch {}
 }, 2500);
-
-// ── Apuntar ───────────────────────────────────────────────────────────────────
-let pendienteEn = null;
-document.getElementById('apuntarInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { pendienteEn = null; e.target.placeholder = 'Apunta algo y Enter: cae en el centro del mapa'; return; }
-  if (e.key !== 'Enter') return;
-  const t = e.target.value.trim();
-  if (!t) return;
-  let sitio = pendienteEn;
-  if (!sitio) {
-    const r = mapa.getBoundingClientRect();
-    const c = aMapa(r.left + r.width / 2, r.top + r.height / 2);
-    const n = (currentState.notas || []).length;
-    sitio = { x: c.x - ANCHO_NOTA / 2 + ((n * 37) % 90) - 45, y: c.y - 40 + ((n * 53) % 70) - 35 };
-  }
-  enviar('nota-crear', { texto: t, seccion: filtroSeccion || null, x: sitio.x, y: sitio.y });
-  e.target.value = ''; pendienteEn = null; e.target.placeholder = 'Apunta algo y Enter: cae en el centro del mapa';
-});
 
 // ── Pintar ────────────────────────────────────────────────────────────────────
 // 2.16: las secciones son las de Tareas; su color, el primero de su paleta.
@@ -815,7 +865,7 @@ function conSitio(lista) {
   return lista.map(n => (Number.isFinite(n.x) && Number.isFinite(n.y)) ? n : { ...n, x: (k % 3) * 260, y: Math.floor(k++ / 3) * 170 });
 }
 function notasVisibles() {
-  const l = conSitio((currentState && currentState.notas) || []).filter(n => verHechas || !n.hecha);
+  const l = conSitio(notasActuales()).filter(n => verHechas || !n.hecha);
   return l.filter(n => !n.fijada).concat(l.filter(n => n.fijada));   // las fijadas, siempre encima
 }
 function encaja(n) { return (!filtroSeccion || n.seccion === filtroSeccion) && (!busqueda || n.texto.toLowerCase().includes(busqueda)); }
@@ -824,7 +874,7 @@ function encaja(n) { return (!filtroSeccion || n.seccion === filtroSeccion) && (
 let arrastrandoNota = false, firmaPintada = '';
 function pintar(forzar) {
   if (!currentState || arrastrandoNota) return;
-  const firma = JSON.stringify([currentState.notas, currentState.groups, currentState.palettes, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
+  const firma = JSON.stringify([notasActuales(), enCaja, currentState.groups, currentState.palettes, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
   if (!forzar && firma === firmaPintada) return;
   firmaPintada = firma;
   pintarFiltros();
@@ -866,7 +916,7 @@ function pintarFiltros() {
   seccionesTareas().forEach(s => chip(s.id, s.name, s.color));
   const mas = document.createElement('button'); mas.className = 'chip-sec mas'; mas.textContent = '+ Sección'; mas.onclick = () => abrirPopSec(null);
   f.appendChild(mas);
-  const nHechas = ((currentState && currentState.notas) || []).filter(n => n.hecha).length;
+  const nHechas = notasActuales().filter(n => n.hecha).length;
   if (nHechas) {
     const h = document.createElement('button'); h.className = 'chip-sec' + (verHechas ? ' activo' : '');
     h.textContent = `Hechas (${nHechas})`; h.title = verHechas ? 'Esconderlas' : 'Enseñarlas en el mapa';
@@ -898,10 +948,13 @@ const ICO = {
   check: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
 };
 
+// Las recién creadas entran con un brillo (solo la primera vez que se pintan).
+const yaRecien = new Set();
 function tarjeta(n) {
   const el = document.createElement('div');
   el.className = 'nota' + (n.hecha ? ' hecha' : '') + (n.fijada ? ' fijada' : '') + (n.urgencia === 'alta' && !n.hecha ? ' u-alta' : '') + (encaja(n) ? '' : ' apagada');
   el.dataset.id = n.id;
+  if (n.creada && Date.now() - n.creada < 2500 && !yaRecien.has(n.id)) { yaRecien.add(n.id); el.classList.add('recien'); }
   el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
   const sec = seccionDe(n.seccion);
   const color = n.color || (sec && sec.color);
@@ -922,6 +975,17 @@ function tarjeta(n) {
   const txt = document.createElement('div'); txt.className = 'nota-texto';
   pintarMarkdown(txt, n.texto, n.id);
   if (n.texto || !n.archivo) el.appendChild(txt);
+  if (Array.isArray(n.adjuntos) && n.adjuntos.length) {
+    const fila = document.createElement('div'); fila.className = 'adj-tarjeta';
+    n.adjuntos.forEach(a => {
+      const c = document.createElement('button'); c.type = 'button'; c.title = a.nombre + ' · ' + tamanoLegible(a.tamano);
+      c.innerHTML = ICP.clip + '<span>' + esc(a.nombre) + '</span>';
+      c.onclick = (e) => { e.stopPropagation(); abrirVisor(n, a); };
+      c.addEventListener('pointerdown', (e) => e.stopPropagation());
+      fila.appendChild(c);
+    });
+    el.appendChild(fila);
+  }
   const meta = document.createElement('div'); meta.className = 'nota-meta';
   if (n.urgencia && URGENCIAS[n.urgencia]) meta.insertAdjacentHTML('beforeend', `<span class="etq u-${n.urgencia}">${URGENCIAS[n.urgencia]}</span>`);
   if (n.recordatorio) {
@@ -950,7 +1014,7 @@ function tarjeta(n) {
     else if (b.dataset.a === 'borrar') irse(el, () => enviar('nota-borrar', { id: n.id }), true);
   };
   el.appendChild(acc);
-  el.ondblclick = (e) => { e.stopPropagation(); if (n.archivo) abrirVisor(n); else abrirPopNota(n.id); };
+  el.ondblclick = (e) => { e.stopPropagation(); if (n.archivo && (!n.texto || e.target.closest('.archivo-prev'))) abrirVisor(n); else abrirPopNota(n.id); };
   // Arrastrar la nota por el mapa (sin el arrastre del sistema: se mueve fina, con el zoom).
   el.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
@@ -964,7 +1028,7 @@ function tarjeta(n) {
     if (modo !== 'libre') { empezarReorden(e, el, n); return; }
     // Se mueven todas las elegidas a la vez.
     const grupo = [...seleccion].map(id => {
-      const nn = (currentState.notas || []).find(x => x.id === id), ee = lienzo.querySelector(`.nota[data-id="${id}"]`);
+      const nn = notasActuales().find(x => x.id === id), ee = lienzo.querySelector(`.nota[data-id="${id}"]`);
       return nn && ee ? { id, el: ee, x: parseFloat(ee.style.left) || 0, y: parseFloat(ee.style.top) || 0 } : null;
     }).filter(Boolean);
     const ini = { cx: e.clientX, cy: e.clientY };
@@ -1043,7 +1107,7 @@ function empezarReorden(e, el, n) {
     }
     // Se guarda el orden de todas (y, si cambió de columna, su propiedad).
     const vistas = new Set(r.ids);
-    const resto = ((currentState && currentState.notas) || []).filter(x => !vistas.has(x.id))
+    const resto = notasActuales().filter(x => !vistas.has(x.id))
       .sort((a, b) => ((a.orden != null) - (b.orden != null)) || (a.orden || 0) - (b.orden || 0) || (b.creada || 0) - (a.creada || 0)).map(x => x.id);
     const lista = r.ids.concat(resto).map((id, i) => ({ id, orden: i }));
     if (r.grupo !== grupoIni && r.grupo !== undefined) { const p = propiedadDeColumna(r.grupo); if (p) Object.assign(lista.find(x => x.id === n.id), p); }
@@ -1055,10 +1119,24 @@ function empezarReorden(e, el, n) {
 }
 
 // Marcar como hecha, con su animación (si no se ve la nota, directamente).
+// Hecha: sobre la nota se posa un sello verde y el check se dibuja (confirma qué se ha hecho);
+// luego la nota sube un poco, se encoge apenas y se desvanece desenfocándose. Unos 0,6 s.
 function hacerHecha(el, luego) {
   if (!el) { luego(); return; }
-  el.classList.add('se-hace');
-  setTimeout(luego, 480);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.classList.add('se-va'); setTimeout(luego, 240); return; }
+  el.classList.add('se-completa');
+  const sello = document.createElement('div'); sello.className = 'hecha-sello';
+  sello.innerHTML = '<i><svg viewBox="0 0 24 24" fill="none" stroke="#062b1f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>';
+  el.appendChild(sello);
+  const suave = 'cubic-bezier(.22,1,.36,1)';
+  sello.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out', fill: 'forwards' });
+  sello.querySelector('i').animate([{ transform: 'scale(.6)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 260, easing: suave, fill: 'forwards' });
+  sello.querySelector('path').animate([{ strokeDashoffset: 24 }, { strokeDashoffset: 0 }], { duration: 240, delay: 90, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' });
+  el.animate([
+    { opacity: 1, transform: 'none', filter: 'blur(0)' },
+    { opacity: 0, transform: 'translateY(-10px) scale(.96)', filter: 'blur(6px)' },
+  ], { duration: 320, delay: 380, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+  setTimeout(luego, 680);
 }
 function irse(el, luego, animar) { if (!animar || !el) { luego(); return; } el.classList.add('se-va'); setTimeout(luego, 240); }
 
@@ -1219,7 +1297,7 @@ function aplicarDestino(d) {
 }
 // Lo que cambia al soltar en otra columna.
 function aplicarLocal(lista) {
-  const ns = (currentState && currentState.notas) || [];
+  const ns = notasActuales();
   lista.forEach(p => { const n = ns.find(x => x.id === p.id); if (n) Object.assign(n, p); });
 }
 function propiedadDeColumna(clave) {
@@ -1230,6 +1308,39 @@ function propiedadDeColumna(clave) {
     return { vence: { hoy: dia(0), manana: dia(1), semana: dia(Math.min(6, Math.max(2, 5 - ((new Date().getDay() + 6) % 7)))), luego: dia(14), sin: null }[clave] };
   }
   return null;
+}
+// Ordenar sin cambiar de modo. Sueltas: en columnas a partir de donde están, sin montarse y
+// respetando más o menos su orden de lectura (de arriba abajo y de izquierda a derecha). En las
+// ordenadas: fuera los huecos de la cuadrícula y el orden puesto a mano.
+function ordenarAqui() {
+  const lista = notasVisibles();
+  if (!lista.length) return;
+  if (modo !== 'libre') {
+    const cambios = lista.filter(n => n.orden != null || n.celda).map(n => ({ id: n.id, orden: null, celda: null }));
+    if (!cambios.length) { avisar('Ya están ordenadas'); return; }
+    aplicarLocal(cambios); colocar(true);
+    enviar('notas-editar', { lista: cambios });
+    return;
+  }
+  const el = (n) => lienzo.querySelector(`.nota[data-id="${n.id}"]:not(.borrador)`);
+  const BANDA = 80;   // notas a «la misma altura» se leen de izquierda a derecha
+  const orden = lista.slice().sort((a, b) => (b.fijada - a.fijada) || Math.floor(a.y / BANDA) - Math.floor(b.y / BANDA) || a.x - b.x);
+  const x0 = Math.min(...lista.map(n => n.x)), y0 = Math.min(...lista.map(n => n.y));
+  const anchoVisible = Math.max(ANCHO_NOTA + 2 * ANCHO_G, (mapa.clientWidth - 30) / vista.z);
+  const cols = Math.max(1, Math.min(orden.length, Math.floor((anchoVisible + ANCHO_G) / (ANCHO_NOTA + ANCHO_G))));
+  const altos = new Array(cols).fill(y0);
+  const pos = orden.map(n => {
+    let c = 0; altos.forEach((h, i) => { if (h < altos[c] - 1) c = i; });
+    const p = { id: n.id, x: Math.round(x0 + c * (ANCHO_NOTA + ANCHO_G)), y: Math.round(altos[c]) };
+    const e = el(n); altos[c] += (e ? e.offsetHeight : 120) + ANCHO_G;
+    return p;
+  });
+  if (pos.every(p => { const n = lista.find(x => x.id === p.id); return n.x === p.x && n.y === p.y; })) { avisar('Ya están ordenadas'); return; }
+  moviendose(1150); lienzo.classList.add('animando'); clearTimeout(colocar.t); colocar.t = setTimeout(() => lienzo.classList.remove('animando'), 1100);
+  pos.forEach((p, i) => { const e = lienzo.querySelector(`.nota[data-id="${p.id}"]`); if (e) { e.style.transitionDelay = Math.min(i * 22, 300) + 'ms'; e.style.left = p.x + 'px'; e.style.top = p.y + 'px'; } });
+  aplicarLocal(pos);
+  enviar('notas-mover', { lista: pos });
+  setTimeout(() => encuadrar(true), 650);
 }
 function grupoDe(n) { const h = huecos.find(x => x.id === n.id); return h ? h.clave : undefined; }
 
@@ -1257,6 +1368,8 @@ const IC = {
   pegar: sv('<path d="M9 4h6v3H9z"/><path d="M15 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>'),
   ver: sv('<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>'),
   menos: sv('<path d="M6 12h12"/>'),
+  candado: sv('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+  abierto: sv('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>'),
   punto: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3.4"/></svg>',
 };
 const dia = (desplaza, hora) => { const d = new Date(); d.setDate(d.getDate() + desplaza); d.setHours(hora == null ? 0 : hora, 0, 0, 0); return d.getTime(); };
@@ -1273,10 +1386,7 @@ function menuMapa(e) {
     { label: 'Urgente aquí', hint: 'Nota con urgencia alta', icon: IC.urgencia, tone: 'danger', run: () => nuevaNotaEn(p.x - 24, p.y - 18, '', { urgencia: 'alta' }) },
     portapapeles ? { label: 'Pegar como nota', hint: portapapeles.slice(0, 40), icon: IC.pegar, run: () => enviar('nota-crear', { texto: portapapeles.slice(0, 4000), seccion: filtroSeccion || null, x: p.x - 24, y: p.y - 18 }) } : null,
     { label: 'Nueva sección', hint: 'Para agrupar notas', icon: IC.seccion, run: () => abrirPopSec(null) },
-    { label: 'Ordenar', hint: 'Sueltas, cuadrícula, por fecha…', icon: IC.ver,
-      sub: () => ({ kind: 'list', title: 'Ordenar las notas', items: [
-        ['libre', 'Sueltas'], ['cuadricula', 'Cuadrícula'], ['mosaico', 'Mosaico'], ['filas', 'Filas'], ['seccion', 'Por sección'], ['urgencia', 'Por urgencia'], ['fecha', 'Por fecha'],
-      ].map(([m, nombre]) => ({ label: nombre, icon: IC.punto, selected: modo === m, run: () => cambiarModo(m) })) }) },
+    { label: 'Ordenar', hint: modo === 'libre' ? 'En columnas, sin montarse' : 'Sin huecos, en su orden', icon: IC.lista, run: () => ordenarAqui() },
     { label: 'Ver todas', hint: 'Encuadrar el mapa', icon: IC.ver, run: () => encuadrar(true) },
   ].filter(Boolean);
   RadialMenu.open({ x: e.clientX, y: e.clientY, title: 'Mapa', subtitle: 'Notas', items });
@@ -1346,6 +1456,9 @@ function menuNota(e, n) {
         { label: 'Copiar texto', icon: IC.copiar, run: () => { try { require('electron').clipboard.writeText(n.texto); } catch {} } },
         { label: 'Añadir casilla', hint: 'Una línea [ ] al final', icon: IC.lista, run: () => abrirPopNotaConCasilla(n.id) },
       ] }) },
+    enCaja
+      ? { label: 'Sacar de la caja', hint: 'Vuelve al mapa de notas', icon: IC.abierto, run: () => sacarDeCaja(idsDelMenu(n)) }
+      : { label: 'A la caja fuerte', hint: n.archivo ? 'Las de archivos no pueden ir' : 'Cifrada con tu PIN', icon: IC.candado, run: () => aLaCaja(idsDelMenu(n)) },
     { label: 'Borrar', hint: 'Ctrl+Z lo deshace', icon: IC.borrar, tone: 'danger', run: () => { const el = lienzo.querySelector(`.nota[data-id="${n.id}"]`); irse(el, () => enviar('nota-borrar', { id: n.id }), !!el); } },
   ];
   RadialMenu.open({ x: e.clientX, y: e.clientY, title: textoPlano(n.texto.split('\n')[0]).slice(0, 26), subtitle: sec ? sec.name : 'Nota', color, items });
@@ -1768,6 +1881,7 @@ hacerCampo('pnSeccion', 'seccion', 'Sin sección');
 
 // ── Píldoras de propiedades ──────────────────────────────────────────────────
 const ICP = {
+  clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>',
   urgencia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5h.01"/></svg>',
   reloj: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   vence: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
@@ -1786,14 +1900,17 @@ function pintarProps() {
     ['recordar', ICP.reloj + (rec ? textoRecordatorio(new Date(rec).getTime()) : 'Recordar'), !!rec, '#fbbf24'],
     ['vence', ICP.vence + (ven ? 'Vence ' + new Date(ven + 'T00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Vence'), !!ven, '#f87171'],
     ['seccion', ICP.seccion + (sc ? esc(sc.name) : 'Sección'), !!sc, sc && sc.color],
+    ...(enCaja ? [] : [['archivo', ICP.clip + 'Adjuntar', false, '#38bdf8']]),
     ['color', `<i style="background:${col || 'conic-gradient(#f87171, #fbbf24, #34d399, #38bdf8, #a78bfa, #f87171)'}"></i>` + (popColor ? 'Color' : 'Color'), !!popColor, popColor],
   ];
   cont.innerHTML = '';
+  pintarAdjuntosPop();
   pildoras.forEach(([k, html, puesta, c]) => {
     const b = document.createElement('button'); b.type = 'button';
     b.className = 'pildora' + (puesta ? ' puesta' : '');
     if (c) b.style.setProperty('--pc', c);
     b.innerHTML = html;
+    if (k === 'archivo') { b.onclick = () => elegirArchivoPop(); b.title = 'Adjuntar archivos (o suéltalos en esta ventana)'; cont.appendChild(b); return; }
     b.onclick = () => (selectorAbierto && selectorAbierto.campo === b ? cerrarSelector() : abrirSelector(b, (el) => SELECTOR_PROP[k](el)));
     cont.appendChild(b);
   });
@@ -1810,7 +1927,47 @@ function listaSel(el, items) {
   });
 }
 const ponerYCerrar = (fn) => () => { fn(); cerrarSelector(); pintarProps(); };
+async function elegirArchivoPop(rutas) {
+  const r = await archivos('preparar', rutas ? { rutas } : {});
+  if (r && r.avisos && r.avisos.length) avisar('No se han añadido: ' + r.avisos.join(', '));
+  if (r && r.archivos && r.archivos.length) { popArchivos = popArchivos.concat(r.archivos).slice(0, 31); pintarProps(); }
+}
+// «Adjuntos», debajo de las propiedades: cada archivo con su vista previa, nombre, tamaño y una x.
+function pintarAdjuntosPop() {
+  const cont = document.getElementById('pnAdjuntos');
+  cont.hidden = !popArchivos.length;
+  cont.innerHTML = popArchivos.length ? `<div class="adj-tit">Adjuntos · ${popArchivos.length}</div>` : '';
+  popArchivos.forEach((a, i) => {
+    const f = document.createElement('div'); f.className = 'adj-fila';
+    f.innerHTML = (a.miniatura ? `<img src="${a.miniatura}" class="${a.icono ? 'icono' : ''}" alt="">` : `<span class="adj-ext">${esc((a.ext || '?').slice(0, 4))}</span>`)
+      + `<span class="adj-nom" title="${esc(a.nombre)}">${esc(a.nombre)}</span><span class="adj-tam">${tamanoLegible(a.tamano)}</span>`
+      + '<button type="button" class="adj-quitar" title="Quitar"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
+    f.querySelector('.adj-quitar').onclick = () => { popArchivos.splice(i, 1); pintarProps(); };
+    // Ver: solo los que ya estaban guardados en la nota
+    const n = popId && notasActuales().find(x => x.id === popId);
+    if (n && [n.archivo, ...(n.adjuntos || [])].some(x => x && x.fichero === a.fichero)) { f.classList.add('se-ve'); f.onclick = (e) => { if (!e.target.closest('.adj-quitar')) abrirVisor(n, a); }; }
+    cont.appendChild(f);
+  });
+}
+// Soltar un archivo en la ventana de la nota: se adjunta a la nota.
+(() => {
+  const pop = document.getElementById('popNota');
+  let dentro = 0;
+  const conArchivos = (e) => !enCaja && [...e.dataTransfer.types].includes('Files');
+  pop.addEventListener('dragenter', (e) => { if (conArchivos(e)) { dentro++; pop.classList.add('soltando'); } });
+  pop.addEventListener('dragleave', () => { if (--dentro <= 0) { dentro = 0; pop.classList.remove('soltando'); } });
+  pop.addEventListener('dragover', (e) => { if (conArchivos(e)) { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; } });
+  pop.addEventListener('drop', (e) => {
+    dentro = 0; pop.classList.remove('soltando');
+    if (!conArchivos(e)) return;
+    e.preventDefault(); e.stopPropagation();
+    const { webUtils } = require('electron');
+    const rutas = [...e.dataTransfer.files].map(fl => { try { return webUtils && webUtils.getPathForFile ? webUtils.getPathForFile(fl) : fl.path; } catch { return fl.path; } }).filter(Boolean);
+    if (rutas.length) elegirArchivoPop(rutas);
+  });
+})();
 const SELECTOR_PROP = {
+
   urgencia: (el) => listaSel(el, [['', 'Ninguna'], ['baja', 'Baja'], ['media', 'Media'], ['alta', 'Alta']].map(([u, t]) => ({
     label: t, color: COLOR_URG[u], sel: popUrgencia === u, run: ponerYCerrar(() => { popUrgencia = u; pintarUrgenciaPop(); }) }))),
   recordar: (el) => {
@@ -1909,12 +2066,16 @@ document.getElementById('mdMas').onclick = () => abrirSelector(document.getEleme
 ]));
 
 // ── Propiedades de una nota ───────────────────────────────────────────────────
-let popId = null, popColor = null, popUrgencia = '';
+let popId = null, popColor = null, popUrgencia = '', popArchivos = [];
 function aLocal(ms) { const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
 function abrirPopNota(id, foco) {
-  const n = (currentState.notas || []).find(x => x.id === id);
+  const n = notasActuales().find(x => x.id === id);
   if (!n) return;
-  popId = id; popColor = n.color || null; popUrgencia = n.urgencia || '';
+  borrador = null;
+  document.getElementById('pnTituloPop').textContent = 'Nota';
+  document.getElementById('pnBorrar').style.display = '';
+  document.getElementById('pnGuardar').textContent = 'Guardar';
+  popId = id; popColor = n.color || null; popUrgencia = n.urgencia || ''; popArchivos = [n.archivo, ...(n.adjuntos || [])].filter(Boolean);
   vivoPoner(n.texto);
   const sel = document.getElementById('pnSeccion');
   sel.value = n.seccion || '';
@@ -1988,13 +2149,18 @@ function abrirDentro(idNota) {
   selectorDentro(document.getElementById('popDentroCuerpo'), (ms) => { enviar('nota-editar', { id: idNota, recordatorio: ms }); cerrarDentro(); }, 'Avisarme');
 }
 function cerrarDentro() { document.getElementById('popDentroFondo').style.display = 'none'; document.getElementById('popDentro').style.display = 'none'; }
-function cerrarPopNota() { cerrarSelector(); popId = null; document.getElementById('popNotaFondo').style.display = 'none'; document.getElementById('popNota').style.display = 'none'; }
+function cerrarPopNota() { cerrarSelector(); popId = null; borrador = null; document.getElementById('popNotaFondo').style.display = 'none'; document.getElementById('popNota').style.display = 'none'; }
 function guardarPopNota() {
-  const texto = document.getElementById('pnTexto').value.trim();
-  if (!texto) { borrarDesdePop(); return; }
+  const texto = document.getElementById('pnTexto').value.replace(/\n\[ \]\s*$/, '').trim();
   const r = document.getElementById('pnRecordatorio').value;
   const v = document.getElementById('pnVence').value;
-  enviar('nota-editar', { id: popId, texto, urgencia: popUrgencia, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null, vence: v ? new Date(v + 'T00:00').getTime() : null });
+  if (borrador) {   // nueva: se crea en su sitio (vacía, no se crea nada)
+    const b = borrador;
+    if ((texto && texto !== '[ ]') || popArchivos.length) enviar('nota-crear', { texto: texto === '[ ]' ? '' : texto, archivo: popArchivos[0] || undefined, adjuntos: popArchivos.slice(1), x: b.x, y: b.y, urgencia: popUrgencia, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null, vence: v ? new Date(v + 'T00:00').getTime() : null });
+    cerrarPopNota(); return;
+  }
+  if (!texto && !popArchivos.length) { borrarDesdePop(); return; }
+  enviar('nota-editar', { id: popId, texto, archivo: popArchivos[0] || null, adjuntos: popArchivos.slice(1), urgencia: popUrgencia, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null, vence: v ? new Date(v + 'T00:00').getTime() : null });
   cerrarPopNota();
 }
 function borrarDesdePop() {
@@ -2051,6 +2217,7 @@ function cerrarConf() { document.getElementById('popConfFondo').style.display = 
 document.addEventListener('keydown', (e) => {
   const enCampo = e.target.closest && e.target.closest('input, textarea, select');
   if (e.key === 'Escape' && !selectorAbierto && seleccion.size && document.getElementById('popNota').style.display !== 'flex') { seleccion.clear(); marcarSeleccion(); return; }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && document.getElementById('popNota').style.display === 'flex' && !selectorAbierto) { e.preventDefault(); guardarPopNota(); return; }   // Ctrl+Enter guarda la nota
   if (e.key === 'Escape' && document.getElementById('visor')) { cerrarVisor(); return; }
   if (e.key === 'Escape') { if (selectorAbierto) { cerrarSelector(); return; } cerrarPopNota(); cerrarPopSec(); cerrarConf(); cerrarDentro(); return; }
   if (enCampo || e.target.isContentEditable) return;
@@ -2084,13 +2251,14 @@ function pegar() {
   }
 }
 function atajosNotas(e) {
-  if (enCaja || document.getElementById('popNota').style.display === 'flex' || borrador) return false;
+  if (document.getElementById('popNota').style.display === 'flex' || borrador) return false;
   const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
   const ns = elegidas();
   if (ctrl && k === 'c') { if (copiarElegidas()) { e.preventDefault(); return true; } return false; }
   if (ctrl && k === 'x') { if (copiarElegidas()) { e.preventDefault(); enviar('notas-borrar', { ids: ns.map(n => n.id) }); seleccion.clear(); return true; } return false; }
   if (ctrl && k === 'v') { e.preventDefault(); pegar(); return true; }
   if (ctrl && k === 'd') { if (!ns.length) return false; e.preventDefault(); enviar('notas-pegar', { lista: ns.map(n => ({ ...sinId(n), x: n.x + 28, y: n.y + 28 })) }); return true; }
+  if (!ctrl && !e.altKey && k === 'n') { e.preventDefault(); notaEnCentro(); return true; }
   if (ctrl && k === 'a') { e.preventDefault(); seleccion = new Set(notasVisibles().map(n => n.id)); marcarSeleccion(); return true; }
   if (!ctrl && (e.key === 'Delete' || e.key === 'Backspace') && ns.length) {
     e.preventDefault();
@@ -2113,7 +2281,7 @@ function atajosNotas(e) {
 // ── Caja fuerte ───────────────────────────────────────────────────────────────
 // Lo de dentro solo pasa por aquí mientras está abierta: al cerrarse (a mano, a los 5 minutos,
 // al bloquear Windows) se borra de la página.
-let enCaja = false, cajaNotas = null, cajaTipoNuevo = 'pin';
+let cajaTipoNuevo = 'pin';
 const caja = (accion, extra) => ipcRenderer.invoke('caja', { accion, ...(extra || {}) });
 function pintarBotonCaja() {
   const b = document.getElementById('btnCaja');
@@ -2121,16 +2289,100 @@ function pintarBotonCaja() {
   b.querySelector('span').textContent = enCaja ? 'Cerrar caja' : 'Caja fuerte';
 }
 // Salir de la caja fuerte la cierra siempre (no se queda abierta a tus espaldas).
+// Abierta, la caja es la misma pizarra (mapa, formas de ordenar, menú redondo…) con sus notas.
 async function alternarCaja() {
-  if (enCaja) { cajaNotas = null; caja('cerrar'); }
+  if (enCaja) caja('cerrar');
   enCaja = !enCaja;
-  document.getElementById('vistaMapa').style.display = enCaja ? 'none' : 'flex';
-  document.getElementById('vistaCaja').hidden = !enCaja;
   document.getElementById('titulo').textContent = enCaja ? 'Caja fuerte' : 'Notas';
   pintarBotonCaja();
-  if (enCaja) pintarCaja(await caja('estado'));
+  mostrarVista();
 }
-ipcRenderer.on('caja-cerrada', () => { cajaNotas = null; if (enCaja) caja('estado').then(pintarCaja); });
+ipcRenderer.on('caja-cerrada', () => { if (currentState) currentState.cajaNotas = null; if (enCaja) mostrarVista(); });
+let vistaActual = 'mapa';
+function mostrarVista() {
+  const abierta = enCaja && !!currentState && Array.isArray(currentState.cajaNotas);
+  const v = !enCaja ? 'mapa' : abierta ? 'caja-mapa' : 'caja-cerrada';
+  document.body.classList.toggle('en-caja', v === 'caja-mapa');
+  if (v === vistaActual) return;
+  vistaActual = v;
+  cerrarPopNota(); cerrarVisor(); RadialMenu.close && RadialMenu.close();
+  document.getElementById('vistaMapa').style.display = v === 'caja-cerrada' ? 'none' : 'flex';
+  document.getElementById('vistaCaja').hidden = v !== 'caja-cerrada';
+  if (v === 'caja-cerrada') { caja('estado').then(pintarCaja); return; }
+  seleccion.clear(); filtroSeccion = ''; busqueda = '';
+  pintar(true);
+  setTimeout(() => encuadrar(false), 40);
+}
+// Mientras se usa, no se cierra sola (cada acción también la mantiene abierta).
+let ultimoToqueCaja = 0;
+['pointerdown', 'keydown', 'wheel'].forEach(t => document.addEventListener(t, () => {
+  if (vistaActual !== 'caja-mapa' || Date.now() - ultimoToqueCaja < 20000) return;
+  ultimoToqueCaja = Date.now(); caja('tocar');
+}, { passive: true, capture: true }));
+
+// Las del menú: la nota, o todas las elegidas si es una de ellas.
+function idsDelMenu(n) { return seleccion.has(n.id) && seleccion.size > 1 ? [...seleccion] : [n.id]; }
+function salenVolando(ids) { ids.forEach(id => { const el = lienzo.querySelector(`.nota[data-id="${id}"]`); if (el) el.classList.add('se-va'); }); }
+function resultadoCaja(r, verbo) {
+  if (!r || r.error) { if (r && r.error) avisar(r.error); return false; }
+  seleccion.clear();
+  const n = r.movidas;
+  avisar((n === 1 ? '1 nota ' : n + ' notas ') + verbo + (r.conArchivo ? ` (${r.conArchivo} con archivo se queda${r.conArchivo > 1 ? 'n' : ''} fuera)` : ''));
+  return true;
+}
+async function aLaCaja(ids) {
+  const est = await caja('estado');
+  if (!est.existe) {
+    confirmar('Primero, tu caja fuerte', 'Todavía no tienes caja fuerte. Créala con un PIN o una contraseña y luego manda ahí lo que quieras.', 'Crear caja fuerte', () => { if (!enCaja) alternarCaja(); });
+    document.getElementById('confOk').className = 'btn-primary';
+    return;
+  }
+  if (est.abierta) { const r = await caja('meter', { ids }); if (resultadoCaja(r, 'a la caja fuerte')) salenVolando(ids); return; }
+  // Cerrada: con el PIN se guarda cifrada y la caja sigue cerrada.
+  pedirSecreto(est.tipo, async (secreto) => {
+    const r = await caja('meter', { ids, secreto });
+    if (r && r.error && /incorrect|intentos/.test(r.error)) return r.error;
+    resultadoCaja(r, 'a la caja fuerte');
+    return null;
+  });
+}
+async function sacarDeCaja(ids) { resultadoCaja(await caja('sacar', { ids }), 'de vuelta al mapa'); }
+
+// Pedir el PIN o la contraseña en una ventanita (sin abrir la caja).
+function pedirSecreto(tipo, intentar) {
+  const fondo = document.createElement('div'); fondo.className = 'popup-backdrop'; fondo.style.cssText = 'display:block;z-index:70';
+  const p = document.createElement('div'); p.className = 'entry-popup pide-secreto'; p.style.cssText = 'display:flex;width:300px;z-index:71';
+  p.innerHTML = `<div class="candado" style="width:56px;height:56px;border-radius:20px;align-self:center">${CANDADO}</div>
+    <div class="entry-popup-title" style="text-align:center">A la caja fuerte</div>
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.45;text-align:center">Escribe tu ${tipo === 'clave' ? 'contraseña' : 'PIN'} para guardarla cifrada. La caja sigue cerrada.</div>
+    <input type="password" placeholder="${tipo === 'clave' ? 'Contraseña' : 'PIN'}" ${tipo === 'pin' ? 'inputmode="numeric" maxlength="8"' : 'maxlength="128"'} autocomplete="off" style="text-align:center;font-size:16px;letter-spacing:${tipo === 'pin' ? '.2em' : '.05em'}">
+    <div class="caja-error" style="text-align:center"></div>
+    <div class="entry-popup-actions"><div style="flex:1"></div><button class="btn-ghost" data-a="no">Cancelar</button><button class="btn-primary" data-a="si">Guardar</button></div>`;
+  document.body.append(fondo, p);
+  const i = p.querySelector('input'), err = p.querySelector('.caja-error'), cand = p.querySelector('.candado');
+  const cerrar = () => { fondo.remove(); p.remove(); };
+  const ok = async () => {
+    if (!i.value) return;
+    const b = p.querySelector('[data-a="si"]'); b.disabled = true;
+    const e = await intentar(i.value);
+    b.disabled = false;
+    if (e) { err.textContent = e; cand.classList.remove('temblor'); void cand.offsetWidth; cand.classList.add('temblor'); i.value = ''; i.focus(); return; }
+    cerrar();
+  };
+  fondo.onclick = cerrar;
+  p.querySelector('[data-a="no"]').onclick = cerrar;
+  p.querySelector('[data-a="si"]').onclick = ok;
+  i.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } });
+  setTimeout(() => i.focus(), 0);
+}
+// Un aviso corto abajo, que se va solo.
+function avisar(texto) {
+  document.querySelectorAll('.aviso-flotante').forEach(x => x.remove());
+  const a = document.createElement('div'); a.className = 'aviso-flotante'; a.textContent = texto;
+  document.body.appendChild(a);
+  setTimeout(() => a.classList.add('fuera'), 2600);
+  setTimeout(() => a.remove(), 3000);
+}
 
 const CANDADO = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.3" fill="currentColor"/></svg>';
 function pintarCaja(est) {
@@ -2159,15 +2411,14 @@ function pintarCaja(est) {
       if (a !== b) { err.textContent = 'No coinciden'; return; }
       const r = await caja('crear', { secreto: a, tipo: cajaTipoNuevo });
       if (r.error) { err.textContent = r.error; return; }
-      cajaNotas = r.notas; pintarCaja(r);
+      mostrarVista();
     };
     document.getElementById('cjCrear').onclick = crear;
     document.getElementById('cj2').addEventListener('keydown', (e) => { if (e.key === 'Enter') crear(); });
     setTimeout(() => document.getElementById('cj1').focus(), 0);
     return;
   }
-  if (!est.abierta || !cajaNotas) {
-    cajaNotas = null;
+  if (!est.abierta || !(currentState && Array.isArray(currentState.cajaNotas))) {
     v.innerHTML = `<div class="caja-cerrada">
       <div class="candado" id="cjCandado">${CANDADO}</div>
       <h3>Caja fuerte cerrada</h3>
@@ -2184,7 +2435,7 @@ function pintarCaja(est) {
         const c = document.getElementById('cjCandado'); c.classList.remove('temblor'); void c.offsetWidth; c.classList.add('temblor');
         i.value = ''; i.focus(); return;
       }
-      cajaNotas = r.notas; pintarCaja(r);
+      mostrarVista();
     };
     document.getElementById('cjAbrir').onclick = abrir;
     document.getElementById('cjSecreto').addEventListener('keydown', (e) => { if (e.key === 'Enter') abrir(); });
@@ -2194,52 +2445,7 @@ function pintarCaja(est) {
     setTimeout(() => document.getElementById('cjSecreto').focus(), 0);
     return;
   }
-  // Abierta
-  v.innerHTML = `<div class="caja-abierta">
-    <div class="apuntar">
-      <input type="text" id="cjTitulo" maxlength="120" placeholder="Título (p. ej. Wifi de la oficina)">
-    </div>
-    <textarea id="cjTexto" maxlength="8000" rows="3" placeholder="Lo que quieras guardar seguro…"></textarea>
-    <div style="display:flex;gap:8px;align-items:center"><div style="flex:1" class="caja-aviso" id="cjAviso">Se cierra sola a los 5 minutos sin usarla.</div><button class="btn-primary" id="cjGuardar">Guardar</button></div>
-    <div class="caja-lista" id="cjLista"></div>
-  </div>`;
-  let editando = null;
-  const lista = document.getElementById('cjLista');
-  const pintarLista = () => {
-    lista.innerHTML = '';
-    if (!cajaNotas.length) { lista.innerHTML = '<div class="vacio">Todavía no hay nada guardado.</div>'; return; }
-    cajaNotas.slice().sort((a, b) => (b.editada || 0) - (a.editada || 0)).forEach(n => {
-      const el = document.createElement('div'); el.className = 'nota segura';
-      el.innerHTML = `<div class="nota-titulo">${esc(n.titulo || 'Sin título')}</div><div class="nota-texto">${esc(n.texto)}</div>
-        <div class="nota-acc"><button title="Copiar" data-a="copiar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Editar" data-a="editar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="peligro" title="Borrar" data-a="borrar">${ICO.borrar}</button></div>`;
-      el.querySelector('.nota-acc').onclick = (e) => {
-        const b = e.target.closest('button'); if (!b) return;
-        if (b.dataset.a === 'copiar') { try { require('electron').clipboard.writeText(n.texto); document.getElementById('cjAviso').textContent = 'Copiado'; } catch {} }
-        if (b.dataset.a === 'editar') { editando = n.id; document.getElementById('cjTitulo').value = n.titulo; document.getElementById('cjTexto').value = n.texto; document.getElementById('cjGuardar').textContent = 'Guardar cambios'; document.getElementById('cjTexto').focus(); }
-        if (b.dataset.a === 'borrar') confirmar('Borrar nota segura', `«${n.titulo || 'Sin título'}» se borra para siempre.`, 'Borrar', () => guardar(cajaNotas.filter(x => x.id !== n.id)));
-      };
-      lista.appendChild(el);
-    });
-  };
-  const guardar = async (nueva) => {
-    const r = await caja('guardar', { notas: nueva });
-    if (r.error) { document.getElementById('cjAviso').textContent = r.error; caja('estado').then(pintarCaja); return; }
-    cajaNotas = r.notas; pintarLista();
-  };
-  document.getElementById('cjGuardar').onclick = () => {
-    const titulo = document.getElementById('cjTitulo').value.trim(), texto = document.getElementById('cjTexto').value;
-    if (!titulo && !texto.trim()) return;
-    const nueva = editando ? cajaNotas.map(x => x.id === editando ? { ...x, titulo, texto } : x) : [{ titulo, texto, creada: Date.now() }, ...cajaNotas];
-    editando = null;
-    document.getElementById('cjTitulo').value = ''; document.getElementById('cjTexto').value = '';
-    document.getElementById('cjGuardar').textContent = 'Guardar';
-    guardar(nueva);
-  };
-  // Mientras se usa, no se cierra sola.
-  let ultimoToque = 0;
-  v.oninput = v.onclick = () => { if (Date.now() - ultimoToque > 20000) { ultimoToque = Date.now(); caja('tocar'); } };
-  pintarLista();
-  setTimeout(() => document.getElementById('cjTitulo').focus(), 0);
+  mostrarVista();   // abierta: la pizarra
 }
 </script>
 </body>

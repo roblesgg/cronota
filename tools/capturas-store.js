@@ -21,7 +21,7 @@ const CRUDAS = path.join(TMP, 'crudas');
 const url = (p) => pathToFileURL(path.isAbsolute(p) ? p : path.join(RAIZ, p)).href;
 
 // ── Una semana de trabajo inventada ─────────────────────────────────────────
-function datosDeEjemplo() {
+function datosDeEjemplo(minis) {
   const ahora = Date.now();
   const lunes = new Date(); lunes.setHours(0, 0, 0, 0);
   const hoy = (lunes.getDay() + 6) % 7;            // 0 = lunes
@@ -64,14 +64,65 @@ function datosDeEjemplo() {
   });
   T.web.entries.push({ start: enMarchaDesde, end: null, nameAtTime: T.web.name, note: 'Maquetando la portada' });
 
-  return { tasks: Object.values(T), groups, activeTaskId: T.web.id, activeSubId: null };
+  return { tasks: Object.values(T), groups, activeTaskId: T.web.id, activeSubId: null, notas: notasDeEjemplo(minis) };
 }
 
-function prepararDatos() {
+// Notas de ejemplo (2.16): sueltas en el mapa, con casillas, urgencias, fechas y dos archivos.
+function notasDeEjemplo(minis) {
+  const ahora = Date.now(), D = 86400000;
+  const dia = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime() + n * D; };
+  let k = 0;
+  const nota = (texto, x, y, extra) => ({ id: 'nota-' + (++k), texto, urgencia: '', seccion: null, color: null, recordatorio: null, avisada: false, hecha: false, hechaEn: null, vence: null, fijada: false, creada: ahora - k * 60000, x, y, ...extra });
+  return [
+    nota('# Esta semana\n**Lunes**: demo a Cliente Norte\n**Jueves**: entrega de la web\n> Viernes, revisar horas', 40, 30, { fijada: true, color: '#818cf8' }),
+    nota('Presupuesto firmado: revisar el **apartado 3** antes de empezar', 310, 30, { seccion: 'g-norte', vence: dia(2),
+      archivo: { fichero: 'presupuesto.pdf', nombre: 'Presupuesto P-2026-114.pdf', tamano: 482000, ext: 'pdf', miniatura: minis.pdf, icono: false } }),
+    nota('## Lanzamiento web\n[x] Maquetar la portada\n[x] Textos legales\n[ ] Pruebas en el móvil\n[ ] Publicar', 580, 30, { seccion: 'g-web' }),
+    nota('Boceto de la portada nueva', 850, 30, { seccion: 'g-web',
+      archivo: { fichero: 'boceto.png', nombre: 'Boceto portada.png', tamano: 1260000, ext: 'png', miniatura: minis.imagen, icono: false } }),
+    nota('Llamar a **Cliente Norte** por la renovación', 40, 270, { urgencia: 'alta', recordatorio: ahora + 3600000, seccion: 'g-norte' }),
+    nota('Ideas para la formación\n- Atajos de teclado\n- Plantillas\n- ==Casos reales==', 580, 260, { color: '#a78bfa', seccion: 'g-interno' }),
+    nota('1. Revisar las horas\n2. Exportar a Excel\n3. Enviar al cliente', 40, 420, { color: '#34d399', seccion: 'g-norte' }),
+    nota('Renovar el dominio antes del **viernes**', 850, 330, { urgencia: 'media', vence: dia(3), seccion: 'g-interno' }),
+    nota('Pedir las vacaciones de agosto', 580, 450, { urgencia: 'baja' }),
+  ];
+}
+
+// Vistas previas de los archivos de ejemplo: una página de PDF y una imagen, pintadas aquí.
+async function miniaturas() {
+  const w = new BrowserWindow({ width: 480, height: 340, show: false, webPreferences: { offscreen: true } });
+  const foto = async (html) => {
+    await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent('<!DOCTYPE html><html><body style="margin:0;width:480px;height:340px;overflow:hidden;font-family:Segoe UI, sans-serif">' + html + '</body></html>'));
+    await new Promise((r) => setTimeout(r, 250));
+    return 'data:image/jpeg;base64,' + (await w.webContents.capturePage()).toJPEG(84).toString('base64');
+  };
+  const linea = (an) => `<div style="height:9px;border-radius:3px;background:#d9dde5;width:${an}%;margin:9px 0"></div>`;
+  const pdf = await foto(`<div style="background:#e9ebf0;width:480px;height:340px;padding:22px 0 0">
+    <div style="margin:0 auto;width:380px;height:340px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.18);padding:26px 30px;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:20px;color:#1f2a44">PRESUPUESTO</b><span style="font-size:11px;color:#8a93a6">P-2026-114</span></div>
+      <div style="height:3px;background:#6d5efc;width:60px;margin:10px 0 16px"></div>
+      ${linea(70)}${linea(55)}
+      <div style="display:grid;grid-template-columns:1fr 60px;gap:8px;margin-top:16px;font-size:11px;color:#4b5563">
+        <span>Diseño de la web</span><b>3.200 €</b><span>Maquetación</span><b>1.850 €</b><span>Migración</span><b>940 €</b>
+      </div>
+      <div style="border-top:1px solid #e5e7eb;margin-top:12px;padding-top:8px;display:flex;justify-content:space-between;font-size:12px;color:#1f2a44"><b>Total</b><b>5.990 €</b></div>
+    </div></div>`);
+  const imagen = await foto(`<div style="width:480px;height:340px;background:linear-gradient(135deg,#ff9f5a,#ff5fa0 55%,#8c78ff);position:relative">
+    <div style="position:absolute;left:28px;top:24px;right:28px;display:flex;gap:14px;align-items:center"><div style="width:26px;height:26px;border-radius:8px;background:#fff"></div>
+      <div style="height:8px;width:60px;border-radius:4px;background:rgba(255,255,255,.7)"></div><div style="height:8px;width:60px;border-radius:4px;background:rgba(255,255,255,.7)"></div><div style="height:8px;width:60px;border-radius:4px;background:rgba(255,255,255,.7)"></div></div>
+    <div style="position:absolute;left:28px;top:96px;color:#fff;font-weight:800;font-size:38px;line-height:1.05">Nueva web<br>de primavera</div>
+    <div style="position:absolute;left:28px;top:200px;width:130px;height:36px;border-radius:999px;background:#fff"></div>
+    <div style="position:absolute;right:30px;bottom:30px;width:150px;height:150px;border-radius:30px;background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.5)"></div>
+  </div>`);
+  // (no se cierra: si fuera la única ventana, la app se iría cerrando)
+  return { pdf, imagen };
+}
+
+function prepararDatos(minis) {
   const dir = path.join(APPDATA, 'imputa-me');
   fs.mkdirSync(dir, { recursive: true });
   fs.mkdirSync(CRUDAS, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'imputa-tasks.json'), JSON.stringify(datosDeEjemplo()));
+  fs.writeFileSync(path.join(dir, 'imputa-tasks.json'), JSON.stringify(datosDeEjemplo(minis)));
   fs.writeFileSync(path.join(dir, 'imputa-settings.json'), JSON.stringify({
     imputeUrls: ['https://portal.empresa.com/horas'], reminderMinutes: 10, dockMode: false, lastView: 'panel', uiVersion: 5,
   }));
@@ -79,15 +130,25 @@ function prepararDatos() {
 
 // ── Capturas de la app (tools/snap.js, en otro proceso) ─────────────────────
 const A_LAS_OCHO_Y_MEDIA = "document.getElementById('gridScroll').scrollTop = 8.5 * 96";
-function capturar(nombre, pagina, tema, w, h, js = '1', ajustes = null) {
+function capturar(nombre, pagina, tema, w, h, js = '1', ajustes = null, espera = 1800) {
   const salida = path.join(CRUDAS, nombre + '.png');
-  const env = { ...process.env, APPDATA, SNAP_WAIT: '1800', SNAP_AJUSTES: ajustes ? JSON.stringify(ajustes) : '' };
+  const env = { ...process.env, APPDATA, SNAP_WAIT: String(espera), SNAP_AJUSTES: ajustes ? JSON.stringify(ajustes) : '' };
   delete env.ELECTRON_RUN_AS_NODE;
   execFileSync(process.execPath, [path.join(RAIZ, 'tools', 'snap.js'), pagina, salida, tema, String(w), String(h), js],
     { env, stdio: 'ignore', timeout: 90000 });
   console.log('  captura', nombre);
   return url(salida);
 }
+
+// Guiones para las de notas (se ejecutan en la página antes de capturar).
+const NOTAS_SUELTAS = "(function(){ try { localStorage.clear(); } catch {} cambiarModo('libre'); setTimeout(() => encuadrar(false), 400); })()";
+const NOTAS_MENU = "(function(){ try { localStorage.clear(); } catch {} cambiarModo('seccion'); setTimeout(() => { encuadrar(false); setTimeout(() => { const el = lienzo.querySelector('.nota[data-id=\"nota-3\"]'); const r = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: r.left + 120, clientY: r.top + 70 })); }, 900); }, 500); })()";
+const CAJA_CERRADA = "(function(){ ipcRenderer.invoke = async () => ({ existe: true, abierta: false, tipo: 'pin' }); alternarCaja(); })()";
+const CAJA_ABIERTA = "(function(){ try { localStorage.clear(); } catch {} cambiarModo('libre'); ipcRenderer.invoke = async () => ({ existe: true, abierta: true, tipo: 'pin' }); enCaja = true; document.getElementById('titulo').textContent = 'Caja fuerte'; pintarBotonCaja(); "
+  + "currentState.cajaNotas = [{ id: 'c1', texto: '# Wifi de la oficina\\nRed: **Oficina-5G**\\nClave: ' + String.fromCharCode(96) + 'k8$Lm2!q-Az' + String.fromCharCode(96), urgencia: '', x: 0, y: 0, creada: 1, color: '#38bdf8' }, "
+  + "{ id: 'c2', texto: 'PIN de la tarjeta de empresa: **4821**', urgencia: 'alta', x: 270, y: 0, creada: 2 }, "
+  + "{ id: 'c3', texto: '## Accesos\\n[x] VPN\\n[x] Portal del cliente\\n[ ] Banco', urgencia: '', x: 0, y: 190, creada: 3, color: '#a78bfa' }, "
+  + "{ id: 'c4', texto: 'Contraseña del router: ==guardada en papel en el cajón==', urgencia: 'media', x: 270, y: 160, creada: 4 }]; mostrarVista(); })()";
 
 // ── Composición ─────────────────────────────────────────────────────────────
 const ESTILO = `
@@ -187,6 +248,51 @@ function composiciones(c) {
         ${abanico(c)}
         ${marca()}`,
     },
+    {
+      nombre: 'captura-6-notas.png',
+      html: `
+        <div class="texto" style="width:520px">
+          <div class="etiqueta">Notas</div>
+          <h1>Tus notas,<br>en un mapa</h1>
+          <p class="sub">Déjalas donde quieras, con negritas, listas y casillas. Ponles urgencia, un recordatorio o una fecha límite.</p>
+        </div>
+        ${ventana(c.notas, 720, 60, 1100, 960)}
+        ${marca()}`,
+    },
+    {
+      nombre: 'captura-7-archivos.png',
+      html: `
+        <div class="texto" style="width:520px">
+          <div class="etiqueta">Archivos</div>
+          <h1>Texto y archivos,<br>juntos</h1>
+          <p class="sub">Suelta un PDF, una imagen o cualquier archivo en una nota: se ve la vista previa y se abre sin salir de Cronota.</p>
+        </div>
+        ${ventana(c.notasArchivo, 720, 60, 1100, 960)}
+        ${marca()}`,
+    },
+    {
+      nombre: 'captura-8-ordenar.png',
+      html: `
+        <div class="texto" style="width:520px">
+          <div class="etiqueta">A tu manera</div>
+          <h1>Ordénalas<br>con un clic</h1>
+          <p class="sub">Sueltas, en cuadrícula, en mosaico, por sección, urgencia o fecha. Y todo a mano con el menú redondo.</p>
+        </div>
+        ${ventana(c.notasMenu, 720, 60, 1100, 960)}
+        ${marca()}`,
+    },
+    {
+      nombre: 'captura-9-caja-fuerte.png',
+      html: `
+        <div class="texto" style="width:560px">
+          <div class="etiqueta">Caja fuerte</div>
+          <h1>Lo privado,<br>bajo llave</h1>
+          <p class="sub">Una pizarra aparte, cifrada con tu PIN o contraseña. Se cierra sola cuando no la usas.</p>
+        </div>
+        ${ventana(c.cajaAbierta, 860, 150, 940, 821, 'opacity:.95')}
+        ${ventana(c.cajaCerrada, 720, 230, 400, 765, 'z-index:2')}
+        ${marca()}`,
+    },
   ];
 }
 
@@ -220,7 +326,7 @@ async function componer(pieza) {
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 app.whenReady().then(async () => {
   try {
-    prepararDatos();
+    prepararDatos(await miniaturas());
     const c = {
       panelNoche: capturar('panel-noche', 'main.html', 'noche', 460, 880),
       // Alto de sobra para que quepa el día entero (de 8:30 a 18:30; cada hora mide 96 px) y
@@ -230,6 +336,13 @@ app.whenReady().then(async () => {
       calendarioDecimales: capturar('calendario-decimales', 'calendar.html', 'noche', 1180, 1030, 'if (!horasDecimales) alternarFormatoHoras(); ' + A_LAS_OCHO_Y_MEDIA),
       tareas: capturar('tareas', 'groups.html', 'noche', 460, 880),
       ajustes: capturar('ajustes', 'settings.html', 'noche', 460, 880),
+      // Notas: el mapa suelto; con la ventana de una nota con texto y PDF; por sección con el menú
+      // redondo; y la caja fuerte (cerrada y abierta, con notas inventadas: no hay PIN de verdad).
+      notas: capturar('notas', 'notas.html', 'noche', 1180, 1030, NOTAS_SUELTAS, null, 2600),
+      notasArchivo: capturar('notas-archivo', 'notas.html', 'noche', 1180, 1030, NOTAS_SUELTAS + "; setTimeout(() => abrirPopNota('nota-2'), 700)", null, 2800),
+      notasMenu: capturar('notas-menu', 'notas.html', 'noche', 1180, 1030, NOTAS_MENU, null, 3400),
+      cajaCerrada: capturar('caja-cerrada', 'notas.html', 'noche', 460, 880, CAJA_CERRADA, null, 2000),
+      cajaAbierta: capturar('caja-abierta', 'notas.html', 'noche', 1180, 1030, CAJA_ABIERTA, null, 2600),
     };
     // Para el abanico de "Personalizable": temas, acentos y estilos distintos (cristal o plano).
     const cristal = (accent) => ({ accent, liquidGlass: true, bgOpacity: 10 });

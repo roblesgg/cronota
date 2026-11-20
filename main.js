@@ -249,8 +249,10 @@ const WHATS_NEW = {
   '2.16.0': { title: 'Novedades de Cronota 2.16', steps: [
     { icon:'spark', title:'Notas, a la vista',
       text:'Una pestaña nueva, Notas: tus notas sueltas en un mapa, o en cuadrícula, filas, por sección, urgencia o fecha. Clic derecho para todo: urgencia, recordatorio, vencimiento, sección, color… Y se escriben con Markdown.' },
+    { icon:'folder', title:'Archivos en las notas',
+      text:'Suelta un PDF, una imagen o lo que quieras en una nota (o en su ventana): se ve la vista previa, se abre sin salir de Cronota y una nota puede tener texto y varios archivos.' },
     { icon:'folder', title:'Caja fuerte',
-      text:'Dentro de Notas, notas que solo se ven con tu PIN o contraseña. Van cifradas y se cierran solas a los 5 minutos. Si olvidas el PIN no se pueden recuperar.' },
+      text:'Otra pizarra igual que la de Notas, pero que solo se abre con tu PIN o contraseña. Manda cualquier nota con el menú redondo («A la caja fuerte»). Va cifrada y se cierra sola a los 5 minutos. Si olvidas el PIN no se puede recuperar.' },
   ] },
   '2.15.0': { title: 'Novedades de Cronota 2.15', steps: [
     { icon:'spark', title:'Paletas a tu gusto para cada cliente',
@@ -543,6 +545,7 @@ function saveDataRaw() {
   }
 }
 function saveData() {
+  if (usandoCaja && cajaClave && Array.isArray(cajaNotasMem) && state.cajaFuerte) state.cajaFuerte = { ...state.cajaFuerte, ...cajaCifrar(cajaClave, cajaNotasMem) };
   saveDataRaw();
   if (nubeSync) nubeSync.cambioLocal();   // 2.14: a la carpeta de OneDrive / Google Drive
 }
@@ -2524,7 +2527,16 @@ function openNotas() {
 // la sincronización y las copias como las tareas.
 const URGENCIAS_NOTAS = ['', 'baja', 'media', 'alta'];
 const numMapa = (v) => Math.max(-20000, Math.min(20000, Math.round(Number(v) || 0)));
-function notas() { if (!Array.isArray(state.notas)) state.notas = []; return state.notas; }
+// 2.16: la caja fuerte es otra pizarra igual. Mientras está abierta, sus notas viven descifradas
+// solo en memoria (cajaNotasMem); las acciones que llegan marcadas con «caja» trabajan sobre ellas
+// (usandoCaja) y al guardar se vuelven a cifrar. Cerrada, no queda nada en claro.
+let cajaNotasMem = null, usandoCaja = false;
+function notas() {
+  if (usandoCaja) return cajaNotasMem;
+  if (!Array.isArray(state.notas)) state.notas = [];
+  return state.notas;
+}
+function ponerNotas(l) { if (usandoCaja) cajaNotasMem = l; else state.notas = l; }
 function seccionesNotas() { if (!Array.isArray(state.seccionesNotas)) state.seccionesNotas = []; return state.seccionesNotas; }
 function limpiarNota(n, base) {
   const r = { ...(base || {}) };
@@ -2543,7 +2555,8 @@ function limpiarNota(n, base) {
   if (n.hecha !== undefined) { r.hecha = !!n.hecha; r.hechaEn = r.hecha ? (r.hechaEn || Date.now()) : null; }
   if (n.vence !== undefined) r.vence = Number(n.vence) || null;   // vencimiento: un día (su medianoche)
   if (n.fijada !== undefined) r.fijada = !!n.fijada;              // fijada: siempre encima de las demás
-  if (n.archivo !== undefined) r.archivo = archivoLimpio(n.archivo);
+  if (n.archivo !== undefined) r.archivo = usandoCaja ? null : archivoLimpio(n.archivo);   // en la caja no hay archivos (no van cifrados)
+  if (n.adjuntos !== undefined) r.adjuntos = usandoCaja || !Array.isArray(n.adjuntos) ? [] : n.adjuntos.map(archivoLimpio).filter(Boolean).slice(0, 30);   // los demás archivos
   if (n.celda !== undefined) r.celda = n.celda && Number.isFinite(Number(n.celda.c)) && Number.isFinite(Number(n.celda.f)) ? { c: Math.max(0, Math.min(500, Math.round(n.celda.c))), f: Math.max(0, Math.min(2000, Math.round(n.celda.f))) } : null;   // cuadrícula libre
   if (n.orden !== undefined) r.orden = Number.isFinite(Number(n.orden)) ? Number(n.orden) : null;   // orden en las vistas ordenadas
   return r;
@@ -2624,7 +2637,7 @@ function editarNotas(lista) {
 }
 function borrarNotas(ids) {
   const fuera = new Set(Array.isArray(ids) ? ids : []);
-  state.notas = notas().filter(n => !fuera.has(n.id));
+  ponerNotas(notas().filter(n => !fuera.has(n.id)));
   saveData(); broadcastState();
 }
 function pegarNotas(lista) {
@@ -2639,7 +2652,7 @@ function pegarNotas(lista) {
   saveData(); broadcastState();
 }
 function vaciarHechas() {
-  state.notas = notas().filter(n => !n.hecha);
+  ponerNotas(notas().filter(n => !n.hecha));
   saveData(); broadcastState();
 }
 function crearSeccionNotas(p) {
@@ -2675,15 +2688,55 @@ async function miniaturaDe(ruta) {
   try { const ic = await app.getFileIcon(ruta, { size: 'large' }); if (ic && !ic.isEmpty()) return { miniatura: ic.toDataURL(), icono: true }; } catch {}
   return { miniatura: null, icono: true };
 }
-function rutaArchivoNota(id) {
+const archivosDe = (n) => n ? [n.archivo, ...(Array.isArray(n.adjuntos) ? n.adjuntos : [])].filter(a => a && a.fichero) : [];
+function rutaArchivoNota(id, fichero) {
   const n = notas().find(x => x.id === id);
-  if (!n || !n.archivo) return null;
-  const r = path.join(carpetaArchivosNotas(), n.archivo.fichero);
+  const a = archivosDe(n).find(x => !fichero || x.fichero === fichero);
+  if (!a) return null;
+  const r = path.join(carpetaArchivosNotas(), a.fichero);
   return fs.existsSync(r) ? r : null;
+}
+// Copia un archivo a la carpeta de las notas y devuelve su ficha (o el motivo si no vale).
+async function copiarArchivoNota(ruta) {
+  let st; try { st = fs.statSync(ruta); } catch { return { aviso: path.basename(ruta) + ' (no se encuentra)' }; }
+  if (!st.isFile()) return { aviso: path.basename(ruta) + ' (es una carpeta)' };
+  if (st.size > MAX_ARCHIVO) return { aviso: path.basename(ruta) + ' (más de 300 MB)' };
+  fs.mkdirSync(carpetaArchivosNotas(), { recursive: true });
+  const nombre = path.basename(ruta);
+  const fichero = Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + '-' + nombre.replace(/[^\w.\- ]+/g, '_');
+  await fs.promises.copyFile(ruta, path.join(carpetaArchivosNotas(), fichero));
+  const mini = await miniaturaDe(ruta);
+  return { archivo: archivoLimpio({ fichero, nombre, tamano: st.size, ext: path.extname(nombre).slice(1), ...mini }) };
 }
 ipcMain.handle('notas-archivos', async (_e, p) => {
   const accion = p && p.accion;
   try {
+    // Un archivo para una nota (la ventana de la nota): de una ruta (soltado) o eligiéndolo.
+    if (accion === 'preparar') {
+      let rutas = Array.isArray(p.rutas) ? p.rutas : [];
+      if (!rutas.length) {
+        const parent = notasWin && !notasWin.isDestroyed() && notasWin.isVisible() ? notasWin : (dockPanelWin || undefined);
+        const r = await dialog.showOpenDialog(parent, { title: 'Adjuntar archivos a la nota', properties: ['openFile', 'multiSelections'] });
+        if (r.canceled || !r.filePaths.length) return { ok: false };
+        rutas = r.filePaths;
+      }
+      const lista = [], avisos = [];
+      for (const ruta of rutas.slice(0, 20)) { const c = await copiarArchivoNota(String(ruta)); if (c.aviso) avisos.push(c.aviso); else lista.push(c.archivo); }
+      return { ok: true, archivos: lista, avisos };
+    }
+    // Soltar un archivo encima de una nota: se le adjunta (se queda con su texto).
+    if (accion === 'adjuntar') {
+      const n = notas().find(x => x.id === p.id);
+      if (!n) return { error: 'No encuentro la nota' };
+      const nuevos = [], avisos = [];
+      for (const ruta of (Array.isArray(p.rutas) ? p.rutas : [p.ruta]).filter(Boolean).slice(0, 20)) { const c = await copiarArchivoNota(String(ruta)); if (c.aviso) avisos.push(c.aviso); else nuevos.push(c.archivo); }
+      if (!nuevos.length) return { error: avisos.join(', ') || 'No se ha podido adjuntar' };
+      fotoAntesDe('nota-editar');
+      const todos = archivosDe(n).concat(nuevos);
+      n.archivo = todos[0]; n.adjuntos = todos.slice(1, 31);
+      saveData(); broadcastState();
+      return { ok: true, adjuntados: nuevos.length, avisos };
+    }
     if (accion === 'soltar') {
       const rutas = (Array.isArray(p.rutas) ? p.rutas : []).slice(0, 20);
       fs.mkdirSync(carpetaArchivosNotas(), { recursive: true });
@@ -2708,7 +2761,7 @@ ipcMain.handle('notas-archivos', async (_e, p) => {
       saveData(); broadcastState();
       return { ok: true, creadas: k, avisos };
     }
-    const ruta = rutaArchivoNota(p && p.id);
+    const ruta = rutaArchivoNota(p && p.id, p && p.fichero);
     if (accion === 'ruta') return { ruta };
     if (!ruta) return { error: 'El archivo no está en este PC (quizá se añadió en otro).' };
     if (accion === 'abrir') { const err = await require('electron').shell.openPath(ruta); return err ? { error: err } : { ok: true }; }
@@ -2720,7 +2773,8 @@ ipcMain.handle('notas-archivos', async (_e, p) => {
     if (accion === 'guardar') {
       const n = notas().find(x => x.id === p.id);
       const parent = settingsWin && !settingsWin.isDestroyed() && settingsWin.isFocused() ? settingsWin : (notasWin && !notasWin.isDestroyed() ? notasWin : dockPanelWin || undefined);
-      const { canceled, filePath } = await dialog.showSaveDialog(parent, { title: 'Guardar una copia', defaultPath: path.join(app.getPath('downloads'), n.archivo.nombre) });
+      const a = archivosDe(n).find(x => !p.fichero || x.fichero === p.fichero);
+      const { canceled, filePath } = await dialog.showSaveDialog(parent, { title: 'Guardar una copia', defaultPath: path.join(app.getPath('downloads'), a.nombre) });
       if (canceled || !filePath) return { ok: false };
       await fs.promises.copyFile(ruta, filePath);
       return { ok: true, ruta: filePath };
@@ -2731,7 +2785,7 @@ ipcMain.handle('notas-archivos', async (_e, p) => {
 // Al arrancar, fuera los archivos que ya no están en ninguna nota (borradas hace tiempo).
 function limpiarArchivosNotas() {
   try {
-    const usados = new Set(notas().filter(n => n.archivo).map(n => n.archivo.fichero));
+    const usados = new Set(notas().flatMap(n => archivosDe(n).map(a => a.fichero)));
     const dir = carpetaArchivosNotas();
     if (!fs.existsSync(dir)) return;
     fs.readdirSync(dir).forEach(f => { if (!usados.has(f)) { try { fs.unlinkSync(path.join(dir, f)); } catch {} } });
@@ -2787,7 +2841,81 @@ function cajaCerrar() {
   clearTimeout(cajaTemporizador); cajaTemporizador = null;
   if (cajaClave) { try { cajaClave.fill(0); } catch {} }
   cajaClave = null;
+  const habia = !!cajaNotasMem;
+  cajaNotasMem = null; pilaCaja.length = 0; pilaCajaRehacer.length = 0;
+  if (habia) { try { broadcastState(); } catch {} }
   [dockPanelWin, notasWin].forEach(w => sendToAllFrames(w, 'caja-cerrada'));
+}
+// Las de antes (título + texto) pasan a notas normales, colocadas en rejilla.
+function migrarCaja(lista) {
+  usandoCaja = true;
+  try {
+    return (Array.isArray(lista) ? lista : []).map((n, k) => {
+      if (!n) return null;
+      if (n.x !== undefined && n.urgencia !== undefined) return n;
+      const texto = (n.titulo ? '# ' + n.titulo + (n.texto ? '\n' : '') : '') + (n.texto || '');
+      return limpiarNota({ texto, urgencia: '', seccion: null, color: null, recordatorio: null, hecha: false, x: (k % 3) * 260, y: Math.floor(k / 3) * 190 },
+        { id: String(n.id || ('c' + Date.now().toString(36) + k)).slice(0, 40), creada: Number(n.creada) || Date.now(), avisada: false });
+    }).filter(n => n && String(n.texto || '').trim());
+  } finally { usandoCaja = false; }
+}
+// Las acciones de notas que llegan con «caja»: sobre las de la caja, con su propio deshacer.
+const ACCIONES_NOTA = new Set(['nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'nota-duplicar', 'notas-mover', 'notas-borrar', 'notas-editar', 'notas-pegar', 'notas-vaciar-hechas']);
+function accionNota(type, payload) {
+  switch (type) {
+    case 'nota-crear': crearNota(payload); return;
+    case 'nota-editar': editarNota(payload); return;
+    case 'nota-borrar': borrarNota(payload && payload.id); return;
+    case 'nota-mover': moverNota(payload); return;
+    case 'nota-duplicar': duplicarNota(payload && payload.id); return;
+    case 'notas-mover': moverNotas(payload && payload.lista); return;
+    case 'notas-borrar': borrarNotas(payload && payload.ids); return;
+    case 'notas-editar': editarNotas(payload && payload.lista); return;
+    case 'notas-pegar': pegarNotas(payload && payload.lista); return;
+    case 'notas-vaciar-hechas': vaciarHechas(); return;
+  }
+}
+const pilaCaja = [], pilaCajaRehacer = [];
+let ultimaFotoCaja = { type: null, t: 0 };
+function accionCaja(type, payload, event) {
+  if (!cajaClave || !Array.isArray(cajaNotasMem)) return;
+  cajaRearmar();
+  if (type === 'undo' || type === 'redo') {
+    const de = type === 'redo' ? pilaCajaRehacer : pilaCaja, a = type === 'redo' ? pilaCaja : pilaCajaRehacer;
+    const ok = de.length > 0;
+    if (ok) {
+      a.push(JSON.stringify(cajaNotasMem));
+      usandoCaja = true;
+      try { cajaNotasMem = JSON.parse(de.pop()); saveData(); } finally { usandoCaja = false; }
+      ultimaFotoCaja = { type: null, t: 0 };
+      broadcastState();
+    }
+    try { event.reply('undo-hecho', { tipo: type, ok }); } catch {}
+    return;
+  }
+  if (!ACCIONES_NOTA.has(type)) return;
+  const ahora = Date.now();
+  if (!(type === ultimaFotoCaja.type && ahora - ultimaFotoCaja.t < 700)) {
+    pilaCaja.push(JSON.stringify(cajaNotasMem));
+    if (pilaCaja.length > 60) pilaCaja.shift();
+    pilaCajaRehacer.length = 0;
+  }
+  ultimaFotoCaja = { type, t: ahora };
+  usandoCaja = true;
+  try { accionNota(type, payload); } finally { usandoCaja = false; }
+}
+// Al mandar notas a la caja, también salen de las fotos de deshacer (que no vuelvan en claro).
+function quitarDeFotos(ids) {
+  [pilaDeshacer, pilaRehacer].forEach(pila => pila.forEach((f, i) => {
+    if (![...ids].some(id => f.includes(id))) return;
+    try { const st = JSON.parse(f); st.notas = (st.notas || []).filter(n => !ids.has(n.id)); pila[i] = JSON.stringify(st); } catch {}
+  }));
+}
+async function cajaFallo(c) {
+  cajaFallos++;
+  if (cajaFallos >= 5) { cajaEsperaHasta = Date.now() + 30000; cajaFallos = 0; }
+  await new Promise(r => setTimeout(r, 500));
+  return { error: c.tipo === 'clave' ? 'Contraseña incorrecta' : 'PIN incorrecto' };
 }
 ipcMain.handle('caja', async (_e, p) => {
   const accion = p && p.accion;
@@ -2802,32 +2930,59 @@ ipcMain.handle('caja', async (_e, p) => {
       const sal = nodeCrypto.randomBytes(16).toString('base64');
       cajaClave = cajaDerivar(secreto, sal);
       state.cajaFuerte = { v: 1, tipo, sal, ...cajaCifrar(cajaClave, []) };
+      cajaNotasMem = [];
       saveData(); broadcastState(); cajaRearmar();
-      return { ...cajaEstado(), notas: [] };
+      return cajaEstado();
     }
     if (accion === 'abrir') {
       const c = state.cajaFuerte;
       if (!c || !c.datos) return { error: 'No hay caja fuerte' };
       if (Date.now() < cajaEsperaHasta) return { error: `Demasiados intentos. Espera ${Math.ceil((cajaEsperaHasta - Date.now()) / 1000)} s` };
       let clave;
-      try { clave = cajaDerivar(String(p.secreto || ''), c.sal); const lista = cajaDescifrar(clave, c); cajaClave = clave; cajaFallos = 0; cajaRearmar(); return { ...cajaEstado(), notas: lista }; }
-      catch {
-        cajaFallos++;
-        if (cajaFallos >= 5) { cajaEsperaHasta = Date.now() + 30000; cajaFallos = 0; }
-        await new Promise(r => setTimeout(r, 500));
-        return { error: c.tipo === 'clave' ? 'Contraseña incorrecta' : 'PIN incorrecto' };
-      }
+      try { clave = cajaDerivar(String(p.secreto || ''), c.sal); const lista = cajaDescifrar(clave, c); cajaClave = clave; cajaFallos = 0; cajaNotasMem = migrarCaja(lista); }
+      catch { return cajaFallo(c); }
+      cajaRearmar(); broadcastState();
+      return cajaEstado();
     }
-    if (accion === 'guardar') {
-      if (!cajaClave || !state.cajaFuerte) return { error: 'La caja fuerte está cerrada' };
-      const lista = (Array.isArray(p.notas) ? p.notas : []).slice(0, 500).map(n => ({
-        id: String(n.id || ('c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6))).slice(0, 40),
-        titulo: String(n.titulo || '').slice(0, 120), texto: String(n.texto || '').slice(0, 8000),
-        creada: Number(n.creada) || Date.now(), editada: Date.now(),
-      }));
-      state.cajaFuerte = { ...state.cajaFuerte, ...cajaCifrar(cajaClave, lista) };
-      saveData(); cajaRearmar();
-      return { ...cajaEstado(), notas: lista };
+    // Mandar notas del mapa a la caja. Si está cerrada, con el PIN se meten sin dejarla abierta.
+    if (accion === 'meter') {
+      const c = state.cajaFuerte;
+      if (!c || !c.datos) return { error: 'No hay caja fuerte' };
+      const ids = new Set(Array.isArray(p.ids) ? p.ids : []);
+      const elegidas = notas().filter(n => ids.has(n.id));
+      const van = elegidas.filter(n => !archivosDe(n).length), conArchivo = elegidas.length - van.length;
+      if (!van.length) return { error: conArchivo ? 'Las notas con archivos no pueden ir a la caja fuerte (el archivo no se cifra)' : 'No hay nada que guardar' };
+      let clave = cajaClave, lista = cajaNotasMem;
+      if (!clave) {
+        if (Date.now() < cajaEsperaHasta) return { error: `Demasiados intentos. Espera ${Math.ceil((cajaEsperaHasta - Date.now()) / 1000)} s` };
+        try { clave = cajaDerivar(String(p.secreto || ''), c.sal); lista = migrarCaja(cajaDescifrar(clave, c)); cajaFallos = 0; }
+        catch { return cajaFallo(c); }
+      }
+      // Debajo de lo que ya hay en la caja, con la misma forma que tenían en el mapa.
+      const dy = lista.length ? Math.max(...lista.map(n => Number(n.y) || 0)) + 220 - Math.min(...van.map(n => Number(n.y) || 0)) : 0;
+      const dx = lista.length ? -Math.min(...van.map(n => Number(n.x) || 0)) : 0;
+      const nuevas = lista.concat(van.map(n => ({ ...n, x: numMapa((Number(n.x) || 0) + dx), y: numMapa((Number(n.y) || 0) + dy), celda: null, orden: null })));
+      const fuera = new Set(van.map(n => n.id));
+      state.notas = notas().filter(n => !fuera.has(n.id));
+      state.cajaFuerte = { ...c, ...cajaCifrar(clave, nuevas) };
+      quitarDeFotos(fuera);
+      if (cajaClave) { cajaNotasMem = nuevas; pilaCaja.length = 0; pilaCajaRehacer.length = 0; cajaRearmar(); }
+      else { try { clave.fill(0); } catch {} }
+      saveData(); broadcastState();
+      return { ok: true, movidas: van.length, conArchivo };
+    }
+    // Sacar notas de la caja (abierta) al mapa normal.
+    if (accion === 'sacar') {
+      if (!cajaClave || !Array.isArray(cajaNotasMem) || !state.cajaFuerte) return { error: 'La caja fuerte está cerrada' };
+      const ids = new Set(Array.isArray(p.ids) ? p.ids : []);
+      const van = cajaNotasMem.filter(n => ids.has(n.id));
+      if (!van.length) return { error: 'No hay nada que sacar' };
+      cajaNotasMem = cajaNotasMem.filter(n => !ids.has(n.id));
+      pilaCaja.length = 0; pilaCajaRehacer.length = 0;
+      state.cajaFuerte = { ...state.cajaFuerte, ...cajaCifrar(cajaClave, cajaNotasMem) };
+      notas().push(...van.map(n => ({ ...n, celda: null, orden: null })));
+      saveData(); broadcastState(); cajaRearmar();
+      return { ok: true, movidas: van.length };
     }
     if (accion === 'tocar') { if (cajaClave) cajaRearmar(); return cajaEstado(); }
     if (accion === 'borrar') {   // olvidaste el PIN: se borra entera (lo confirma la pantalla)
@@ -2842,6 +2997,7 @@ ipcMain.handle('caja', async (_e, p) => {
 // Se envían por Web3Forms (https://web3forms.com), que los reenvía al correo del autor. La clave
 // de acceso solo sirve para enviar a ese buzón; el correo no está en la app.
 const WEB3FORMS_CLAVE = '';   // la pone Álvaro (la de su cuenta de Web3Forms)
+ipcMain.handle('sugerencias-activas', () => !!WEB3FORMS_CLAVE);   // sin clave, el botón no sale
 ipcMain.handle('enviar-sugerencia', async (_e, p) => {
   if (!WEB3FORMS_CLAVE) return { error: 'El envío de sugerencias aún no está activado.' };
   const tipo = { idea: 'Sugerencia', fallo: 'Algo no funciona', otro: 'Otro' }[p && p.tipo] || 'Sugerencia';
@@ -2973,6 +3129,7 @@ function getSerializableState() {
     notas: state.notas || [],   // 2.16
     seccionesNotas: state.seccionesNotas || [],
     cajaFuerte: cajaEstado(),
+    cajaNotas: cajaClave && Array.isArray(cajaNotasMem) ? cajaNotasMem : null,   // solo abierta
     activeTaskId: state.activeTaskId,
     activeSubId: state.activeSubId || null,
     todayTotal: totalTodaySeconds(),
@@ -3098,6 +3255,7 @@ function deshacer(rehacer) {
 }
 
 ipcMain.on('action', (event, { type, payload }) => {
+  if (payload && payload.caja) { accionCaja(type, payload, event); return; }   // 2.16: la pizarra de la caja fuerte
   if (ACCIONES_DESHACIBLES.has(type)) fotoAntesDe(type);
   switch (type) {
     case 'undo':
@@ -3585,16 +3743,9 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (settings.dockMode) dockNavigate('panel');
       else { if (notasWin && !notasWin.isDestroyed()) notasWin.hide(); ensureSomeWindowVisible(); }
       break;
-    case 'nota-crear': crearNota(payload); break;
-    case 'nota-editar': editarNota(payload); break;
-    case 'nota-borrar': borrarNota(payload && payload.id); break;
-    case 'nota-mover': moverNota(payload); break;
-    case 'nota-duplicar': duplicarNota(payload && payload.id); break;
-    case 'notas-mover': moverNotas(payload && payload.lista); break;
-    case 'notas-borrar': borrarNotas(payload && payload.ids); break;
-    case 'notas-editar': editarNotas(payload && payload.lista); break;
-    case 'notas-pegar': pegarNotas(payload && payload.lista); break;
-    case 'notas-vaciar-hechas': vaciarHechas(); break;
+    case 'nota-crear': case 'nota-editar': case 'nota-borrar': case 'nota-mover': case 'nota-duplicar':
+    case 'notas-mover': case 'notas-borrar': case 'notas-editar': case 'notas-pegar': case 'notas-vaciar-hechas':
+      accionNota(type, payload); break;
     case 'nota-seccion-crear': crearSeccionNotas(payload); break;
     case 'nota-seccion-editar': editarSeccionNotas(payload); break;
     case 'nota-seccion-borrar': borrarSeccionNotas(payload && payload.id); break;
@@ -4068,8 +4219,8 @@ function arrancarNube() {
       getEstado: () => state,
       aplicar: (datos) => {
         fotoAntesDe('nube');   // Ctrl+Z vuelve a lo de antes
-        // 2.16: si la caja fuerte que llega es otra (otro PIN), se cierra la de aquí.
-        if (datos.cajaFuerte !== undefined && (datos.cajaFuerte && datos.cajaFuerte.sal) !== (state.cajaFuerte && state.cajaFuerte.sal)) cajaCerrar();
+        // 2.16: si la caja fuerte cambia desde otro PC, se cierra la de aquí (para no pisar lo de allí).
+        if (datos.cajaFuerte !== undefined && (datos.cajaFuerte && datos.cajaFuerte.datos) !== (state.cajaFuerte && state.cajaFuerte.datos)) cajaCerrar();
         state = { ...state, ...datos };
         if (!Array.isArray(state.groups)) state.groups = [];
         saveDataRaw(); broadcastState(); resetReminderTimer();

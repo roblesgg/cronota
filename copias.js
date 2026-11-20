@@ -68,7 +68,7 @@ function copiarArchivosNotas(de, a, ficheros) {
   } catch {}
   return n;
 }
-const ficherosEnNotas = (estado) => ((estado && estado.notas) || []).filter(x => x && x.archivo && x.archivo.fichero).map(x => x.archivo.fichero);
+const ficherosEnNotas = (estado) => ((estado && estado.notas) || []).flatMap(x => x ? [x.archivo, ...(Array.isArray(x.adjuntos) ? x.adjuntos : [])] : []).filter(a => a && a.fichero).map(a => a.fichero);
 
 // Ajustes que no se restauran desde una copia: dependen de la versión o de este equipo.
 // 2.14.1: tampoco la nube elegida (cada PC elige la suya en Ajustes).

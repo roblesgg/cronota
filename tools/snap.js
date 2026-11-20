@@ -49,6 +49,8 @@ function estado() {
     tasks: tareas,
     groups: datos.groups || [],
     palettes: GROUP_PALETTES,
+    notas: datos.notas || [],   // 2.16
+    cajaFuerte: { existe: false, tipo: 'pin', abierta: false }, cajaNotas: null,
     activeTaskId: datos.activeTaskId || null,
     activeSubId: datos.activeSubId || null,
     // El "Hoy" del panel: antes iba fijo a 0 y en las capturas se veía «0m 00s».

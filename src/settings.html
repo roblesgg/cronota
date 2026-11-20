@@ -869,7 +869,7 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0l-4 4m4-4l4 4"/><path d="M4 21h16"/></svg>
         Restaurar copia
       </button>
-      <button class="big-btn" onclick="abrirSugerencia()">
+      <button class="big-btn" id="btnSugerencia" style="display:none" onclick="abrirSugerencia()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg>
         Enviar sugerencia
       </button>
@@ -1736,6 +1736,8 @@ function save() {
 }
 let toastTimer = null;
 // ── Sugerencias (2.16) ──
+// El botón solo sale si el envío está activado (hay clave de Web3Forms en main.js).
+ipcRenderer.invoke('sugerencias-activas').then(on => { if (on) document.getElementById('btnSugerencia').style.display = ''; }).catch(() => {});
 let sugTipo = 'idea';
 document.querySelectorAll('#sugTipo button').forEach(b => b.onclick = () => { sugTipo = b.dataset.t; document.querySelectorAll('#sugTipo button').forEach(x => x.classList.toggle('activo', x === b)); });
 document.querySelector('.sug-datos').addEventListener('click', (e) => { e.preventDefault(); const c = document.getElementById('sugDatos'); c.checked = !c.checked; document.querySelector('.sug-datos').classList.toggle('off', !c.checked); });
