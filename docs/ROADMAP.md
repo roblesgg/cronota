@@ -93,6 +93,31 @@ Decidido el 18-11-2026: nada de Microsoft Graph ni apps registradas en Azure (ha
 
 Cambiar el estado de Teams o crear eventos en Outlook desde Cronota necesita una app registrada en Azure (Microsoft Graph). Solo si algún día sistemas lo aprueba.
 
+### Fase 5 · Notas y caja fuerte (idea de Álvaro, 20-11-2026) — PENDIENTE
+
+Un sitio para apuntar cosas y ver de un vistazo qué tienes pendiente y qué es lo siguiente. Muy sencillo, nada de gestor de proyectos: un planner de notas con la estética de la app (cristal líquido, animaciones, letras de siempre).
+
+**Pantalla «Notas»** (una pestaña más en la píldora, junto a Panel, Calendario, Tareas y Ajustes):
+- Tablero de tarjetas de cristal, todas a la vista. Se escribe directamente arriba («Apunta algo…» + Enter) y la tarjeta cae al tablero con animación.
+- Tres carriles fijos que hacen de planner: **Ahora**, **Siguiente** y **Más tarde**. Se arrastran tarjetas entre ellos. Así siempre se ve qué toca.
+- **Secciones** propias (por cliente o tema, con su color, como las paletas): un filtro arriba, sin esconder lo demás.
+- Cada nota: texto (con lista de casillas opcional), color, sección y **recordatorio con fecha y hora** → aviso de Windows (el mismo de la app; respeta «No molestar» y las llamadas). Las de hoy y las vencidas salen marcadas.
+- Hecho = se tacha y se va a «Hechas» (plegado). Borrar con Ctrl+Z, como en el calendario.
+- Buscador y atajo global para apuntar rápido sin abrir nada (p. ej. desde la barra flotante).
+- Se guardan en el fichero de datos y viajan con la sincronización de OneDrive / Google Drive y con las copias.
+
+**Caja fuerte** (un apartado aparte dentro de Notas):
+- No se ve nada de lo que hay dentro (ni títulos ni cuántas) hasta desbloquearla con **PIN o contraseña**, a elegir la primera vez.
+- Cifrado de verdad en el disco: AES-256-GCM con una clave sacada del PIN con scrypt (módulo `crypto` de Node, sin dependencias). Sin el PIN no se puede leer, ni siquiera abriendo el fichero.
+- Se vuelve a cerrar sola a los pocos minutos sin usarla, al bloquear Windows y al cerrar la app.
+- A la sincronización y a las copias solo va cifrada.
+- Aviso claro: si se olvida el PIN no hay forma de recuperar esas notas (no hay cuenta ni servidor). Opción de exportarlas cifradas.
+- Opcional más adelante: desbloquear con Windows Hello.
+
+**Por fases**: 1) tablero con carriles, secciones y borrar/deshacer; 2) recordatorios; 3) caja fuerte; 4) apuntar rápido desde la barra y pulido de animaciones.
+
+**Por decidir con Álvaro**: si los carriles Ahora / Siguiente / Más tarde le encajan o prefiere solo secciones; si las notas con recordatorio salen también en el calendario; PIN de 4–6 cifras o contraseña libre (o las dos); cuánto tarda en cerrarse sola la caja fuerte.
+
 ### Revisión completa de la app (18-11-2026)
 
 Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
