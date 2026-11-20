@@ -1728,7 +1728,7 @@ function adaptWindowToItsDisplay(win) {
 // son las medidas DE DISEÑO (sin recortar a ninguna pantalla en concreto): makeWindow las
 // ajusta ya a la pantalla de referencia al crearla, y las reajusta sola si la ventana se
 // mueve a otra pantalla (ver adaptWindowToItsDisplay, enganchado al evento 'move').
-function makeWindow(file, w, h, opts = {}) {
+function makeWindow(file, w, h, opts = {}) {   // 2.16: plugins = visor de PDF en Notas
   const { minWidth, minHeight, maxWidth, maxHeight, x, y, center, ...restOpts } = opts;
   const disp = getReferenceDisplay();
   const work = disp.workArea;
@@ -1768,7 +1768,7 @@ function makeWindow(file, w, h, opts = {}) {
     // igual; solo deja de pintar la que está oculta, minimizada o tapada del todo. Con
     // backgroundThrottling:false las ventanas escondidas (panel plegado, recordatorio)
     // seguían dibujando frames todo el día y el proceso de GPU no paraba.
-    webPreferences: { nodeIntegration: true, contextIsolation: false },
+    webPreferences: { nodeIntegration: true, contextIsolation: false, plugins: true },
   });
   win.__sizeSpec = { minWidth: designMinW, minHeight: designMinH, maxWidth: designMaxW, maxHeight: designMaxH };
   win.on('show', () => sendStateToWindow(win));      // escondida no recibe el tic de cada segundo
@@ -1989,7 +1989,8 @@ function createDockPanel() {
     resizable: false, movable: false, skipTaskbar: true, alwaysOnTop: true, roundedCorners: false,
     icon: WINDOW_ICON_PATH,
     // Sin backgroundThrottling:false: plegado está oculto y no debe pintar (ver makeWindow).
-    webPreferences: { nodeIntegration: true, contextIsolation: false, nodeIntegrationInSubFrames: true },
+    // plugins: el visor de PDF, para ver los archivos de las notas (2.16).
+    webPreferences: { nodeIntegration: true, contextIsolation: false, nodeIntegrationInSubFrames: true, plugins: true },
   });
   try { dockPanelWin.setAlwaysOnTop(true, 'screen-saver'); } catch {}   // igual que la barra
   dockPanelWin.loadFile(path.join(__dirname, 'src', 'dock-panel.html'));
@@ -2542,11 +2543,24 @@ function limpiarNota(n, base) {
   if (n.hecha !== undefined) { r.hecha = !!n.hecha; r.hechaEn = r.hecha ? (r.hechaEn || Date.now()) : null; }
   if (n.vence !== undefined) r.vence = Number(n.vence) || null;   // vencimiento: un día (su medianoche)
   if (n.fijada !== undefined) r.fijada = !!n.fijada;              // fijada: siempre encima de las demás
+  if (n.archivo !== undefined) r.archivo = archivoLimpio(n.archivo);
+  if (n.celda !== undefined) r.celda = n.celda && Number.isFinite(Number(n.celda.c)) && Number.isFinite(Number(n.celda.f)) ? { c: Math.max(0, Math.min(500, Math.round(n.celda.c))), f: Math.max(0, Math.min(2000, Math.round(n.celda.f))) } : null;   // cuadrícula libre
   if (n.orden !== undefined) r.orden = Number.isFinite(Number(n.orden)) ? Number(n.orden) : null;   // orden en las vistas ordenadas
   return r;
 }
+function archivoLimpio(a) {
+  if (!a || typeof a !== 'object' || !a.fichero) return null;
+  return {
+    fichero: path.basename(String(a.fichero)).slice(0, 200),   // nombre dentro de la carpeta de archivos
+    nombre: String(a.nombre || a.fichero).slice(0, 200),
+    tamano: Number(a.tamano) || 0,
+    ext: String(a.ext || '').toLowerCase().slice(0, 12),
+    miniatura: /^data:image\/(png|jpeg);base64,/.test(String(a.miniatura || '')) && String(a.miniatura).length < 400000 ? a.miniatura : null,
+    icono: !!a.icono,
+  };
+}
 function crearNota(p) {
-  if (!p || !String(p.texto || '').trim()) return null;
+  if (!p || (!String(p.texto || '').trim() && !(p.archivo && p.archivo.fichero))) return null;
   const lista = notas();
   const n = limpiarNota({ urgencia: '', seccion: null, color: null, recordatorio: null, hecha: false, x: 0, y: 0, ...p },
     { id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creada: Date.now(), avisada: false });
@@ -2616,7 +2630,7 @@ function borrarNotas(ids) {
 function pegarNotas(lista) {
   const ns = notas();
   (Array.isArray(lista) ? lista : []).slice(0, 200).forEach((p, k) => {
-    if (!p || !String(p.texto || '').trim()) return;
+    if (!p || (!String(p.texto || '').trim() && !(p.archivo && p.archivo.fichero))) return;
     const n = limpiarNota({ urgencia: '', seccion: null, color: null, recordatorio: null, hecha: false, x: 0, y: 0, ...p },
       { id: 'n' + Date.now().toString(36) + k + Math.random().toString(36).slice(2, 5), creada: Date.now(), avisada: false });
     n.texto = n.texto.trim();
@@ -2646,6 +2660,82 @@ function borrarSeccionNotas(id) {
   state.seccionesNotas = seccionesNotas().filter(s => s.id !== id);
   notas().forEach(n => { if (n.seccion === id) n.seccion = null; });   // sus notas se quedan, sin sección
   saveData(); broadcastState();
+}
+
+// ── Archivos en las notas (2.16) ──────────────────────────────────────────────
+// Se copian a «notas-archivos» en la carpeta de datos. La miniatura va en la propia nota (así se
+// ve también en otro PC por la nube); el archivo en sí se queda en este PC.
+const carpetaArchivosNotas = () => path.join(app.getPath('userData'), 'notas-archivos');
+const MAX_ARCHIVO = 300 * 1024 * 1024;
+async function miniaturaDe(ruta) {
+  try {
+    const img = await nativeImage.createThumbnailFromPath(ruta, { width: 480, height: 480 });
+    if (img && !img.isEmpty()) { const s = img.getSize(); const r = s.width > 360 ? img.resize({ width: 360 }) : img; return { miniatura: 'data:image/jpeg;base64,' + r.toJPEG(78).toString('base64'), icono: false }; }
+  } catch {}
+  try { const ic = await app.getFileIcon(ruta, { size: 'large' }); if (ic && !ic.isEmpty()) return { miniatura: ic.toDataURL(), icono: true }; } catch {}
+  return { miniatura: null, icono: true };
+}
+function rutaArchivoNota(id) {
+  const n = notas().find(x => x.id === id);
+  if (!n || !n.archivo) return null;
+  const r = path.join(carpetaArchivosNotas(), n.archivo.fichero);
+  return fs.existsSync(r) ? r : null;
+}
+ipcMain.handle('notas-archivos', async (_e, p) => {
+  const accion = p && p.accion;
+  try {
+    if (accion === 'soltar') {
+      const rutas = (Array.isArray(p.rutas) ? p.rutas : []).slice(0, 20);
+      fs.mkdirSync(carpetaArchivosNotas(), { recursive: true });
+      const avisos = [];
+      fotoAntesDe('nota-crear');
+      let k = 0;
+      for (const ruta of rutas) {
+        let st; try { st = fs.statSync(ruta); } catch { continue; }
+        if (!st.isFile()) { avisos.push(path.basename(ruta) + ' (es una carpeta)'); continue; }
+        if (st.size > MAX_ARCHIVO) { avisos.push(path.basename(ruta) + ' (más de 300 MB)'); continue; }
+        const nombre = path.basename(ruta);
+        const fichero = Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + '-' + nombre.replace(/[^\w.\- ]+/g, '_');
+        await fs.promises.copyFile(ruta, path.join(carpetaArchivosNotas(), fichero));
+        const mini = await miniaturaDe(ruta);
+        const n = limpiarNota({ texto: '', urgencia: '', seccion: p.seccion || null, color: null, recordatorio: null, hecha: false, x: (Number(p.x) || 0) + k * 32, y: (Number(p.y) || 0) + k * 32,
+          archivo: { fichero, nombre, tamano: st.size, ext: path.extname(nombre).slice(1), ...mini } },
+          { id: 'n' + Date.now().toString(36) + k + Math.random().toString(36).slice(2, 5), creada: Date.now(), avisada: false });
+        n.texto = '';
+        notas().push(n);
+        k++;
+      }
+      saveData(); broadcastState();
+      return { ok: true, creadas: k, avisos };
+    }
+    const ruta = rutaArchivoNota(p && p.id);
+    if (accion === 'ruta') return { ruta };
+    if (!ruta) return { error: 'El archivo no está en este PC (quizá se añadió en otro).' };
+    if (accion === 'abrir') { const err = await require('electron').shell.openPath(ruta); return err ? { error: err } : { ok: true }; }
+    if (accion === 'carpeta') { require('electron').shell.showItemInFolder(ruta); return { ok: true }; }
+    if (accion === 'texto') {   // los de texto se ven dentro (hasta 1 MB)
+      const st = fs.statSync(ruta); if (st.size > 1024 * 1024) return { error: 'Demasiado grande para verlo aquí' };
+      return { texto: fs.readFileSync(ruta, 'utf8') };
+    }
+    if (accion === 'guardar') {
+      const n = notas().find(x => x.id === p.id);
+      const parent = settingsWin && !settingsWin.isDestroyed() && settingsWin.isFocused() ? settingsWin : (notasWin && !notasWin.isDestroyed() ? notasWin : dockPanelWin || undefined);
+      const { canceled, filePath } = await dialog.showSaveDialog(parent, { title: 'Guardar una copia', defaultPath: path.join(app.getPath('downloads'), n.archivo.nombre) });
+      if (canceled || !filePath) return { ok: false };
+      await fs.promises.copyFile(ruta, filePath);
+      return { ok: true, ruta: filePath };
+    }
+  } catch (err) { return { error: String((err && err.message) || err) }; }
+  return { error: 'Acción desconocida' };
+});
+// Al arrancar, fuera los archivos que ya no están en ninguna nota (borradas hace tiempo).
+function limpiarArchivosNotas() {
+  try {
+    const usados = new Set(notas().filter(n => n.archivo).map(n => n.archivo.fichero));
+    const dir = carpetaArchivosNotas();
+    if (!fs.existsSync(dir)) return;
+    fs.readdirSync(dir).forEach(f => { if (!usados.has(f)) { try { fs.unlinkSync(path.join(dir, f)); } catch {} } });
+  } catch {}
 }
 
 // Recordatorios: cada 20 s. Si estás en «No molestar» o en una llamada, espera a que acabe.
@@ -4060,6 +4150,7 @@ app.whenReady().then(() => {
   repararCierreDeGolpe();   // 2.13: antes que nada que use la tarea en marcha
   try { const { powerMonitor } = require('electron'); powerMonitor.on('suspend', alSuspender); powerMonitor.on('resume', alDespertar); powerMonitor.on('lock-screen', cajaCerrar); powerMonitor.on('suspend', cajaCerrar); } catch {}
   setInterval(vigilarRecordatoriosNotas, 20000); setTimeout(vigilarRecordatoriosNotas, 5000);   // 2.16
+  setTimeout(limpiarArchivosNotas, 15000);
   latir(); setInterval(latir, 60000);
   setTimeout(buscarVersionNueva, 60000); setInterval(buscarVersionNueva, 4 * 60 * 60 * 1000);   // 2.14.3
   startLeaveWatcher();

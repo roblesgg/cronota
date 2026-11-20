@@ -88,6 +88,29 @@
   /* La deformación va solo en las notas (Álvaro: también mientras se mueven); los botones, solo desenfoque. */
   .mapa.moviendose .nota.u-alta::after { animation:none; }
   .nota:hover { box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 16px 30px -14px rgba(0,0,0,.65); }
+  /* Notas con archivo (2.16). */
+  .nota.con-archivo { padding:8px 8px 10px; }
+  .archivo-prev { position:relative;border-radius:12px;overflow:hidden;background:rgba(0,0,0,.25);display:grid;place-items:center;min-height:70px;max-height:220px; }
+  .archivo-prev img { width:100%;max-height:220px;object-fit:cover;display:block;border-radius:12px;pointer-events:none; }
+  .archivo-prev img.icono { width:56px;height:56px;object-fit:contain;margin:16px auto; }
+  .archivo-prev .ext { position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px); }
+  .archivo-pie { display:flex;align-items:center;gap:6px;margin-top:8px;padding:0 4px;font-size:12px;font-weight:650; }
+  .archivo-pie .nom { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .archivo-pie .tam { color:var(--text2);font-weight:600;font-size:11px;flex-shrink:0; }
+  .nota.con-archivo .nota-texto { padding:6px 4px 0; }
+  .mapa.soltando { border-color:var(--accent);box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent), inset 0 0 60px color-mix(in srgb, var(--accent2) 25%, transparent); }
+  .mapa.soltando::after { content:'Suelta aquí para añadirlos a tus notas';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border-radius:999px;background:color-mix(in srgb, var(--bg2) 80%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-size:13px;font-weight:700;pointer-events:none; }
+  .visor-fondo { position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:notaCae .3s both; }
+  .visor { position:fixed;inset:24px;z-index:71;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:22px;
+    background:radial-gradient(120% 60% at 30% 0%, rgba(255,255,255,.12), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--bg2) 92%, transparent);
+    border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 70px -20px rgba(0,0,0,.75);animation:selEntra .35s cubic-bezier(.34,1.56,.64,1) both; }
+  .visor-cab { display:flex;align-items:center;gap:8px; }
+  .visor-cab b { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px; }
+  .visor-cuerpo { flex:1;min-height:0;border-radius:14px;overflow:auto;background:rgba(0,0,0,.25);display:grid;place-items:center; }
+  .visor-cuerpo img { max-width:100%;max-height:100%;object-fit:contain;border-radius:12px; }
+  .visor-cuerpo iframe { width:100%;height:100%;border:none;border-radius:12px;background:#fff; }
+  .visor-cuerpo pre { width:100%;height:100%;margin:0;padding:16px;white-space:pre-wrap;font:12.5px/1.5 ui-monospace, Consolas, monospace;color:var(--text);align-self:start; }
+  .visor-cuerpo .sin { text-align:center;color:var(--text2);font-size:13px;display:flex;flex-direction:column;gap:12px;align-items:center; }
   .nota.elegida { outline:2px solid var(--accent);outline-offset:3px; }
   .marco { position:absolute;border:1.5px solid var(--accent);border-radius:8px;background:color-mix(in srgb, var(--accent2) 14%, transparent);pointer-events:none;z-index:6; }
   .mapa.panear, .mapa.panear .nota { cursor:grabbing !important; }
@@ -354,8 +377,8 @@
 <!-- Cristal líquido con deformación (2.16): filtros SVG que se usan como backdrop-filter. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="vidrio" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
-    <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%275%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2714%27 y=%2714%27 width=%2772%27 height=%2772%27 rx=%2714%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
-    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.18" xChannelSelector="R" yChannelSelector="B"/>
+    <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%271.6%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%277%27 y=%277%27 width=%2786%27 height=%2786%27 rx=%279.799999999999999%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
+    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.3" xChannelSelector="R" yChannelSelector="B"/>
   </filter>
   <filter id="vidrio-boton" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%278%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2724%27 y=%2724%27 width=%2752%27 height=%2752%27 rx=%2724%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
@@ -634,6 +657,56 @@ mapa.addEventListener('contextmenu', (e) => {
   menuMapa(e);
 });
 
+// ── Archivos en las notas ─────────────────────────────────────────────────────
+function tamanoLegible(b) { b = Number(b) || 0; return b < 1024 ? b + ' B' : b < 1048576 ? Math.round(b / 1024) + ' KB' : (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB'; }
+const archivos = (accion, extra) => ipcRenderer.invoke('notas-archivos', { accion, ...(extra || {}) });
+// Que soltar un archivo fuera del mapa no abra el archivo en la ventana.
+['dragover', 'drop'].forEach(t => document.addEventListener(t, (e) => { if ([...(e.dataTransfer ? e.dataTransfer.types : [])].includes('Files')) e.preventDefault(); }));
+let contadorArrastre = 0;
+mapa.addEventListener('dragenter', (e) => { if ([...e.dataTransfer.types].includes('Files')) { contadorArrastre++; mapa.classList.add('soltando'); } });
+mapa.addEventListener('dragleave', () => { if (--contadorArrastre <= 0) { contadorArrastre = 0; mapa.classList.remove('soltando'); } });
+mapa.addEventListener('dragover', (e) => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+mapa.addEventListener('drop', async (e) => {
+  if (![...e.dataTransfer.types].includes('Files')) return;
+  e.preventDefault(); contadorArrastre = 0; mapa.classList.remove('soltando');
+  const { webUtils } = require('electron');
+  const rutas = [...e.dataTransfer.files].map(fl => { try { return webUtils && webUtils.getPathForFile ? webUtils.getPathForFile(fl) : fl.path; } catch { return fl.path; } }).filter(Boolean);
+  if (!rutas.length) return;
+  const p = aMapa(e.clientX, e.clientY);
+  const r = await archivos('soltar', { rutas, x: p.x - 40, y: p.y - 40, seccion: filtroSeccion || null });
+  if (r && r.avisos && r.avisos.length) confirmar('Algunos no se han añadido', r.avisos.join('\n'), 'Vale', () => {});
+});
+// Visor: imágenes y PDF dentro; texto, también; lo demás, con su programa.
+const EXT_IMAGEN = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'avif'];
+const EXT_TEXTO = ['txt', 'md', 'csv', 'json', 'log', 'xml', 'js', 'ts', 'css', 'html', 'ps1', 'sql', 'yml', 'yaml', 'ini'];
+async function abrirVisor(n) {
+  cerrarVisor();
+  const a = n.archivo; if (!a) return;
+  const fondo = document.createElement('div'); fondo.className = 'visor-fondo'; fondo.id = 'visorFondo'; fondo.onclick = cerrarVisor;
+  const v = document.createElement('div'); v.className = 'visor'; v.id = 'visor';
+  v.innerHTML = `<div class="visor-cab"><b title="${esc(a.nombre)}">${esc(a.nombre)}</b>
+      <button class="btn-ghost" data-a="abrir">Abrir con su programa</button><button class="btn-ghost" data-a="carpeta">En la carpeta</button><button class="btn-primary" data-a="guardar">Guardar copia</button>
+      <button class="pop-close" data-a="cerrar" title="Cerrar (Esc)"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+    <div class="visor-cuerpo"></div>`;
+  document.body.append(fondo, v);
+  v.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
+    if (b.dataset.a === 'cerrar') return cerrarVisor();
+    const r = await archivos(b.dataset.a, { id: n.id });
+    if (r && r.error) confirmar('No se ha podido', r.error, 'Vale', () => {});
+  });
+  const cuerpo = v.querySelector('.visor-cuerpo');
+  const { ruta } = await archivos('ruta', { id: n.id });
+  const ext = (a.ext || '').toLowerCase();
+  if (!ruta) { cuerpo.innerHTML = `<div class="sin">${a.miniatura ? `<img src="${a.miniatura}" style="max-width:280px">` : ''}<span>Este archivo se añadió en otro PC: aquí solo está su vista previa.</span></div>`; return; }
+  const url = require('url').pathToFileURL(ruta).href;
+  if (EXT_IMAGEN.includes(ext)) cuerpo.innerHTML = `<img src="${url}" alt="">`;
+  else if (ext === 'pdf') cuerpo.innerHTML = `<iframe src="${url}"></iframe>`;
+  else if (EXT_TEXTO.includes(ext)) { const t = await archivos('texto', { id: n.id }); cuerpo.innerHTML = '<pre></pre>'; cuerpo.firstChild.textContent = t.texto != null ? t.texto : (t.error || ''); }
+  else cuerpo.innerHTML = `<div class="sin">${a.miniatura ? `<img src="${a.miniatura}" style="max-width:280px;border-radius:12px">` : ''}<span>Este tipo de archivo se abre con su programa.</span><button class="btn-primary" id="visorAbrir">Abrir con su programa</button></div>`;
+  const ab = document.getElementById('visorAbrir'); if (ab) ab.onclick = () => archivos('abrir', { id: n.id });
+}
+function cerrarVisor() { ['visor', 'visorFondo'].forEach(id => { const x = document.getElementById(id); if (x) x.remove(); }); }
+
 // ── Selección ─────────────────────────────────────────────────────────────────
 let seleccion = new Set();
 let ratonMapa = null;   // dónde está el ratón en el mapa (para pegar ahí)
@@ -812,9 +885,21 @@ function tarjeta(n) {
   const color = n.color || (sec && sec.color);
   if (color) el.style.setProperty('--c', color);
   // Texto, con las líneas «[ ]» / «[x]» como casillas (propias, no las del sistema).
+  if (n.archivo) {
+    el.classList.add('con-archivo');
+    const a = n.archivo, pv = document.createElement('div'); pv.className = 'archivo-prev';
+    pv.innerHTML = (a.miniatura ? `<img src="${a.miniatura}" class="${a.icono ? 'icono' : ''}" alt="">` : '') + (a.ext ? `<span class="ext">${esc(a.ext)}</span>` : '');
+    // Cuando carga la imagen cambia el alto de la nota: las vistas ordenadas se recolocan.
+    const img = pv.querySelector('img');
+    if (img) img.addEventListener('load', () => { if (modo !== 'libre') { clearTimeout(recolocarT); recolocarT = setTimeout(() => colocar(false), 30); } }, { once: true });
+    el.appendChild(pv);
+    const pie = document.createElement('div'); pie.className = 'archivo-pie';
+    pie.innerHTML = `<span class="nom" title="${esc(a.nombre)}">${esc(a.nombre)}</span><span class="tam">${tamanoLegible(a.tamano)}</span>`;
+    el.appendChild(pie);
+  }
   const txt = document.createElement('div'); txt.className = 'nota-texto';
   pintarMarkdown(txt, n.texto, n.id);
-  el.appendChild(txt);
+  if (n.texto || !n.archivo) el.appendChild(txt);
   const meta = document.createElement('div'); meta.className = 'nota-meta';
   if (n.urgencia && URGENCIAS[n.urgencia]) meta.insertAdjacentHTML('beforeend', `<span class="etq u-${n.urgencia}">${URGENCIAS[n.urgencia]}</span>`);
   if (n.recordatorio) {
@@ -843,7 +928,7 @@ function tarjeta(n) {
     else if (b.dataset.a === 'borrar') irse(el, () => enviar('nota-borrar', { id: n.id }), true);
   };
   el.appendChild(acc);
-  el.ondblclick = (e) => { e.stopPropagation(); abrirPopNota(n.id); };
+  el.ondblclick = (e) => { e.stopPropagation(); if (n.archivo) abrirVisor(n); else abrirPopNota(n.id); };
   // Arrastrar la nota por el mapa (sin el arrastre del sistema: se mueve fina, con el zoom).
   el.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
@@ -893,17 +978,43 @@ function empezarReorden(e, el, n) {
     if (!movida && Math.hypot(dx, dy) < 4) return;
     if (!movida) {
       movida = true; arrastrandoNota = true;
-      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni };
+      reorden = { id: n.id, ids: ultimoOrden.slice(), grupo: grupoIni, celdaIni: celdasActuales.get(n.id) };
+      celdasTemp = new Map(celdasActuales);
       el.classList.add('cogida'); el.style.zIndex = '9999'; el.style.transition = 'none';
     }
     el.style.left = (ini.x + dx) + 'px'; el.style.top = (ini.y + dy) + 'px';
-    if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (reorden) aplicarDestino(destinoReorden(ini.x + dx + ANCHO_NOTA / 2, ini.y + dy + 20)); });
+    if (!raf) raf = requestAnimationFrame(() => {
+      raf = 0; if (!reorden) return;
+      if (modo === 'cuadricula') {
+        const CW = ANCHO_NOTA + ANCHO_G, CH = 168 + ANCHO_G;
+        const c = { c: Math.max(0, Math.round((ini.x + dx) / CW)), f: Math.max(0, Math.round((ini.y + dy) / CH)) };
+        const clave = c.c + ',' + c.f;
+        if (reorden.celdaClave === clave) return;
+        reorden.celdaClave = clave;
+        const temp = new Map(celdasActuales);
+        const mia = reorden.celdaIni;
+        const otra = [...celdasActuales].find(([id, cc]) => id !== n.id && cc.c === c.c && cc.f === c.f);
+        temp.set(n.id, c);
+        if (otra) temp.set(otra[0], mia);   // la que estaba ahí pasa a la de la que arrastras
+        celdasTemp = temp;
+        colocar(true);
+        return;
+      }
+      aplicarDestino(destinoReorden(ini.x + dx + ANCHO_NOTA / 2, ini.y + dy + 20));
+    });
   };
   const soltar = () => {
     el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar); el.removeEventListener('pointercancel', soltar);
     if (!movida) return;
     const r = reorden; reorden = null; arrastrandoNota = false;
     el.classList.remove('cogida'); el.style.transition = '';
+    if (modo === 'cuadricula') {
+      // Se guardan las celdas de todas (así no se mueven solas al añadir otras).
+      const fijas = celdasTemp || celdasActuales; celdasTemp = null;
+      enviar('notas-editar', { lista: [...fijas].map(([id, c]) => ({ id, celda: c })) });
+      colocar(true);
+      return;
+    }
     // Se guarda el orden de todas (y, si cambió de columna, su propiedad).
     const lista = r.ids.map((id, i) => ({ id, orden: i }));
     if (r.grupo !== grupoIni && r.grupo !== undefined) { const p = propiedadDeColumna(r.grupo); if (p) Object.assign(lista.find(x => x.id === n.id), p); }
@@ -1009,7 +1120,16 @@ function colocar(animar) {
   const cols = Math.max(1, Math.floor((anchoVisible + ANCHO_G) / (ANCHO_NOTA + ANCHO_G)));
   const alto = (n, w) => { const e = el(n); if (!e) return 120; const antes = e.style.width; e.style.width = w + 'px'; const h = e.offsetHeight; e.style.width = antes; return h; };
   if (modo === 'cuadricula') {
-    orden.forEach((n, i) => { const x = (i % cols) * (ANCHO_NOTA + ANCHO_G), y = Math.floor(i / cols) * (168 + ANCHO_G); huecos.push({ id: n.id, x, y, w: ANCHO_NOTA, h: 168 }); poner(n, x, y, ANCHO_NOTA, i); });
+    // Cuadrícula libre: cada nota en su celda (nota.celda = { c, f }); si la sueltas en una
+    // ocupada, se cambian el sitio. Las que no tienen celda llenan los huecos libres en orden.
+    const CW = ANCHO_NOTA + ANCHO_G, CH = 168 + ANCHO_G;
+    const ocupadas = new Map(), sitio = new Map();
+    const celdaDe = (n) => (celdasTemp && celdasTemp.has(n.id)) ? celdasTemp.get(n.id) : n.celda;
+    orden.forEach(n => { const c = celdaDe(n); if (c && Number.isFinite(c.c) && Number.isFinite(c.f) && !ocupadas.has(c.c + ',' + c.f)) { ocupadas.set(c.c + ',' + c.f, n.id); sitio.set(n.id, c); } });
+    let k = 0;
+    orden.forEach(n => { if (sitio.has(n.id)) return; while (ocupadas.has((k % cols) + ',' + Math.floor(k / cols))) k++; const c = { c: k % cols, f: Math.floor(k / cols) }; ocupadas.set(c.c + ',' + c.f, n.id); sitio.set(n.id, c); });
+    celdasActuales = sitio;
+    orden.forEach((n, i) => { const c = sitio.get(n.id), x = c.c * CW, y = c.f * CH; huecos.push({ id: n.id, x, y, w: ANCHO_NOTA, h: 168 }); poner(n, x, y, ANCHO_NOTA, i); });
   } else if (modo === 'mosaico') {
     const y = new Array(cols).fill(0);
     orden.forEach((n, i) => { const c = y.indexOf(Math.min(...y)), h = alto(n, ANCHO_NOTA); huecos.push({ id: n.id, x: c * (ANCHO_NOTA + ANCHO_G), y: y[c], w: ANCHO_NOTA, h }); poner(n, c * (ANCHO_NOTA + ANCHO_G), y[c], ANCHO_NOTA, i); y[c] += h + ANCHO_G; });
@@ -1035,6 +1155,7 @@ function colocar(animar) {
 }
 // ── Mover en las vistas ordenadas ─────────────────────────────────────────────
 let reorden = null, ultimoOrden = [], huecos = [], columnas = [];
+let celdasTemp = null, celdasActuales = new Map(), recolocarT = 0;   // cuadrícula libre: celda provisional al arrastrar
 // Dónde iría la nota si la sueltas en (x, y) del mapa: en qué columna y delante de cuál.
 function destinoReorden(x, y) {
   const otras = huecos.filter(h => h.id !== reorden.id);
@@ -1133,6 +1254,7 @@ function menuNota(e, n) {
   const color = n.color || (sec && sec.color) || '#8b93a7';
   const editar = (patch) => enviar('nota-editar', { id: n.id, ...patch });
   const items = [
+    ...(n.archivo ? [{ label: 'Ver', hint: n.archivo.nombre, icon: IC.ver, tone: 'accent', run: () => abrirVisor(n) }] : []),
     { label: 'Propiedades', hint: 'Texto, urgencia, fechas…', icon: IC.ajustes, run: () => abrirPopNota(n.id) },
     n.hecha
       ? { label: 'Pendiente', hint: 'Volver a abrirla', icon: IC.deshacer, run: () => editar({ hecha: false }) }
@@ -1181,6 +1303,11 @@ function menuNota(e, n) {
       ] }) },
     { label: 'Más', hint: 'Fijar, duplicar, copiar…', icon: IC.mas,
       sub: () => ({ title: 'Más', subtitle: 'Opciones', items: [
+        ...(n.archivo ? [
+          { label: 'Abrir con su programa', icon: IC.ver, run: () => archivos('abrir', { id: n.id }) },
+          { label: 'En la carpeta', icon: IC.seccion, run: () => archivos('carpeta', { id: n.id }) },
+          { label: 'Guardar copia', icon: IC.copiar, run: () => archivos('guardar', { id: n.id }) },
+        ] : []),
         { label: n.fijada ? 'Desfijar' : 'Fijar encima', icon: IC.chincheta, tone: 'accent', run: () => editar({ fijada: !n.fijada }) },
         { label: 'Duplicar', icon: IC.dup, run: () => enviar('nota-duplicar', { id: n.id }) },
         { label: 'Copiar texto', icon: IC.copiar, run: () => { try { require('electron').clipboard.writeText(n.texto); } catch {} } },
@@ -1840,6 +1967,7 @@ function cerrarConf() { document.getElementById('popConfFondo').style.display = 
 document.addEventListener('keydown', (e) => {
   const enCampo = e.target.closest && e.target.closest('input, textarea, select');
   if (e.key === 'Escape' && !selectorAbierto && seleccion.size && document.getElementById('popNota').style.display !== 'flex') { seleccion.clear(); marcarSeleccion(); return; }
+  if (e.key === 'Escape' && document.getElementById('visor')) { cerrarVisor(); return; }
   if (e.key === 'Escape') { if (selectorAbierto) { cerrarSelector(); return; } cerrarPopNota(); cerrarPopSec(); cerrarConf(); cerrarDentro(); return; }
   if (enCampo || e.target.isContentEditable) return;
   if (atajosNotas(e)) return;
@@ -1851,7 +1979,7 @@ document.addEventListener('keydown', (e) => {
 // ── Atajos de las notas ───────────────────────────────────────────────────────
 // Ctrl+C / X / V / D / A, Supr, Enter, Esc y flechas, como en cualquier pizarra.
 let portapapelesNotas = null;   // { texto, notas } lo último copiado aquí (con sus propiedades)
-const sinId = (n) => ({ texto: n.texto, urgencia: n.urgencia || '', seccion: n.seccion || null, color: n.color || null, recordatorio: n.recordatorio || null, vence: n.vence || null, fijada: !!n.fijada, x: n.x, y: n.y });
+const sinId = (n) => ({ archivo: n.archivo || undefined, texto: n.texto, urgencia: n.urgencia || '', seccion: n.seccion || null, color: n.color || null, recordatorio: n.recordatorio || null, vence: n.vence || null, fijada: !!n.fijada, x: n.x, y: n.y });
 function copiarElegidas() {
   const ns = elegidas(); if (!ns.length) return false;
   const texto = ns.map(n => n.texto).join('\n\n');

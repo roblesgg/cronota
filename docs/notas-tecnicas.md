@@ -30,7 +30,8 @@ Lo que hay que saber para trabajar en la app y que no está a la vista en el có
 ## Notas y caja fuerte (2.16)
 
 - `state.notas` ({ id, texto, carril: ahora|siguiente|luego, seccion, color, recordatorio, avisada, hecha, hechaEn, creada }) y `state.seccionesNotas`. Se deshacen con Ctrl+Z como lo demás. Recordatorios: `vigilarRecordatoriosNotas` cada 20 s.
-- `state.cajaFuerte` = { v, tipo, sal, iv, tag, datos }: AES-256-GCM con clave de `crypto.scryptSync` (N 32768). La clave solo vive en memoria (`cajaClave`) y se borra al cerrarla. A las pantallas solo les llega { existe, tipo, abierta }; el contenido va por `ipcMain.handle('caja')`. Deshacer no toca la caja. Si por la nube llega una caja con otra sal, la de aquí se cierra.
+- `state.cajaFuerte` = { v, tipo, sal, iv, tag, datos }: AES-256-GCM con clave de `crypto.scryptSync` (N 32768). La clave solo vive en memoria (`cajaClave`) y se borra al cerrarla. A las pantallas solo les llega { existe, tipo, abierta }; el contenido va por `ipcMain.handle('caja')`. Deshacer no toca la caja. Si por la nube llega una caja con otra sal, la de aquí se cierra. Archivos de las notas: `nota.archivo` = { fichero, nombre, tamano, ext, miniatura, icono }; el archivo vive en `%APPDATA%imputa-me
+otas-archivos` (en la Store, en la carpeta del paquete) y solo en ese PC; `ipcMain.handle('notas-archivos')`. Las ventanas y el panel llevan `plugins: true` para ver PDF.
 
 ## Compilar y publicar
 
