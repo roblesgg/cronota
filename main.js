@@ -248,7 +248,7 @@ const NOVEDADES_2_9 = {
 const WHATS_NEW = {
   '2.16.0': { title: 'Novedades de Cronota 2.16', steps: [
     { icon:'spark', title:'Notas, a la vista',
-      text:'Una pestaña nueva, Notas: apunta algo y Enter. Tres carriles (Ahora, Siguiente, Más tarde) para saber qué toca, secciones propias, casillas con [ ] y recordatorios con fecha y hora.' },
+      text:'Una pestaña nueva, Notas: un mapa donde dejas tus notas sueltas y las colocas a tu gusto. Cada una con urgencia, recordatorio, sección y color, y casillas escribiendo [ ] al principio de una línea.' },
     { icon:'folder', title:'Caja fuerte',
       text:'Dentro de Notas, notas que solo se ven con tu PIN o contraseña. Van cifradas y se cierran solas a los 5 minutos. Si olvidas el PIN no se pueden recuperar.' },
   ] },
@@ -2516,17 +2516,21 @@ function openNotas() {
 }
 
 // ── Notas y caja fuerte (2.16) ────────────────────────────────────────────────────
-// Notas: un planner sencillo. Cada nota va en un carril (ahora / siguiente / luego), puede ir en
-// una sección propia de notas, tener color y un recordatorio con fecha y hora (aviso de Windows).
+// Notas: notas sueltas en un mapa (cada una con su sitio x, y; se colocan arrastrando). Cada nota
+// tiene propiedades: urgencia (baja / media / alta), sección propia de notas, color y recordatorio
+// con fecha y hora (aviso de Windows). (Al principio iban en carriles; Álvaro prefirió el mapa.)
 // Viven en state.notas y state.seccionesNotas: se guardan, se deshacen con Ctrl+Z y viajan con
 // la sincronización y las copias como las tareas.
-const CARRILES_NOTAS = ['ahora', 'siguiente', 'luego'];
+const URGENCIAS_NOTAS = ['', 'baja', 'media', 'alta'];
+const numMapa = (v) => Math.max(-20000, Math.min(20000, Math.round(Number(v) || 0)));
 function notas() { if (!Array.isArray(state.notas)) state.notas = []; return state.notas; }
 function seccionesNotas() { if (!Array.isArray(state.seccionesNotas)) state.seccionesNotas = []; return state.seccionesNotas; }
 function limpiarNota(n, base) {
   const r = { ...(base || {}) };
   if (n.texto !== undefined) r.texto = String(n.texto || '').slice(0, 4000);
-  if (n.carril !== undefined) r.carril = CARRILES_NOTAS.includes(n.carril) ? n.carril : 'ahora';
+  if (n.urgencia !== undefined) r.urgencia = URGENCIAS_NOTAS.includes(n.urgencia) ? n.urgencia : '';
+  if (n.x !== undefined) r.x = numMapa(n.x);
+  if (n.y !== undefined) r.y = numMapa(n.y);
   if (n.seccion !== undefined) r.seccion = n.seccion && seccionesNotas().some(s => s.id === n.seccion) ? n.seccion : null;
   if (n.color !== undefined) r.color = /^#[0-9a-fA-F]{6}$/.test(String(n.color || '')) ? n.color : null;
   if (n.recordatorio !== undefined) {
@@ -2540,10 +2544,10 @@ function limpiarNota(n, base) {
 function crearNota(p) {
   if (!p || !String(p.texto || '').trim()) return null;
   const lista = notas();
-  const n = limpiarNota({ carril: 'ahora', seccion: null, color: null, recordatorio: null, hecha: false, ...p },
+  const n = limpiarNota({ urgencia: '', seccion: null, color: null, recordatorio: null, hecha: false, x: 0, y: 0, ...p },
     { id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creada: Date.now(), avisada: false });
   n.texto = n.texto.trim();
-  lista.unshift(n);   // la nueva, arriba de su carril
+  lista.push(n);   // la nueva, encima de las demás (el orden de la lista es el de apilado)
   saveData(); broadcastState();
   return n.id;
 }
@@ -2561,15 +2565,14 @@ function borrarNota(id) {
   lista.splice(i, 1);
   saveData(); broadcastState();
 }
-// Arrastrar: a otro carril y delante de otra nota (o al final si antesDe no está).
+// Arrastrar en el mapa: la nota va a su sitio nuevo y queda encima de las demás.
 function moverNota(p) {
   const lista = notas();
   const i = lista.findIndex(x => x.id === (p && p.id));
   if (i < 0) return;
   const [n] = lista.splice(i, 1);
-  if (CARRILES_NOTAS.includes(p.carril)) n.carril = p.carril;
-  const j = p.antesDe ? lista.findIndex(x => x.id === p.antesDe) : -1;
-  if (j >= 0) lista.splice(j, 0, n); else lista.push(n);
+  n.x = numMapa(p.x); n.y = numMapa(p.y);
+  lista.push(n);
   saveData(); broadcastState();
 }
 function vaciarHechas() {

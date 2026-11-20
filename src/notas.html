@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="shared.css">
 <style>
-  /* 2.16: Notas. Un planner sencillo: tres carriles (Ahora, Siguiente, Más tarde) con tarjetas de
-     cristal, secciones propias, recordatorios y una caja fuerte cifrada aparte. */
+  /* 2.16: Notas. Notas sueltas en un mapa flotante: cada una donde la dejes, con sus propiedades
+     (urgencia, recordatorio, sección, color). Y una caja fuerte cifrada aparte. */
   html, body { width:100%;height:100%; }
   body { border-radius:var(--radius);overflow:hidden; }
   .app { width:100%;height:100%;padding:24px;display:flex;flex-direction:column;gap:12px;position:relative;min-height:0;-webkit-app-region:no-drag; }
@@ -13,22 +13,18 @@
   .cabecera { display:flex;align-items:center;gap:8px;flex-shrink:0; }
   body:not(.embedded) .cabecera { padding-right:34px; }   /* la X de cerrar la ventana */
   .cabecera .app-title { flex:1; }
-  .btn-caja {
+  .btn-pildora {
     display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);
-    background:var(--bg2);color:var(--text2);font:inherit;font-size:12px;font-weight:650;cursor:pointer;-webkit-app-region:no-drag;
+    background:var(--bg2);color:var(--text2);font:inherit;font-size:12px;font-weight:650;cursor:pointer;-webkit-app-region:no-drag;white-space:nowrap;
     transition:background .15s, color .15s, transform .3s cubic-bezier(.34,1.56,.64,1);
   }
-  .btn-caja:hover { color:var(--text);background:var(--bg3);transform:translateY(-1px); }
-  .btn-caja.activo { color:var(--accent);border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
+  .btn-pildora:hover { color:var(--text);background:var(--bg3);transform:translateY(-1px); }
+  .btn-pildora.activo { color:var(--accent);border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
 
-  /* Apuntar rápido */
   .apuntar { display:flex;gap:8px;align-items:center;flex-shrink:0; }
   .apuntar input { flex:1; }
-  .carril-sel { display:flex;background:var(--bg2);border-radius:999px;padding:3px;gap:2px;flex-shrink:0; }
-  .carril-sel button { border:none;background:transparent;color:var(--text2);font:inherit;font-size:11.5px;font-weight:650;padding:6px 10px;border-radius:999px;cursor:pointer;white-space:nowrap; }
-  .carril-sel button.activo { background:color-mix(in srgb, var(--accent2) 26%, transparent);color:var(--text); }
 
-  /* Filtros por sección */
+  /* Filtros: no esconden nada, apagan lo que no encaja (todo sigue a la vista). */
   .filtros { display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex-shrink:0; }
   .chip-sec {
     display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);
@@ -41,73 +37,102 @@
   .chip-sec.mas { border-style:dashed; }
   .filtros input.buscar { margin-left:auto;flex:0 1 150px;width:150px !important;min-width:90px;padding:6px 10px !important;font-size:12px !important; }
 
-  /* Tablero */
-  .tablero { flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:2px 6px 8px 2px; container-type:inline-size; }
-  .tablero::-webkit-scrollbar { width:8px; }
-  .tablero::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--text) 22%, transparent);border-radius:4px; }
-  .carriles { display:flex;flex-direction:column;gap:14px; }
-  @container (min-width: 720px) { .carriles { display:grid;grid-template-columns:repeat(3, minmax(0,1fr));align-items:start; } }
-  .carril { display:flex;flex-direction:column;gap:8px;border-radius:18px;padding:10px;background:color-mix(in srgb, var(--bg2) 60%, transparent);border:1px solid var(--border);transition:background .2s, border-color .2s; min-height:64px; }
-  .carril.encima { background:color-mix(in srgb, var(--accent2) 14%, transparent);border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
-  .carril-cab { display:flex;align-items:center;gap:8px;padding:2px 4px; }
-  .carril-cab b { font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--text2); }
-  .carril-cab .n { font-size:11px;color:var(--text3);margin-left:auto; }
-  .carril-cab .punto { width:8px;height:8px;border-radius:50%; }
-  .carril[data-carril="ahora"] .punto { background:#f87171;box-shadow:0 0 10px #f8717188; }
-  .carril[data-carril="siguiente"] .punto { background:#fbbf24; }
-  .carril[data-carril="luego"] .punto { background:#60a5fa; }
-  .carril-vacio { font-size:12px;color:var(--text3);text-align:center;padding:10px 4px; }
-
-  /* Tarjeta de cristal */
-  .nota {
-    position:relative;border-radius:16px;padding:11px 12px 10px;cursor:grab;color:var(--text);
-    background:
-      radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%),
-      linear-gradient(160deg, color-mix(in srgb, var(--c, var(--accent2)) 30%, transparent), color-mix(in srgb, var(--c, var(--accent2)) 12%, transparent));
-    -webkit-backdrop-filter:blur(10px) saturate(1.6); backdrop-filter:blur(10px) saturate(1.6);
-    border:1px solid color-mix(in srgb, var(--c, #fff) 35%, rgba(255,255,255,.18));
-    box-shadow:inset 0 1px 1px rgba(255,255,255,.35), 0 8px 18px -10px rgba(0,0,0,.55);
-    transition:transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, opacity .25s;
-    animation:notaCae .5s cubic-bezier(.34,1.56,.64,1) both;
+  /* El mapa: se arrastra el fondo para moverse, la rueda también; Ctrl + rueda acerca y aleja. */
+  .mapa {
+    flex:1;min-height:0;position:relative;overflow:hidden;border-radius:20px;cursor:grab;touch-action:none;
+    border:1px solid var(--border);
+    background-color:color-mix(in srgb, var(--bg2) 45%, transparent);
+    background-image:radial-gradient(circle, color-mix(in srgb, var(--text) 14%, transparent) 1px, transparent 1.4px);
+    background-size:24px 24px;
   }
-  .nota:not([style*="--c"]) { --c: #8b93a7; }
-  .nota:hover { transform:translateY(-2px); box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 14px 26px -12px rgba(0,0,0,.6); }
-  .nota.arrastrando { opacity:.35; }
-  .nota.se-va { animation:notaSeVa .28s cubic-bezier(.4,0,1,1) both; }
-  .nota.hecha { opacity:.6; }
-  .nota.hecha .nota-texto { text-decoration:line-through; }
-  @keyframes notaCae { from { opacity:0; transform:translateY(-10px) scale(.94); filter:blur(4px); } to { opacity:1; transform:none; filter:none; } }
-  @keyframes notaSeVa { to { opacity:0; transform:scale(.9); filter:blur(5px); } }
-  .nota.marca-antes::before { content:'';position:absolute;left:8px;right:8px;top:-6px;height:3px;border-radius:2px;background:var(--accent); }
-  .nota-texto { font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word; }
-  .nota-texto .casilla { display:flex;gap:7px;align-items:flex-start;cursor:pointer; }
-  .nota-texto .casilla input { margin-top:3px;accent-color:var(--accent);cursor:pointer; }
-  .nota-texto .casilla.marcada span { text-decoration:line-through;opacity:.6; }
-  .nota-meta { display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center; }
-  .etq { font-size:11px;font-weight:650;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.18);color:var(--text);display:inline-flex;align-items:center;gap:5px; }
-  .etq.recordatorio.hoy { background:color-mix(in srgb, #fbbf24 30%, transparent); }
-  .etq.recordatorio.vencido { background:color-mix(in srgb, #f87171 38%, transparent); }
-  .nota-acc { position:absolute;top:6px;right:6px;display:flex;gap:2px;opacity:0;transform:translateY(-2px);transition:opacity .15s, transform .25s; }
-  .nota:hover .nota-acc, .nota:focus-within .nota-acc { opacity:1;transform:none; }
-  .nota-acc button { width:24px;height:24px;border:none;border-radius:8px;background:rgba(0,0,0,.28);color:#fff;display:grid;place-items:center;cursor:pointer; }
-  .nota-acc button:hover { background:rgba(0,0,0,.5); }
-  .nota-acc button.peligro:hover { background:var(--danger, #e5484d); }
+  .mapa.moviendo { cursor:grabbing; }
+  .lienzo { position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform; }
+  .mapa-vacio[hidden] { display:none; }
+  .mapa-vacio { position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text3);font-size:13px;pointer-events:none;padding:20px; }
+  .mapa-herr { position:absolute;right:10px;bottom:10px;display:flex;gap:4px;z-index:5; }
+  .mapa-herr button {
+    width:32px;height:32px;border-radius:12px;border:1px solid rgba(255,255,255,.14);color:var(--text);cursor:pointer;display:grid;place-items:center;
+    background:color-mix(in srgb, var(--bg2) 70%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
+  .mapa-herr button:hover { background:var(--bg3); }
 
-  .hechas-cab { display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);font-weight:650;cursor:pointer;padding:4px; }
-  .hechas-cab svg { transition:transform .2s; }
-  .hechas-cab.abierta svg { transform:rotate(90deg); }
-  .hechas-cab button { margin-left:auto; }
-  .hechas-lista { display:flex;flex-direction:column;gap:6px; }
+  /* Nota de cristal */
+  .nota {
+    position:absolute;width:230px;border-radius:18px;padding:12px 13px 11px;cursor:grab;color:var(--text);user-select:none;
+    background:
+      radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.17), rgba(255,255,255,0) 60%),
+      linear-gradient(160deg, color-mix(in srgb, var(--c) 34%, transparent), color-mix(in srgb, var(--c) 14%, transparent));
+    -webkit-backdrop-filter:blur(12px) saturate(1.6); backdrop-filter:blur(12px) saturate(1.6);
+    border:1px solid color-mix(in srgb, var(--c) 40%, rgba(255,255,255,.18));
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.35), 0 10px 22px -12px rgba(0,0,0,.6);
+    transition:box-shadow .25s, opacity .3s, filter .3s, scale .35s cubic-bezier(.34,1.56,.64,1);
+    animation:notaCae .55s cubic-bezier(.34,1.56,.64,1) both;
+    --c:#8b93a7;
+  }
+  .nota:hover { box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 16px 30px -14px rgba(0,0,0,.65); }
+  .nota.cogida { cursor:grabbing;scale:1.04;box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 26px 44px -16px rgba(0,0,0,.7);animation:none;z-index:4; }
+  .nota.apagada { opacity:.22;filter:saturate(.4); }
+  .nota.se-va { animation:notaSeVa .28s cubic-bezier(.4,0,1,1) both; }
+  .nota.hecha { opacity:.55; }
+  .nota.hecha .nota-texto { text-decoration:line-through; }
+  @keyframes notaCae { from { opacity:0; transform:translateY(-12px) scale(.92); filter:blur(5px); } to { opacity:1; transform:none; filter:none; } }
+  @keyframes notaSeVa { to { opacity:0; transform:scale(.88); filter:blur(6px); } }
+  /* Urgencia alta: un halo que respira. */
+  .nota.u-alta::after { content:'';position:absolute;inset:-3px;border-radius:21px;border:2px solid #f87171;opacity:.0;pointer-events:none;animation:halo 2.4s ease-in-out infinite; }
+  @keyframes halo { 0%,100% { opacity:.15; } 50% { opacity:.7; } }
+
+  .nota-texto { font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word; }
+  /* Casillas propias: círculo de cristal; al marcarla se llena del acento y el check se dibuja. */
+  .casilla { display:flex;gap:8px;align-items:flex-start;cursor:pointer;padding:2px 0;border-radius:8px; }
+  .casilla .marca {
+    width:17px;height:17px;flex-shrink:0;margin-top:1px;border-radius:50%;display:grid;place-items:center;
+    border:1.5px solid color-mix(in srgb, var(--text) 45%, transparent);
+    background:rgba(255,255,255,.06);box-shadow:inset 0 1px 1px rgba(255,255,255,.18);
+    transition:background .25s, border-color .25s, transform .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .casilla .marca svg path { stroke-dasharray:26;stroke-dashoffset:26;transition:stroke-dashoffset .3s ease .05s; }
+  .casilla:hover .marca { transform:scale(1.1);border-color:var(--text); }
+  .casilla.marcada .marca { background:var(--accent);border-color:var(--accent); }
+  .casilla.marcada .marca svg path { stroke-dashoffset:0; }
+  .casilla .t { transition:opacity .25s; }
+  .casilla.marcada .t { text-decoration:line-through;opacity:.55; }
+
+  .nota-meta { display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;align-items:center; }
+  .etq { font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.2);color:var(--text);display:inline-flex;align-items:center;gap:5px;white-space:nowrap; }
+  .etq.u-baja { background:color-mix(in srgb, #60a5fa 36%, transparent); }
+  .etq.u-media { background:color-mix(in srgb, #fbbf24 38%, transparent); }
+  .etq.u-alta { background:color-mix(in srgb, #f87171 45%, transparent); }
+  .etq.rec-hoy { background:color-mix(in srgb, #fbbf24 30%, transparent); }
+  .etq.rec-vencido { background:color-mix(in srgb, #f87171 40%, transparent); }
+  .nota-acc { position:absolute;top:-12px;right:8px;display:flex;gap:3px;opacity:0;transform:translateY(4px) scale(.9);transition:opacity .15s, transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none; }
+  .nota:hover .nota-acc { opacity:1;transform:none;pointer-events:auto; }
+  .nota.cogida .nota-acc { opacity:0; }
+  .nota-acc button {
+    width:26px;height:26px;border-radius:9px;border:1px solid rgba(255,255,255,.18);color:var(--text);display:grid;place-items:center;cursor:pointer;
+    background:color-mix(in srgb, var(--bg2) 82%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    box-shadow:0 6px 14px -8px rgba(0,0,0,.6);
+  }
+  .nota-acc button:hover { background:var(--bg3); }
+  .nota-acc button.peligro:hover { background:var(--danger, #e5484d);color:#fff; }
 
   /* Popups */
-  .pop-nota { width:380px; }
+  .pop-nota { width:390px; }
   .pop-nota textarea { min-height:110px;resize:vertical; }
   .fila { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
-  .fila > label.et { font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);min-width:74px; }
+  .fila > label.et, .fila > span.et { font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);min-width:80px; }
+  .seg { display:flex;background:var(--bg2);border-radius:999px;padding:3px;gap:2px; }
+  .seg button { border:none;background:transparent;color:var(--text2);font:inherit;font-size:11.5px;font-weight:650;padding:6px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px; }
+  .seg button i { width:7px;height:7px;border-radius:50%; }
+  .seg button.activo { background:color-mix(in srgb, var(--accent2) 26%, transparent);color:var(--text); }
   .colores { display:flex;gap:5px;flex-wrap:wrap; }
-  .colores button { width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15); }
+  .colores button { width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+  .colores button:hover { transform:scale(1.15); }
   .colores button.sel { outline:2px solid var(--text);outline-offset:1px; }
   .colores button.ninguno { background:transparent;border:1.5px dashed var(--text3); }
+  /* La fecha del recordatorio, con la letra de la app y el calendario en el tema de la app. */
+  #pnRecordatorio { font:inherit;font-size:13px;font-weight:600;color-scheme:dark;padding:10px 14px;background:var(--bg2) !important;border:1px solid transparent !important;border-radius:14px;color:var(--text); }
+  :root[data-scheme="light"] #pnRecordatorio { color-scheme:light; }
+  #pnRecordatorio::-webkit-calendar-picker-indicator { opacity:.6;cursor:pointer; }
   .rapidos { display:flex;gap:5px;flex-wrap:wrap; }
   .rapidos button { border:1px solid var(--border);background:transparent;color:var(--text2);font:inherit;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;cursor:pointer; }
   .rapidos button:hover { color:var(--text);background:var(--bg2); }
@@ -127,15 +152,16 @@
   .caja-cerrada h3 { margin:0;font-size:17px; }
   .caja-cerrada p { margin:0;font-size:12.5px;color:var(--text2);max-width:300px;line-height:1.45; }
   .caja-cerrada input { width:230px !important;padding:11px 14px !important;text-align:center;font-size:16px !important;letter-spacing:.2em; }
-  .caja-cerrada input[type="password"].clave { letter-spacing:.05em; }
+  .caja-cerrada input.clave { letter-spacing:.05em; }
   .caja-cerrada input::placeholder { letter-spacing:normal;font-size:13px; }
   .caja-error { color:var(--danger, #e5484d);font-size:12.5px;min-height:16px; }
   .enlace { background:none;border:none;color:var(--text3);font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline; }
   .caja-abierta { flex:1;min-height:0;display:flex;flex-direction:column;gap:10px; }
-  .caja-lista { flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:6px; }
-  .nota.segura { --c:#8b5cf6; cursor:pointer; }
+  .caja-lista { flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:14px 6px 6px 2px; }
+  .nota.segura { position:relative;width:auto;--c:#8b5cf6;cursor:default;user-select:text; }
   .nota.segura .nota-titulo { font-weight:700;font-size:13.5px;margin-bottom:3px; }
-  .caja-aviso { font-size:11.5px;color:var(--text3);text-align:center; }
+  .caja-aviso { font-size:11.5px;color:var(--text3); }
+  .vacio { font-size:12.5px;color:var(--text3);text-align:center;padding:16px; }
 </style>
 <link rel="stylesheet" href="mac.css">
 </head>
@@ -153,44 +179,46 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/><path d="M7 13h7M7 17h4"/></svg>
       <span id="titulo">Notas</span>
     </div>
-    <button class="btn-caja" id="btnCaja" onclick="alternarCaja()" title="Notas protegidas con PIN o contraseña">
+    <button class="btn-pildora" id="btnCaja" onclick="alternarCaja()" title="Notas protegidas con PIN o contraseña">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       <span>Caja fuerte</span>
     </button>
   </div>
 
-  <!-- Tablero -->
-  <div id="vistaTablero" style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0">
+  <!-- Mapa de notas -->
+  <div id="vistaMapa" style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0">
     <div class="apuntar">
-      <input type="text" id="apuntarInput" maxlength="4000" placeholder="Apunta algo… (Enter)" autocomplete="off">
-      <div class="carril-sel" id="apuntarCarril">
-        <button type="button" data-c="ahora" class="activo">Ahora</button>
-        <button type="button" data-c="siguiente">Siguiente</button>
-        <button type="button" data-c="luego">Más tarde</button>
-      </div>
+      <input type="text" id="apuntarInput" maxlength="4000" placeholder="Apunta algo y Enter: cae en el centro del mapa" autocomplete="off">
     </div>
     <div class="filtros" id="filtros"></div>
-    <div class="tablero" id="tablero"></div>
+    <div class="mapa" id="mapa">
+      <div class="lienzo" id="lienzo"></div>
+      <div class="mapa-vacio" id="mapaVacio" hidden>Tu mapa está vacío.<br>Apunta algo arriba y colócalo donde quieras.</div>
+      <div class="mapa-herr">
+        <button type="button" title="Alejar" onclick="zoomEn(-0.15)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+        <button type="button" title="Acercar" onclick="zoomEn(0.15)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button type="button" title="Ver todas las notas" onclick="encuadrar(true)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+      </div>
+    </div>
   </div>
 
   <!-- Caja fuerte -->
   <div class="caja" id="vistaCaja" hidden></div>
 </div>
 
-<!-- Editar nota -->
+<!-- Propiedades de una nota -->
 <div class="popup-backdrop" id="popNotaFondo" style="display:none" onclick="cerrarPopNota()"></div>
 <div class="entry-popup pop-nota" id="popNota" style="display:none">
-  <div class="entry-popup-title" id="popNotaTitulo">Nota</div>
+  <div class="entry-popup-title">Nota</div>
   <textarea id="pnTexto" maxlength="4000" placeholder="Escribe la nota… (una línea que empiece por [ ] es una casilla)"></textarea>
-  <div class="fila"><label class="et">Carril</label>
-    <div class="carril-sel" id="pnCarril">
-      <button type="button" data-c="ahora">Ahora</button>
-      <button type="button" data-c="siguiente">Siguiente</button>
-      <button type="button" data-c="luego">Más tarde</button>
+  <div class="fila"><span class="et">Urgencia</span>
+    <div class="seg" id="pnUrgencia">
+      <button type="button" data-u="">Ninguna</button>
+      <button type="button" data-u="baja"><i style="background:#60a5fa"></i>Baja</button>
+      <button type="button" data-u="media"><i style="background:#fbbf24"></i>Media</button>
+      <button type="button" data-u="alta"><i style="background:#f87171"></i>Alta</button>
     </div>
   </div>
-  <div class="fila"><label class="et" for="pnSeccion">Sección</label><select id="pnSeccion" style="flex:1"></select></div>
-  <div class="fila"><label class="et">Color</label><div class="colores" id="pnColores"></div></div>
   <div class="fila"><label class="et" for="pnRecordatorio">Recordar</label><input type="datetime-local" id="pnRecordatorio" style="flex:1"></div>
   <div class="rapidos" id="pnRapidos">
     <button type="button" data-r="1h">En 1 hora</button>
@@ -198,8 +226,10 @@
     <button type="button" data-r="manana">Mañana 9:00</button>
     <button type="button" data-r="quitar">Sin recordatorio</button>
   </div>
+  <div class="fila"><label class="et" for="pnSeccion">Sección</label><select id="pnSeccion" style="flex:1"></select></div>
+  <div class="fila"><span class="et">Color</span><div class="colores" id="pnColores"></div></div>
   <div class="entry-popup-actions">
-    <button class="btn-danger" id="pnBorrar" onclick="borrarDesdePop()">Borrar</button>
+    <button class="btn-danger" onclick="borrarDesdePop()">Borrar</button>
     <div style="flex:1"></div>
     <button class="btn-ghost" onclick="cerrarPopNota()">Cancelar</button>
     <button class="btn-primary" onclick="guardarPopNota()">Guardar</button>
@@ -238,72 +268,135 @@
 <script>
 const { ipcRenderer } = require('electron');
 let currentState = null;
-let filtroSeccion = '';      // '' = todas
+let filtroSeccion = '';      // '' = todas (los filtros apagan, no esconden)
 let busqueda = '';
-let carrilApuntar = 'ahora';
-let hechasAbiertas = false;
-const CARRILES = [['ahora', 'Ahora'], ['siguiente', 'Siguiente'], ['luego', 'Más tarde']];
+let verHechas = false;
+const ANCHO_NOTA = 230;
 const COLORES_NOTA = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399', '#2dd4bf', '#38bdf8', '#60a5fa', '#818cf8', '#a78bfa', '#e879f9', '#f472b6'];
+const URGENCIAS = { baja: 'Baja', media: 'Media', alta: 'Urgente' };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const enviar = (type, payload) => ipcRenderer.send('action', { type, payload });
 
+const mapa = document.getElementById('mapa');
+const lienzo = document.getElementById('lienzo');
+
+// ── Vista del mapa (desplazamiento y zoom), recordada en este equipo ──────────
+let vista = { x: 40, y: 30, z: 1 };
+try { const v = JSON.parse(localStorage.getItem('notas.vista') || 'null'); if (v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)) vista = v; } catch {}
+let primeraVez = !(() => { try { return localStorage.getItem('notas.vista'); } catch { return null; } })();
+function aplicarVista() {
+  lienzo.style.transform = `translate(${vista.x}px, ${vista.y}px) scale(${vista.z})`;
+  mapa.style.backgroundPosition = `${vista.x}px ${vista.y}px`;
+  mapa.style.backgroundSize = `${24 * vista.z}px ${24 * vista.z}px`;
+  try { localStorage.setItem('notas.vista', JSON.stringify(vista)); } catch {}
+}
+function zoomEn(d, cx, cy) {
+  const r = mapa.getBoundingClientRect();
+  const px = cx == null ? r.width / 2 : cx - r.left, py = cy == null ? r.height / 2 : cy - r.top;
+  const z = Math.max(0.4, Math.min(1.6, vista.z + d));
+  vista.x = px - (px - vista.x) * (z / vista.z);
+  vista.y = py - (py - vista.y) * (z / vista.z);
+  vista.z = z;
+  lienzo.style.transition = cx == null ? 'transform .35s cubic-bezier(.22,1,.36,1)' : '';
+  aplicarVista();
+}
+// Que se vean todas: encuadra la caja que las contiene.
+function encuadrar(animado) {
+  const ns = notasVisibles();
+  if (!ns.length) { vista = { x: 40, y: 30, z: 1 }; aplicarVista(); return; }
+  const xs = ns.map(n => n.x), ys = ns.map(n => n.y);
+  const minX = Math.min(...xs), minY = Math.min(...ys), maxX = Math.max(...xs) + ANCHO_NOTA, maxY = Math.max(...ys) + 140;
+  const r = mapa.getBoundingClientRect();
+  const z = Math.max(0.4, Math.min(1, Math.min((r.width - 40) / (maxX - minX), (r.height - 40) / (maxY - minY))));
+  vista = { z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - (maxY - minY) * z) / 2 - minY * z };
+  lienzo.style.transition = animado ? 'transform .45s cubic-bezier(.22,1,.36,1)' : '';
+  aplicarVista();
+}
+aplicarVista();
+
+// Arrastrar el fondo para moverse.
+let pan = null;
+mapa.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.target.closest('.nota, .mapa-herr')) return;
+  pan = { sx: e.clientX, sy: e.clientY, x: vista.x, y: vista.y };
+  lienzo.style.transition = '';
+  mapa.setPointerCapture(e.pointerId); mapa.classList.add('moviendo');
+});
+mapa.addEventListener('pointermove', (e) => { if (!pan) return; vista.x = pan.x + e.clientX - pan.sx; vista.y = pan.y + e.clientY - pan.sy; aplicarVista(); });
+mapa.addEventListener('pointerup', () => { pan = null; mapa.classList.remove('moviendo'); });
+mapa.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  lienzo.style.transition = '';
+  if (e.ctrlKey) { zoomEn(-e.deltaY * 0.0015, e.clientX, e.clientY); return; }
+  vista.x -= e.shiftKey ? e.deltaY : e.deltaX; vista.y -= e.shiftKey ? 0 : e.deltaY; aplicarVista();
+}, { passive: false });
+// Doble clic en el fondo: nota nueva ahí mismo.
+mapa.addEventListener('dblclick', (e) => {
+  if (e.target.closest('.nota, .mapa-herr')) return;
+  const p = aMapa(e.clientX, e.clientY);
+  const i = document.getElementById('apuntarInput');
+  pendienteEn = { x: p.x - 20, y: p.y - 16 };
+  i.focus(); i.placeholder = 'Escribe la nota y Enter: irá donde has hecho doble clic';
+});
+function aMapa(cx, cy) { const r = mapa.getBoundingClientRect(); return { x: (cx - r.left - vista.x) / vista.z, y: (cy - r.top - vista.y) / vista.z }; }
+
 ipcRenderer.on('state', (_, s) => {
+  const antes = currentState;
   currentState = s;
   pintar();
   pintarBotonCaja();
+  if (!antes && primeraVez) { primeraVez = false; setTimeout(() => encuadrar(false), 50); }
 });
 ipcRenderer.send('action', { type: 'get-state' });
 
-// ── Apuntar rápido ────────────────────────────────────────────────────────────
-document.querySelectorAll('#apuntarCarril button').forEach(b => b.onclick = () => {
-  carrilApuntar = b.dataset.c;
-  document.querySelectorAll('#apuntarCarril button').forEach(x => x.classList.toggle('activo', x === b));
-});
+// ── Apuntar ───────────────────────────────────────────────────────────────────
+let pendienteEn = null;
 document.getElementById('apuntarInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { pendienteEn = null; e.target.placeholder = 'Apunta algo y Enter: cae en el centro del mapa'; return; }
   if (e.key !== 'Enter') return;
   const t = e.target.value.trim();
   if (!t) return;
-  enviar('nota-crear', { texto: t, carril: carrilApuntar, seccion: filtroSeccion || null });
-  e.target.value = '';
+  let sitio = pendienteEn;
+  if (!sitio) {
+    const r = mapa.getBoundingClientRect();
+    const c = aMapa(r.left + r.width / 2, r.top + r.height / 2);
+    const n = (currentState.notas || []).length;
+    sitio = { x: c.x - ANCHO_NOTA / 2 + ((n * 37) % 90) - 45, y: c.y - 40 + ((n * 53) % 70) - 35 };
+  }
+  enviar('nota-crear', { texto: t, seccion: filtroSeccion || null, x: sitio.x, y: sitio.y });
+  e.target.value = ''; pendienteEn = null; e.target.placeholder = 'Apunta algo y Enter: cae en el centro del mapa';
 });
 
 // ── Pintar ────────────────────────────────────────────────────────────────────
 function seccionDe(id) { return ((currentState && currentState.seccionesNotas) || []).find(s => s.id === id) || null; }
-function pintar() {
-  if (!currentState) return;
+// Las que aún no tienen sitio (vienen de antes del mapa) se colocan en rejilla.
+function conSitio(lista) {
+  let k = 0;
+  return lista.map(n => (Number.isFinite(n.x) && Number.isFinite(n.y)) ? n : { ...n, x: (k % 3) * 260, y: Math.floor(k++ / 3) * 170 });
+}
+function notasVisibles() { return conSitio((currentState && currentState.notas) || []).filter(n => verHechas || !n.hecha); }
+function encaja(n) { return (!filtroSeccion || n.seccion === filtroSeccion) && (!busqueda || n.texto.toLowerCase().includes(busqueda)); }
+// Cada segundo llega el estado (por los tiempos de las tareas): solo se repinta si cambia algo de
+// las notas, y nunca con una nota cogida (se soltaría de la mano).
+let arrastrandoNota = false, firmaPintada = '';
+function pintar(forzar) {
+  if (!currentState || arrastrandoNota) return;
+  const firma = JSON.stringify([currentState.notas, currentState.seccionesNotas, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
+  if (!forzar && firma === firmaPintada) return;
+  firmaPintada = firma;
   pintarFiltros();
-  const tablero = document.getElementById('tablero');
-  const scroll = tablero.scrollTop;
-  tablero.innerHTML = '';
-  const todas = (currentState.notas || []).filter(n => (!filtroSeccion || n.seccion === filtroSeccion)
-    && (!busqueda || n.texto.toLowerCase().includes(busqueda)));
-  const wrap = document.createElement('div'); wrap.className = 'carriles';
-  CARRILES.forEach(([c, nombre]) => {
-    const lista = todas.filter(n => !n.hecha && n.carril === c);
-    const col = document.createElement('div');
-    col.className = 'carril'; col.dataset.carril = c;
-    col.innerHTML = `<div class="carril-cab"><span class="punto"></span><b>${nombre}</b><span class="n">${lista.length || ''}</span></div>`;
-    lista.forEach(n => col.appendChild(tarjeta(n)));
-    if (!lista.length) { const v = document.createElement('div'); v.className = 'carril-vacio'; v.textContent = c === 'ahora' ? 'Nada urgente. Apunta arriba lo que toque.' : 'Arrastra aquí'; col.appendChild(v); }
-    prepararSoltar(col, c);
-    wrap.appendChild(col);
+  const vistas = notasVisibles();
+  const ya = new Map([...lienzo.querySelectorAll('.nota')].map(el => [el.dataset.id, el]));
+  const quedan = new Set();
+  vistas.forEach((n, i) => {
+    const nueva = tarjeta(n);
+    nueva.style.zIndex = String(i + 1);
+    const vieja = ya.get(n.id);
+    if (vieja) { nueva.style.animation = 'none'; vieja.replaceWith(nueva); } else lienzo.appendChild(nueva);
+    quedan.add(n.id);
   });
-  tablero.appendChild(wrap);
-  const hechas = todas.filter(n => n.hecha);
-  if (hechas.length) {
-    const cab = document.createElement('div');
-    cab.className = 'hechas-cab' + (hechasAbiertas ? ' abierta' : '');
-    cab.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 1l4 4-4 4"/></svg> Hechas (${hechas.length}) <button class="btn-ghost" style="padding:4px 10px;font-size:11.5px">Vaciar</button>`;
-    cab.onclick = (e) => { if (e.target.closest('button')) return; hechasAbiertas = !hechasAbiertas; pintar(); };
-    cab.querySelector('button').onclick = () => confirmar('Vaciar hechas', `Se borran las ${hechas.length} notas hechas. Ctrl+Z lo deshace.`, 'Vaciar', () => enviar('notas-vaciar-hechas'));
-    tablero.appendChild(cab);
-    if (hechasAbiertas) {
-      const l = document.createElement('div'); l.className = 'hechas-lista';
-      hechas.sort((a, b) => (b.hechaEn || 0) - (a.hechaEn || 0)).forEach(n => l.appendChild(tarjeta(n)));
-      tablero.appendChild(l);
-    }
-  }
-  tablero.scrollTop = scroll;
+  ya.forEach((el, id) => { if (!quedan.has(id)) el.remove(); });
+  document.getElementById('mapaVacio').hidden = vistas.length > 0;
 }
 
 function pintarFiltros() {
@@ -323,6 +416,13 @@ function pintarFiltros() {
   ((currentState && currentState.seccionesNotas) || []).forEach(s => chip(s.id, s.name, s.color));
   const mas = document.createElement('button'); mas.className = 'chip-sec mas'; mas.textContent = '+ Sección'; mas.onclick = () => abrirPopSec(null);
   f.appendChild(mas);
+  const nHechas = ((currentState && currentState.notas) || []).filter(n => n.hecha).length;
+  if (nHechas) {
+    const h = document.createElement('button'); h.className = 'chip-sec' + (verHechas ? ' activo' : '');
+    h.textContent = `Hechas (${nHechas})`; h.title = verHechas ? 'Esconderlas' : 'Enseñarlas en el mapa';
+    h.onclick = () => { verHechas = !verHechas; pintar(); };
+    f.appendChild(h);
+  }
   const q = document.createElement('input'); q.type = 'text'; q.className = 'buscar'; q.placeholder = 'Buscar…'; q.value = buscarVal;
   q.oninput = () => { busqueda = q.value.trim().toLowerCase(); pintar(); const nq = document.querySelector('.buscar'); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length); };
   f.appendChild(q);
@@ -342,33 +442,40 @@ function textoRecordatorio(ms) {
 const ICO = {
   hecha: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
   deshecha: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
-  editar: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  editar: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   borrar: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>',
   reloj: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  check: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
 };
 
 function tarjeta(n) {
   const el = document.createElement('div');
-  el.className = 'nota' + (n.hecha ? ' hecha' : '');
+  el.className = 'nota' + (n.hecha ? ' hecha' : '') + (n.urgencia === 'alta' && !n.hecha ? ' u-alta' : '') + (encaja(n) ? '' : ' apagada');
   el.dataset.id = n.id;
+  el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
   const sec = seccionDe(n.seccion);
   const color = n.color || (sec && sec.color);
   if (color) el.style.setProperty('--c', color);
-  el.draggable = !n.hecha;
-  // Texto, con las líneas «[ ]» / «[x]» como casillas.
+  // Texto, con las líneas «[ ]» / «[x]» como casillas (propias, no las del sistema).
   const txt = document.createElement('div'); txt.className = 'nota-texto';
   n.texto.split('\n').forEach((linea, i, todas) => {
     const m = linea.match(/^\s*(?:-\s*)?\[( |x|X)\]\s?(.*)$/);
     if (m) {
-      const fila = document.createElement('label');
-      fila.className = 'casilla' + (m[1] !== ' ' ? ' marcada' : '');
-      fila.innerHTML = `<input type="checkbox" ${m[1] !== ' ' ? 'checked' : ''}><span>${esc(m[2])}</span>`;
-      fila.querySelector('input').onchange = (e) => {
+      const fila = document.createElement('div');
+      const hecho = m[1] !== ' ';
+      fila.className = 'casilla' + (hecho ? ' marcada' : '');
+      fila.setAttribute('role', 'checkbox'); fila.setAttribute('aria-checked', String(hecho)); fila.tabIndex = 0;
+      fila.innerHTML = `<span class="marca">${ICO.check}</span><span class="t">${esc(m[2])}</span>`;
+      const alternar = (e) => {
+        e.stopPropagation();
+        fila.classList.toggle('marcada');
         const lineas = n.texto.split('\n');
-        lineas[i] = linea.replace(/\[( |x|X)\]/, e.target.checked ? '[x]' : '[ ]');
-        enviar('nota-editar', { id: n.id, texto: lineas.join('\n') });
+        lineas[i] = linea.replace(/\[( |x|X)\]/, fila.classList.contains('marcada') ? '[x]' : '[ ]');
+        setTimeout(() => enviar('nota-editar', { id: n.id, texto: lineas.join('\n') }), 320);   // que se vea el check dibujarse
       };
-      fila.onclick = (e) => e.stopPropagation();
+      fila.addEventListener('pointerdown', (e) => e.stopPropagation());
+      fila.onclick = alternar;
+      fila.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); alternar(e); } };
       txt.appendChild(fila);
     } else {
       txt.appendChild(document.createTextNode(linea + (i < todas.length - 1 ? '\n' : '')));
@@ -376,73 +483,71 @@ function tarjeta(n) {
   });
   el.appendChild(txt);
   const meta = document.createElement('div'); meta.className = 'nota-meta';
-  if (sec && !filtroSeccion) meta.insertAdjacentHTML('beforeend', `<span class="etq">${esc(sec.name)}</span>`);
+  if (n.urgencia && URGENCIAS[n.urgencia]) meta.insertAdjacentHTML('beforeend', `<span class="etq u-${n.urgencia}">${URGENCIAS[n.urgencia]}</span>`);
   if (n.recordatorio) {
-    const ahora = Date.now(), d = new Date(n.recordatorio), hoy = new Date();
-    const clase = !n.hecha && n.recordatorio <= ahora ? ' vencido' : (d.toDateString() === hoy.toDateString() ? ' hoy' : '');
-    meta.insertAdjacentHTML('beforeend', `<span class="etq recordatorio${clase}">${ICO.reloj}${textoRecordatorio(n.recordatorio)}</span>`);
+    const d = new Date(n.recordatorio);
+    const clase = !n.hecha && n.recordatorio <= Date.now() ? ' rec-vencido' : (d.toDateString() === new Date().toDateString() ? ' rec-hoy' : '');
+    meta.insertAdjacentHTML('beforeend', `<span class="etq${clase}">${ICO.reloj}${textoRecordatorio(n.recordatorio)}</span>`);
   }
+  if (sec) meta.insertAdjacentHTML('beforeend', `<span class="etq">${esc(sec.name)}</span>`);
   if (meta.children.length) el.appendChild(meta);
   const acc = document.createElement('div'); acc.className = 'nota-acc';
-  acc.innerHTML = `<button title="${n.hecha ? 'Volver a pendiente' : 'Hecha'}" data-a="hecha">${n.hecha ? ICO.deshecha : ICO.hecha}</button><button title="Editar" data-a="editar">${ICO.editar}</button><button class="peligro" title="Borrar (Ctrl+Z lo deshace)" data-a="borrar">${ICO.borrar}</button>`;
+  acc.innerHTML = `<button title="${n.hecha ? 'Volver a pendiente' : 'Hecha'}" data-a="hecha">${n.hecha ? ICO.deshecha : ICO.hecha}</button><button title="Propiedades: urgencia, recordatorio, sección, color" data-a="editar">${ICO.editar}</button><button class="peligro" title="Borrar (Ctrl+Z lo deshace)" data-a="borrar">${ICO.borrar}</button>`;
+  acc.addEventListener('pointerdown', (e) => e.stopPropagation());
   acc.onclick = (e) => {
     const b = e.target.closest('button'); if (!b) return;
     e.stopPropagation();
     if (b.dataset.a === 'editar') abrirPopNota(n.id);
-    else if (b.dataset.a === 'hecha') irse(el, () => enviar('nota-editar', { id: n.id, hecha: !n.hecha }));
-    else if (b.dataset.a === 'borrar') irse(el, () => enviar('nota-borrar', { id: n.id }));
+    else if (b.dataset.a === 'hecha') irse(el, () => enviar('nota-editar', { id: n.id, hecha: !n.hecha }), !verHechas && !n.hecha);
+    else if (b.dataset.a === 'borrar') irse(el, () => enviar('nota-borrar', { id: n.id }), true);
   };
   el.appendChild(acc);
-  el.ondblclick = () => abrirPopNota(n.id);
-  // Arrastrar entre carriles y para ordenar.
-  el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/nota', n.id); e.dataTransfer.effectAllowed = 'move'; el.classList.add('arrastrando'); });
-  el.addEventListener('dragend', () => { el.classList.remove('arrastrando'); document.querySelectorAll('.marca-antes').forEach(x => x.classList.remove('marca-antes')); });
+  el.ondblclick = (e) => { e.stopPropagation(); abrirPopNota(n.id); };
+  // Arrastrar la nota por el mapa (sin el arrastre del sistema: se mueve fina, con el zoom).
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const ini = { cx: e.clientX, cy: e.clientY, x: n.x, y: n.y };
+    let movida = false;
+    el.setPointerCapture(e.pointerId);
+    const mover = (ev) => {
+      const dx = (ev.clientX - ini.cx) / vista.z, dy = (ev.clientY - ini.cy) / vista.z;
+      if (!movida && Math.hypot(dx, dy) < 3) return;
+      if (!movida) { movida = true; arrastrandoNota = true; el.classList.add('cogida'); el.style.zIndex = '9999'; }
+      el.style.left = (ini.x + dx) + 'px'; el.style.top = (ini.y + dy) + 'px';
+    };
+    const soltar = () => {
+      el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar); el.removeEventListener('pointercancel', soltar);
+      if (!movida) return;
+      arrastrandoNota = false;
+      el.classList.remove('cogida');
+      enviar('nota-mover', { id: n.id, x: parseFloat(el.style.left), y: parseFloat(el.style.top) });
+    };
+    el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
+  });
   return el;
 }
-function irse(el, luego) { el.classList.add('se-va'); setTimeout(luego, 240); }
+function irse(el, luego, animar) { if (!animar) { luego(); return; } el.classList.add('se-va'); setTimeout(luego, 240); }
 
-function prepararSoltar(col, carril) {
-  const destino = (e) => {
-    const notas = [...col.querySelectorAll('.nota:not(.arrastrando)')];
-    return notas.find(x => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; }) || null;
-  };
-  col.addEventListener('dragover', (e) => {
-    if (![...e.dataTransfer.types].includes('text/nota')) return;
-    e.preventDefault();
-    col.classList.add('encima');
-    document.querySelectorAll('.marca-antes').forEach(x => x.classList.remove('marca-antes'));
-    const d = destino(e); if (d) d.classList.add('marca-antes');
-  });
-  col.addEventListener('dragleave', (e) => { if (!col.contains(e.relatedTarget)) col.classList.remove('encima'); });
-  col.addEventListener('drop', (e) => {
-    const id = e.dataTransfer.getData('text/nota');
-    col.classList.remove('encima');
-    if (!id) return;
-    e.preventDefault();
-    const d = destino(e);
-    enviar('nota-mover', { id, carril, antesDe: d ? d.dataset.id : null });
-  });
-}
-
-// ── Editar nota ───────────────────────────────────────────────────────────────
-let popId = null, popColor = null, popCarril = 'ahora';
+// ── Propiedades de una nota ───────────────────────────────────────────────────
+let popId = null, popColor = null, popUrgencia = '';
 function aLocal(ms) { const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
 function abrirPopNota(id) {
   const n = (currentState.notas || []).find(x => x.id === id);
   if (!n) return;
-  popId = id; popColor = n.color || null; popCarril = n.carril;
+  popId = id; popColor = n.color || null; popUrgencia = n.urgencia || '';
   document.getElementById('pnTexto').value = n.texto;
   const sel = document.getElementById('pnSeccion');
   sel.innerHTML = '<option value="">Sin sección</option>' + (currentState.seccionesNotas || []).map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
   sel.value = n.seccion || '';
   document.getElementById('pnRecordatorio').value = n.recordatorio ? aLocal(n.recordatorio) : '';
-  pintarCarrilPop(); pintarColoresPop();
+  pintarUrgenciaPop(); pintarColoresPop();
   document.getElementById('popNotaFondo').style.display = 'block';
   document.getElementById('popNota').style.display = 'flex';
   setTimeout(() => document.getElementById('pnTexto').focus(), 0);
 }
-function pintarCarrilPop() { document.querySelectorAll('#pnCarril button').forEach(b => b.classList.toggle('activo', b.dataset.c === popCarril)); }
-document.querySelectorAll('#pnCarril button').forEach(b => b.onclick = () => { popCarril = b.dataset.c; pintarCarrilPop(); });
+function pintarUrgenciaPop() { document.querySelectorAll('#pnUrgencia button').forEach(b => b.classList.toggle('activo', b.dataset.u === popUrgencia)); }
+document.querySelectorAll('#pnUrgencia button').forEach(b => b.onclick = () => { popUrgencia = b.dataset.u; pintarUrgenciaPop(); });
 function pintarColoresPop() {
   const c = document.getElementById('pnColores'); c.innerHTML = '';
   const nada = document.createElement('button'); nada.className = 'ninguno' + (!popColor ? ' sel' : ''); nada.title = 'Sin color (el de su sección)'; nada.onclick = () => { popColor = null; pintarColoresPop(); }; c.appendChild(nada);
@@ -462,10 +567,14 @@ function guardarPopNota() {
   const texto = document.getElementById('pnTexto').value.trim();
   if (!texto) { borrarDesdePop(); return; }
   const r = document.getElementById('pnRecordatorio').value;
-  enviar('nota-editar', { id: popId, texto, carril: popCarril, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null });
+  enviar('nota-editar', { id: popId, texto, urgencia: popUrgencia, seccion: document.getElementById('pnSeccion').value || null, color: popColor, recordatorio: r ? new Date(r).getTime() : null });
   cerrarPopNota();
 }
-function borrarDesdePop() { const id = popId; cerrarPopNota(); const el = document.querySelector(`.nota[data-id="${id}"]`); if (el) irse(el, () => enviar('nota-borrar', { id })); else enviar('nota-borrar', { id }); }
+function borrarDesdePop() {
+  const id = popId; cerrarPopNota();
+  const el = lienzo.querySelector(`.nota[data-id="${id}"]`);
+  if (el) irse(el, () => enviar('nota-borrar', { id }), true); else enviar('nota-borrar', { id });
+}
 
 // ── Secciones ─────────────────────────────────────────────────────────────────
 let secId = null, secColor = COLORES_NOTA[6];
@@ -528,11 +637,11 @@ const caja = (accion, extra) => ipcRenderer.invoke('caja', { accion, ...(extra |
 function pintarBotonCaja() {
   const b = document.getElementById('btnCaja');
   b.classList.toggle('activo', enCaja);
-  b.querySelector('span').textContent = enCaja ? 'Volver a notas' : 'Caja fuerte';
+  b.querySelector('span').textContent = enCaja ? 'Volver al mapa' : 'Caja fuerte';
 }
 async function alternarCaja() {
   enCaja = !enCaja;
-  document.getElementById('vistaTablero').style.display = enCaja ? 'none' : 'flex';
+  document.getElementById('vistaMapa').style.display = enCaja ? 'none' : 'flex';
   document.getElementById('vistaCaja').hidden = !enCaja;
   document.getElementById('titulo').textContent = enCaja ? 'Caja fuerte' : 'Notas';
   pintarBotonCaja();
@@ -548,7 +657,7 @@ function pintarCaja(est) {
       <div class="candado">${CANDADO}</div>
       <h3>Crea tu caja fuerte</h3>
       <p>Notas que nadie ve sin tu PIN o tu contraseña. Se guardan cifradas: si lo olvidas, no hay forma de recuperarlas.</p>
-      <div class="carril-sel" id="cjTipo"><button type="button" data-t="pin">PIN</button><button type="button" data-t="clave">Contraseña</button></div>
+      <div class="seg" id="cjTipo"><button type="button" data-t="pin">PIN</button><button type="button" data-t="clave">Contraseña</button></div>
       <input type="password" id="cj1" autocomplete="new-password">
       <input type="password" id="cj2" autocomplete="new-password">
       <div class="caja-error" id="cjError"></div>
@@ -609,18 +718,18 @@ function pintarCaja(est) {
       <button class="btn-ghost" id="cjCerrar" title="Cerrarla ya" style="white-space:nowrap">Cerrar caja</button>
     </div>
     <textarea id="cjTexto" maxlength="8000" rows="3" placeholder="Lo que quieras guardar seguro…"></textarea>
-    <div style="display:flex;gap:8px"><div style="flex:1" class="caja-aviso" id="cjAviso">Se cierra sola a los 5 minutos sin usarla.</div><button class="btn-primary" id="cjGuardar">Guardar</button></div>
+    <div style="display:flex;gap:8px;align-items:center"><div style="flex:1" class="caja-aviso" id="cjAviso">Se cierra sola a los 5 minutos sin usarla.</div><button class="btn-primary" id="cjGuardar">Guardar</button></div>
     <div class="caja-lista" id="cjLista"></div>
   </div>`;
   let editando = null;
   const lista = document.getElementById('cjLista');
   const pintarLista = () => {
     lista.innerHTML = '';
-    if (!cajaNotas.length) { lista.innerHTML = '<div class="carril-vacio">Todavía no hay nada guardado.</div>'; return; }
+    if (!cajaNotas.length) { lista.innerHTML = '<div class="vacio">Todavía no hay nada guardado.</div>'; return; }
     cajaNotas.slice().sort((a, b) => (b.editada || 0) - (a.editada || 0)).forEach(n => {
       const el = document.createElement('div'); el.className = 'nota segura';
       el.innerHTML = `<div class="nota-titulo">${esc(n.titulo || 'Sin título')}</div><div class="nota-texto">${esc(n.texto)}</div>
-        <div class="nota-acc"><button title="Copiar" data-a="copiar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Editar" data-a="editar">${ICO.editar}</button><button class="peligro" title="Borrar" data-a="borrar">${ICO.borrar}</button></div>`;
+        <div class="nota-acc"><button title="Copiar" data-a="copiar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button><button title="Editar" data-a="editar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="peligro" title="Borrar" data-a="borrar">${ICO.borrar}</button></div>`;
       el.querySelector('.nota-acc').onclick = (e) => {
         const b = e.target.closest('button'); if (!b) return;
         if (b.dataset.a === 'copiar') { try { require('electron').clipboard.writeText(n.texto); document.getElementById('cjAviso').textContent = 'Copiado'; } catch {} }
