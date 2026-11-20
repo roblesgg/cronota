@@ -2586,6 +2586,34 @@ function duplicarNota(id) {
   lista.push(n);
   saveData(); broadcastState();
 }
+// 2.16: varias a la vez (seleccionadas): mover, borrar y pegar en un solo paso.
+function moverNotas(lista) {
+  const ns = notas();
+  (Array.isArray(lista) ? lista : []).forEach(p => {
+    const i = ns.findIndex(x => x.id === (p && p.id));
+    if (i < 0) return;
+    const [n] = ns.splice(i, 1);
+    n.x = numMapa(p.x); n.y = numMapa(p.y);
+    ns.push(n);
+  });
+  saveData(); broadcastState();
+}
+function borrarNotas(ids) {
+  const fuera = new Set(Array.isArray(ids) ? ids : []);
+  state.notas = notas().filter(n => !fuera.has(n.id));
+  saveData(); broadcastState();
+}
+function pegarNotas(lista) {
+  const ns = notas();
+  (Array.isArray(lista) ? lista : []).slice(0, 200).forEach((p, k) => {
+    if (!p || !String(p.texto || '').trim()) return;
+    const n = limpiarNota({ urgencia: '', seccion: null, color: null, recordatorio: null, hecha: false, x: 0, y: 0, ...p },
+      { id: 'n' + Date.now().toString(36) + k + Math.random().toString(36).slice(2, 5), creada: Date.now(), avisada: false });
+    n.texto = n.texto.trim();
+    ns.push(n);
+  });
+  saveData(); broadcastState();
+}
 function vaciarHechas() {
   state.notas = notas().filter(n => !n.hecha);
   saveData(); broadcastState();
@@ -2916,7 +2944,7 @@ const ACCIONES_DESHACIBLES = new Set([
   'move-task-to-group', 'set-group-palette', 'recolor-group-tasks', 'reorder-groups',
   'restore-and-start-task', 'edit-entry', 'delete-entry', 'add-calendar-entry', 'archive-purge',
   'descartar-reunion', 'restaurar-descartadas',
-  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'nota-duplicar', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
+  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'nota-duplicar', 'notas-mover', 'notas-borrar', 'notas-pegar', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
 ]);
 const pilaDeshacer = [], pilaRehacer = [];
 let ultimaFoto = { type: null, t: 0 };
@@ -3433,6 +3461,9 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'nota-borrar': borrarNota(payload && payload.id); break;
     case 'nota-mover': moverNota(payload); break;
     case 'nota-duplicar': duplicarNota(payload && payload.id); break;
+    case 'notas-mover': moverNotas(payload && payload.lista); break;
+    case 'notas-borrar': borrarNotas(payload && payload.ids); break;
+    case 'notas-pegar': pegarNotas(payload && payload.lista); break;
     case 'notas-vaciar-hechas': vaciarHechas(); break;
     case 'nota-seccion-crear': crearSeccionNotas(payload); break;
     case 'nota-seccion-editar': editarSeccionNotas(payload); break;

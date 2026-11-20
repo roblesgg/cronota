@@ -189,7 +189,7 @@
     const topAbs = Math.max(6, Math.min(window.innerHeight - h - 6, caja.top + caja.height / 2 - h / 2));
     lista.style.top = (topAbs - caja.top) + 'px';
     lista.classList.add('preparando');
-    const g = global.LiquidGlass ? await global.LiquidGlass.attach(lista, {}) : null;
+    const g = global.LiquidGlass ? await global.LiquidGlass.attach(lista, { refThickness: 36, refDistance: 0.16, refFactor: 1.8 }) : null;
     if (m.lista !== lista) { if (g) g.detach(); return; }
     m.listaGlass = g;
     lista.classList.remove('preparando');
@@ -290,7 +290,7 @@
 
     // Cristal: un círculo exacto (superelipse con n = 2). Si no hay, se queda esmerilado.
     root.classList.add('preparando');
-    const g = global.LiquidGlass ? await global.LiquidGlass.attach(m.disc, { roundness: 2, radius: D / 2 }) : null;
+    const g = global.LiquidGlass ? await global.LiquidGlass.attach(m.disc, { roundness: 2, radius: D / 2, refThickness: 44, refDistance: 0.2, refFactor: 1.9 }) : null;
     if (actual !== m) { if (g) g.detach(); return; }
     m.glass = g;
     pintarNivel(m, { title: opts.title, subtitle: opts.subtitle, color: opts.color, items: opts.items });

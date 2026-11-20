@@ -53,7 +53,7 @@
   .mapa-herr button, .modos button {
     width:32px;height:32px;border-radius:12px;border:1px solid rgba(255,255,255,.16);color:var(--text);cursor:pointer;display:grid;place-items:center;
     background:radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%), color-mix(in srgb, var(--bg2) 45%, transparent);
-    -webkit-backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.7);backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.7);
+    -webkit-backdrop-filter:blur(10px) saturate(1.6);backdrop-filter:blur(10px) saturate(1.6);
     box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 6px 14px -8px rgba(0,0,0,.55);
     transition:transform .3s cubic-bezier(.34,1.56,.64,1), color .15s, background .2s;
   }
@@ -78,19 +78,19 @@
     background:
       radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.17), rgba(255,255,255,0) 60%),
       linear-gradient(160deg, color-mix(in srgb, var(--c) 34%, transparent), color-mix(in srgb, var(--c) 14%, transparent));
-    -webkit-backdrop-filter:blur(4px) saturate(1.5); backdrop-filter:blur(4px) saturate(1.5);
+    -webkit-backdrop-filter:url(#vidrio) blur(4px) saturate(1.7); backdrop-filter:url(#vidrio) blur(4px) saturate(1.7);
     border:1px solid color-mix(in srgb, var(--c) 40%, rgba(255,255,255,.18));
     box-shadow:inset 0 1px 1px rgba(255,255,255,.35), 0 10px 22px -12px rgba(0,0,0,.6);
     transition:box-shadow .25s, opacity .3s, filter .3s, scale .35s cubic-bezier(.34,1.56,.64,1);
     animation:notaCae .55s cubic-bezier(.34,1.56,.64,1) both;
     --c:#8b93a7;
   }
-  /* La deformación de cristal, solo en la que tienes debajo del ratón. */
-  .nota:hover { -webkit-backdrop-filter:url(#vidrio) blur(4px) saturate(1.7); backdrop-filter:url(#vidrio) blur(4px) saturate(1.7); }
-  /* Mientras el mapa se mueve, nada de cristal: así va fluido con muchas notas. */
-  .mapa.moviendose .nota, .mapa.moviendose .nota:hover, .mapa.moviendose .nota-acc button, .mapa.moviendose .modos button, .mapa.moviendose .mapa-herr button { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+  /* La deformación va solo en las notas (Álvaro: también mientras se mueven); los botones, solo desenfoque. */
   .mapa.moviendose .nota.u-alta::after { animation:none; }
   .nota:hover { box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 16px 30px -14px rgba(0,0,0,.65); }
+  .nota.elegida { outline:2px solid var(--accent);outline-offset:3px; }
+  .marco { position:absolute;border:1.5px solid var(--accent);border-radius:8px;background:color-mix(in srgb, var(--accent2) 14%, transparent);pointer-events:none;z-index:6; }
+  .mapa.panear, .mapa.panear .nota { cursor:grabbing !important; }
   .nota.cogida { cursor:grabbing;scale:1.04;box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 26px 44px -16px rgba(0,0,0,.7);animation:none;z-index:4; }
   .nota.apagada { opacity:.22;filter:saturate(.4); }
   .nota.se-va { animation:notaSeVa .28s cubic-bezier(.4,0,1,1) both; }
@@ -215,7 +215,7 @@
     background:
       radial-gradient(120% 90% at 30% 0%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%),
       color-mix(in srgb, var(--bg2) 45%, transparent);
-    -webkit-backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.8);backdrop-filter:url(#vidrio-boton) blur(2px) saturate(1.8);
+    -webkit-backdrop-filter:blur(10px) saturate(1.6);backdrop-filter:blur(10px) saturate(1.6);
     box-shadow:inset 0 1px 1px rgba(255,255,255,.45), inset 0 -3px 6px -3px rgba(0,0,0,.35), 0 6px 14px -8px rgba(0,0,0,.6);
     transition:transform .3s cubic-bezier(.34,1.56,.64,1), background .15s;
   }
@@ -355,7 +355,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="vidrio" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%275%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2714%27 y=%2714%27 width=%2772%27 height=%2772%27 rx=%2714%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
-    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.09" xChannelSelector="R" yChannelSelector="B"/>
+    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.18" xChannelSelector="R" yChannelSelector="B"/>
   </filter>
   <filter id="vidrio-boton" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%278%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2724%27 y=%2724%27 width=%2752%27 height=%2752%27 rx=%2724%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
@@ -569,15 +569,49 @@ function encuadrar(animado) {
 aplicarVista();
 
 // Arrastrar el fondo para moverse.
-let pan = null;
+// Botón derecho (o rueda pulsada) arrastrando: mover la pizarra, también encima de una nota.
+// Botón izquierdo en un hueco: recuadro para seleccionar notas.
+let pan = null, panMovido = false, marco = null;
 mapa.addEventListener('pointerdown', (e) => {
-  if (e.button !== 0 || e.target.closest('.nota, .mapa-herr, .modos')) return;
-  pan = { sx: e.clientX, sy: e.clientY, x: vista.x, y: vista.y };
-  lienzo.style.transition = '';
-  mapa.setPointerCapture(e.pointerId); mapa.classList.add('moviendo');
+  if (e.target.closest('.mapa-herr, .modos')) return;
+  if (e.button === 2 || e.button === 1) {
+    pan = { sx: e.clientX, sy: e.clientY, x: vista.x, y: vista.y }; panMovido = false;
+    lienzo.style.transition = '';
+    mapa.setPointerCapture(e.pointerId);
+    if (e.button === 1) e.preventDefault();
+    return;
+  }
+  if (e.button !== 0 || e.target.closest('.nota')) return;
+  const r = mapa.getBoundingClientRect();
+  marco = { x0: e.clientX, y0: e.clientY, el: null, previa: e.ctrlKey || e.shiftKey ? new Set(seleccion) : new Set() };
+  mapa.setPointerCapture(e.pointerId);
+  void r;
+}, true);
+mapa.addEventListener('pointermove', (e) => {
+  if (pan) {
+    if (!panMovido && Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) < 4) return;
+    panMovido = true; mapa.classList.add('panear');
+    vista.x = pan.x + e.clientX - pan.sx; vista.y = pan.y + e.clientY - pan.sy; aplicarVista();
+    return;
+  }
+  if (marco) {
+    const r = mapa.getBoundingClientRect();
+    const x = Math.min(marco.x0, e.clientX), y = Math.min(marco.y0, e.clientY), w = Math.abs(e.clientX - marco.x0), h = Math.abs(e.clientY - marco.y0);
+    if (!marco.el && w + h < 6) return;
+    if (!marco.el) { marco.el = document.createElement('div'); marco.el.className = 'marco'; mapa.appendChild(marco.el); }
+    Object.assign(marco.el.style, { left: (x - r.left) + 'px', top: (y - r.top) + 'px', width: w + 'px', height: h + 'px' });
+    seleccion = new Set(marco.previa);
+    lienzo.querySelectorAll('.nota:not(.borrador)').forEach(n => {
+      const b = n.getBoundingClientRect();
+      if (b.right > x && b.left < x + w && b.bottom > y && b.top < y + h) seleccion.add(n.dataset.id);
+    });
+    marcarSeleccion();
+  }
 });
-mapa.addEventListener('pointermove', (e) => { if (!pan) return; vista.x = pan.x + e.clientX - pan.sx; vista.y = pan.y + e.clientY - pan.sy; aplicarVista(); });
-mapa.addEventListener('pointerup', () => { pan = null; mapa.classList.remove('moviendo'); });
+mapa.addEventListener('pointerup', () => {
+  if (pan) { pan = null; mapa.classList.remove('panear'); }
+  if (marco) { if (!marco.el) { seleccion = new Set(marco.previa); marcarSeleccion(); } else marco.el.remove(); marco = null; }
+});
 mapa.addEventListener('wheel', (e) => {
   e.preventDefault();
   lienzo.style.transition = '';
@@ -593,11 +627,22 @@ mapa.addEventListener('dblclick', (e) => {
 // Clic derecho: el menú redondo (en el fondo, el del mapa; en una nota, el de la nota).
 mapa.addEventListener('contextmenu', (e) => {
   e.preventDefault();
+  if (panMovido) { panMovido = false; return; }   // era para mover la pizarra
   const el = e.target.closest('.nota');
   if (el && el.classList.contains('borrador')) return;
   if (el) { const n = (currentState.notas || []).find(x => x.id === el.dataset.id); if (n) menuNota(e, n); return; }
   menuMapa(e);
 });
+
+// ── Selección ─────────────────────────────────────────────────────────────────
+let seleccion = new Set();
+let ratonMapa = null;   // dónde está el ratón en el mapa (para pegar ahí)
+mapa.addEventListener('pointermove', (e) => { ratonMapa = aMapa(e.clientX, e.clientY); });
+mapa.addEventListener('pointerleave', () => { ratonMapa = null; });
+function marcarSeleccion() {
+  lienzo.querySelectorAll('.nota[data-id]').forEach(el => el.classList.toggle('elegida', seleccion.has(el.dataset.id)));
+}
+function elegidas() { return ((currentState && currentState.notas) || []).filter(n => seleccion.has(n.id)); }
 
 // Borrador: una tarjeta con el cursor dentro, en su sitio. Enter guarda, Mayús+Enter salta de
 // línea, Esc (o quedarse vacía) la descarta.
@@ -704,6 +749,8 @@ function pintar(forzar) {
   });
   ya.forEach((el, id) => { if (!quedan.has(id)) el.remove(); });
   document.getElementById('mapaVacio').hidden = vistas.length > 0;
+  seleccion = new Set([...seleccion].filter(id => quedan.has(id)));
+  marcarSeleccion();
   colocar(false);
 }
 
@@ -801,23 +848,35 @@ function tarjeta(n) {
   el.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    // Ctrl o Mayús: añadir o quitar de la selección. Si no, esta (o el grupo si ya estaba elegida).
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      if (seleccion.has(n.id)) seleccion.delete(n.id); else seleccion.add(n.id);
+      marcarSeleccion(); return;
+    }
+    if (!seleccion.has(n.id)) { seleccion = new Set([n.id]); marcarSeleccion(); }
     if (modo !== 'libre') return;   // ordenadas: se colocan solas
-    const ini = { cx: e.clientX, cy: e.clientY, x: n.x, y: n.y };
+    // Se mueven todas las elegidas a la vez.
+    const grupo = [...seleccion].map(id => {
+      const nn = (currentState.notas || []).find(x => x.id === id), ee = lienzo.querySelector(`.nota[data-id="${id}"]`);
+      return nn && ee ? { id, el: ee, x: parseFloat(ee.style.left) || 0, y: parseFloat(ee.style.top) || 0 } : null;
+    }).filter(Boolean);
+    const ini = { cx: e.clientX, cy: e.clientY };
     let movida = false;
     el.setPointerCapture(e.pointerId);
     const mover = (ev) => {
       const dx = (ev.clientX - ini.cx) / vista.z, dy = (ev.clientY - ini.cy) / vista.z;
       if (!movida && Math.hypot(dx, dy) < 3) return;
-      if (!movida) { movida = true; arrastrandoNota = true; el.classList.add('cogida'); el.style.zIndex = '9999'; }
-      el.style.left = (ini.x + dx) + 'px'; el.style.top = (ini.y + dy) + 'px';
+      if (!movida) { movida = true; arrastrandoNota = true; grupo.forEach(g => { g.el.classList.add('cogida'); g.el.style.zIndex = '9999'; }); }
+      grupo.forEach(g => { g.el.style.left = (g.x + dx) + 'px'; g.el.style.top = (g.y + dy) + 'px'; });
       moviendose();
     };
     const soltar = () => {
       el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar); el.removeEventListener('pointercancel', soltar);
       if (!movida) return;
       arrastrandoNota = false;
-      el.classList.remove('cogida');
-      enviar('nota-mover', { id: n.id, x: parseFloat(el.style.left), y: parseFloat(el.style.top) });
+      grupo.forEach(g => g.el.classList.remove('cogida'));
+      if (grupo.length > 1) enviar('notas-mover', { lista: grupo.map(g => ({ id: g.id, x: parseFloat(g.el.style.left), y: parseFloat(g.el.style.top) })) });
+      else enviar('nota-mover', { id: n.id, x: parseFloat(el.style.left), y: parseFloat(el.style.top) });
     };
     el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
   });
@@ -1691,11 +1750,64 @@ function cerrarConf() { document.getElementById('popConfFondo').style.display = 
 // Ctrl+Z / Ctrl+Y fuera de los campos de texto: deshacer y rehacer, como en el calendario.
 document.addEventListener('keydown', (e) => {
   const enCampo = e.target.closest && e.target.closest('input, textarea, select');
+  if (e.key === 'Escape' && !selectorAbierto && seleccion.size && document.getElementById('popNota').style.display !== 'flex') { seleccion.clear(); marcarSeleccion(); return; }
   if (e.key === 'Escape') { if (selectorAbierto) { cerrarSelector(); return; } cerrarPopNota(); cerrarPopSec(); cerrarConf(); cerrarDentro(); return; }
-  if (enCampo || !(e.ctrlKey || e.metaKey)) return;
+  if (enCampo || e.target.isContentEditable) return;
+  if (atajosNotas(e)) return;
+  if (!(e.ctrlKey || e.metaKey)) return;
   if (e.key.toLowerCase() === 'z') { e.preventDefault(); enviar(e.shiftKey ? 'redo' : 'undo'); }
   if (e.key.toLowerCase() === 'y') { e.preventDefault(); enviar('redo'); }
 });
+
+// ── Atajos de las notas ───────────────────────────────────────────────────────
+// Ctrl+C / X / V / D / A, Supr, Enter, Esc y flechas, como en cualquier pizarra.
+let portapapelesNotas = null;   // { texto, notas } lo último copiado aquí (con sus propiedades)
+const sinId = (n) => ({ texto: n.texto, urgencia: n.urgencia || '', seccion: n.seccion || null, color: n.color || null, recordatorio: n.recordatorio || null, vence: n.vence || null, fijada: !!n.fijada, x: n.x, y: n.y });
+function copiarElegidas() {
+  const ns = elegidas(); if (!ns.length) return false;
+  const texto = ns.map(n => n.texto).join('\n\n');
+  portapapelesNotas = { texto, notas: ns.map(sinId) };
+  try { require('electron').clipboard.writeText(texto); } catch {}
+  return true;
+}
+function pegar() {
+  let texto = ''; try { texto = require('electron').clipboard.readText().replace(/\r/g, ''); } catch {}
+  const r = mapa.getBoundingClientRect();
+  const sitio = ratonMapa || aMapa(r.left + r.width / 2, r.top + r.height / 2);
+  if (portapapelesNotas && texto === portapapelesNotas.texto && portapapelesNotas.notas.length) {
+    // Lo copiado aquí: mismas propiedades, colocadas donde está el ratón y en el mismo orden.
+    const ns = portapapelesNotas.notas, x0 = Math.min(...ns.map(n => n.x)), y0 = Math.min(...ns.map(n => n.y));
+    enviar('notas-pegar', { lista: ns.map(n => ({ ...n, x: sitio.x + n.x - x0, y: sitio.y + n.y - y0 })) });
+  } else if (texto.trim()) {
+    enviar('nota-crear', { texto: texto.trim().slice(0, 4000), seccion: filtroSeccion || null, x: sitio.x - 20, y: sitio.y - 16 });
+  }
+}
+function atajosNotas(e) {
+  if (enCaja || document.getElementById('popNota').style.display === 'flex' || borrador) return false;
+  const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
+  const ns = elegidas();
+  if (ctrl && k === 'c') { if (copiarElegidas()) { e.preventDefault(); return true; } return false; }
+  if (ctrl && k === 'x') { if (copiarElegidas()) { e.preventDefault(); enviar('notas-borrar', { ids: ns.map(n => n.id) }); seleccion.clear(); return true; } return false; }
+  if (ctrl && k === 'v') { e.preventDefault(); pegar(); return true; }
+  if (ctrl && k === 'd') { if (!ns.length) return false; e.preventDefault(); enviar('notas-pegar', { lista: ns.map(n => ({ ...sinId(n), x: n.x + 28, y: n.y + 28 })) }); return true; }
+  if (ctrl && k === 'a') { e.preventDefault(); seleccion = new Set(notasVisibles().map(n => n.id)); marcarSeleccion(); return true; }
+  if (!ctrl && (e.key === 'Delete' || e.key === 'Backspace') && ns.length) {
+    e.preventDefault();
+    const ids = ns.map(n => n.id); seleccion.clear();
+    ids.forEach(id => { const el = lienzo.querySelector(`.nota[data-id="${id}"]`); if (el) el.classList.add('se-va'); });
+    setTimeout(() => enviar('notas-borrar', { ids }), 240);
+    return true;
+  }
+  if (!ctrl && e.key === 'Enter' && ns.length === 1) { e.preventDefault(); abrirPopNota(ns[0].id); return true; }
+  if (e.key === 'Escape' && seleccion.size) { seleccion.clear(); marcarSeleccion(); return true; }
+  if (!ctrl && e.key.startsWith('Arrow') && ns.length && modo === 'libre') {
+    e.preventDefault();
+    const p = e.shiftKey ? 40 : 8, dx = k === 'arrowleft' ? -p : k === 'arrowright' ? p : 0, dy = k === 'arrowup' ? -p : k === 'arrowdown' ? p : 0;
+    enviar('notas-mover', { lista: ns.map(n => ({ id: n.id, x: n.x + dx, y: n.y + dy })) });
+    return true;
+  }
+  return false;
+}
 
 // ── Caja fuerte ───────────────────────────────────────────────────────────────
 // Lo de dentro solo pasa por aquí mientras está abierta: al cerrarse (a mano, a los 5 minutos,

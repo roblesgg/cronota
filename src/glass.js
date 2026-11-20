@@ -16,6 +16,7 @@
  *
  * Uso:
  *   const g = await LiquidGlass.attach(el, { tail: { x, y }, roundness, radius });  // null si no hay
+ *   (opcional: refThickness, refDistance, refFactor para más o menos deformación que la de serie)
  *   g.entrar() · await g.salir() · g.reflow() · g.detach()
  */
 (function (global) {
@@ -698,8 +699,10 @@ void main() {
       this._u(p, 'u_mergeRate', (18 * dpr) / H);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.f2.tex); this._u(p, 'u_blurredBg', { i: 0 });
       this._u(p, 'u_tint', this.opts.tinte != null ? [tema.tint[0], tema.tint[1], tema.tint[2], this.opts.tinte] : tema.tint);
-      this._u(p, 'u_refThickness', CFG.refThickness); this._u(p, 'u_refDistance', CFG.refDistance);
-      this._u(p, 'u_refFactor', CFG.refFactor);
+      // 2.16: cada uso puede pedir más (o menos) refracción: { refThickness, refDistance, refFactor }.
+      const o = this.opts;
+      this._u(p, 'u_refThickness', o.refThickness != null ? o.refThickness : CFG.refThickness); this._u(p, 'u_refDistance', o.refDistance != null ? o.refDistance : CFG.refDistance);
+      this._u(p, 'u_refFactor', o.refFactor != null ? o.refFactor : CFG.refFactor);
       this._u(p, 'u_refFresnelRange', CFG.fresRange); this._u(p, 'u_refFresnelHardness', CFG.fresHard); this._u(p, 'u_refFresnelFactor', CFG.fresFactor);
       this._u(p, 'u_glareRange', CFG.glareRange); this._u(p, 'u_glareHardness', CFG.glareHard); this._u(p, 'u_glareFactor', CFG.glareFactor);
       this._u(p, 'u_glareConvergence', CFG.glareConvergence); this._u(p, 'u_glareOppositeFactor', CFG.glareOpposite);
