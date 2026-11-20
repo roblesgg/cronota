@@ -40,7 +40,7 @@ function copiaDelDia(estado, ajustes) {
     const fichero = path.join(dir, `cronota-copia-${fechaLocal(new Date())}.json`);
     if (fs.existsSync(fichero)) return false;
     // 2.14.1: también los ajustes y las sugerencias descartadas, como «Exportar copia».
-    const copia = { cronotaBackup: true, version: 2, exportedAt: new Date().toISOString(), tasks: estado.tasks || [], groups: estado.groups || [], outlookDescartadas: estado.outlookDescartadas || [], settings: ajustes || undefined };
+    const copia = { cronotaBackup: true, version: 2, exportedAt: new Date().toISOString(), tasks: estado.tasks || [], groups: estado.groups || [], outlookDescartadas: estado.outlookDescartadas || [], notas: estado.notas || [], seccionesNotas: estado.seccionesNotas || [], cajaFuerte: estado.cajaFuerte || null, settings: ajustes || undefined };
     escribirAtomico(fichero, JSON.stringify(copia, null, 2));
     const nuestras = fs.readdirSync(dir).filter((n) => /^cronota-copia-\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
     nuestras.slice(0, Math.max(0, nuestras.length - COPIAS_A_GUARDAR))

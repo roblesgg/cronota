@@ -105,7 +105,7 @@ function crear(o) {
       const e = o.getEstado();
       const guardado = Date.now();
       const ajustes = o.ajustesParaSubir ? o.ajustesParaSubir() : undefined;
-      escribirAtomico(f, JSON.stringify({ cronotaSync: 2, equipo, guardado, tasks: e.tasks, groups: e.groups, activeTaskId: e.activeTaskId || null, activeSubId: e.activeSubId || null, outlookDescartadas: e.outlookDescartadas || [], settings: ajustes }));
+      escribirAtomico(f, JSON.stringify({ cronotaSync: 2, equipo, guardado, tasks: e.tasks, groups: e.groups, activeTaskId: e.activeTaskId || null, activeSubId: e.activeSubId || null, outlookDescartadas: e.outlookDescartadas || [], notas: e.notas || [], seccionesNotas: e.seccionesNotas || [], cajaFuerte: e.cajaFuerte || null, settings: ajustes }));
       aj().nubeVersion = guardado; aj().nubePendiente = false; o.guardar();
       cambiarEstado({ ultima: guardado, error: null });
     } catch (err) { cambiarEstado({ error: 'No se pudo guardar en la carpeta: ' + String((err && err.message) || err) }); }
@@ -128,7 +128,7 @@ function crear(o) {
       // Los dos PC cambiaron cosas: se queda lo de aquí (es lo último) y lo del otro se aparta.
       try {
         escribirAtomico(path.join(path.dirname(f), `cronota-sync-conflicto-${remoto.equipo || 'otro'}-${fecha(remoto.guardado)}.json`),
-          JSON.stringify({ cronotaBackup: true, exportedAt: new Date(remoto.guardado).toISOString(), tasks: remoto.tasks, groups: remoto.groups, outlookDescartadas: remoto.outlookDescartadas, settings: remoto.settings }, null, 2));
+          JSON.stringify({ cronotaBackup: true, exportedAt: new Date(remoto.guardado).toISOString(), tasks: remoto.tasks, groups: remoto.groups, outlookDescartadas: remoto.outlookDescartadas, notas: remoto.notas, seccionesNotas: remoto.seccionesNotas, cajaFuerte: remoto.cajaFuerte, settings: remoto.settings }, null, 2));
       } catch {}
       o.avisar('Cronota: cambios en dos equipos', `Has cambiado horas aquí y en «${remoto.equipo || 'otro equipo'}» a la vez. Se queda lo de este equipo; lo del otro está en la carpeta Cronota de tu nube por si lo necesitas (Ajustes → Restaurar copia).`);
       subir();
@@ -136,6 +136,9 @@ function crear(o) {
     }
     const datos = { tasks: remoto.tasks, groups: remoto.groups, activeTaskId: remoto.activeTaskId || null, activeSubId: remoto.activeSubId || null };
     if (Array.isArray(remoto.outlookDescartadas)) datos.outlookDescartadas = remoto.outlookDescartadas;   // una 2.14.0 no las manda
+    if (Array.isArray(remoto.notas)) datos.notas = remoto.notas;   // 2.16: una versión anterior no las manda
+    if (Array.isArray(remoto.seccionesNotas)) datos.seccionesNotas = remoto.seccionesNotas;
+    if (remoto.cajaFuerte !== undefined) datos.cajaFuerte = remoto.cajaFuerte;
     o.aplicar(datos);
     if (remoto.settings && typeof remoto.settings === 'object' && o.aplicarAjustes) o.aplicarAjustes(remoto.settings);
     aj().nubeVersion = remoto.guardado; o.guardar();

@@ -132,11 +132,11 @@
     position:relative; margin:12px 12px 4px; padding:4px; gap:0; border:none;
     background:var(--bg2); border-radius:999px;
   }
-  /* El indicador va en proporción, no en píxeles: los cuatro botones miden lo mismo, así que
-     ocupa un cuarto y se corre tantos cuartos como el índice de la pestaña. Si el panel
+  /* El indicador va en proporción, no en píxeles: los cinco botones (2.16: con Notas) miden lo mismo, así que
+     ocupa un quinto y se corre tantos quintos como el índice de la pestaña. Si el panel
      cambia de ancho (el calendario), se estira con él y sigue centrado en su botón. */
   .nav-glider {
-    position:absolute; top:4px; bottom:4px; left:4px; width:calc((100% - 8px) / 4); border-radius:999px;
+    position:absolute; top:4px; bottom:4px; left:4px; width:calc((100% - 8px) / 5); border-radius:999px;
     background:color-mix(in srgb, var(--accent2) 24%, transparent);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
     transform:translateX(calc(var(--i, 0) * 100%));
@@ -144,8 +144,8 @@
     pointer-events:none;
   }
   .nav-btn {
-    position:relative; z-index:1; flex-direction:row; justify-content:center; gap:6px; min-width:0;
-    padding:8px 6px; border-radius:999px; font-size:12px; font-weight:600; letter-spacing:-.01em;
+    position:relative; z-index:1; flex-direction:row; justify-content:center; gap:4px; min-width:0;
+    padding:8px 4px; border-radius:999px; font-size:11.5px; white-space:nowrap; overflow:hidden; font-weight:600; letter-spacing:-.01em;
     color:var(--text2); background:transparent !important;
     transition:color .2s ease;
   }
@@ -175,6 +175,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
         <span>Tareas</span>
       </button>
+      <button class="nav-btn" data-view="notas" onclick="navTo('notas')" title="Notas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/><path d="M7 13h7M7 17h4"/></svg>
+        <span>Notas</span>
+      </button>
       <button class="nav-btn" data-view="settings" onclick="navTo('settings')" title="Ajustes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         <span>Ajustes</span>
@@ -195,8 +199,8 @@ const resizer = document.getElementById('resize');
 const glider = document.getElementById('glider');
 const nav = document.getElementById('nav');
 
-const VIEW_SRC = { panel:'main.html?embed=1', calendar:'calendar.html?embed=1', groups:'groups.html?embed=1', settings:'settings.html?embed=1' };
-const VIEW_ORDER = ['panel','calendar','groups','settings'];
+const VIEW_SRC = { panel:'main.html?embed=1', calendar:'calendar.html?embed=1', groups:'groups.html?embed=1', notas:'notas.html?embed=1', settings:'settings.html?embed=1' };
+const VIEW_ORDER = ['panel','calendar','groups','notas','settings'];
 const SIDES = ['left','right','top','bottom'];
 let anchor = 'right';
 let currentView = 'panel';

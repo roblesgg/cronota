@@ -246,6 +246,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.16.0': { title: 'Novedades de Cronota 2.16', steps: [
+    { icon:'spark', title:'Notas, a la vista',
+      text:'Una pestaña nueva, Notas: apunta algo y Enter. Tres carriles (Ahora, Siguiente, Más tarde) para saber qué toca, secciones propias, casillas con [ ] y recordatorios con fecha y hora.' },
+    { icon:'folder', title:'Caja fuerte',
+      text:'Dentro de Notas, notas que solo se ven con tu PIN o contraseña. Van cifradas y se cierran solas a los 5 minutos. Si olvidas el PIN no se pueden recuperar.' },
+  ] },
   '2.15.0': { title: 'Novedades de Cronota 2.15', steps: [
     { icon:'spark', title:'Paletas a tu gusto para cada cliente',
       text:'En Tareas, el botón de colores de cada sección tiene «+ Paleta personalizada»: elige sus colores y cada tarea nueva de ese cliente coge uno. Hay más paletas de serie y más colores para las tareas.' },
@@ -353,6 +359,7 @@ let calendarWin = null;
 let mainWin = null;
 let settingsWin = null;
 let groupsWin = null;
+let notasWin = null;   // 2.16: Notas en ventana suelta (sin la barra flotante)
 let splashWin = null;
 let reminderTimer = null;
 let leaveTimer = null;
@@ -662,6 +669,7 @@ function buildTrayMenu() {
     { label: 'Panel', click: () => openMain() },
     { label: 'Calendario', click: () => openCalendar() },
     { label: 'Tareas', click: () => openGroups() },
+    { label: 'Notas', click: () => openNotas() },
     { label: 'Ajustes', click: () => openSettings() },
     { label: 'Pausar', click: () => pauseActive(), enabled: !!active },
     { label: 'No molestar', type: 'checkbox', checked: dndActive(), click: () => setDnd(dndActive() ? null : 0) },
@@ -1446,6 +1454,7 @@ function showDockContextMenu() {
     { type: 'separator' },
     { label: 'Calendario', click: () => openCalendar() },
     { label: 'Tareas', click: () => openGroups() },
+    { label: 'Notas', click: () => openNotas() },
     { label: 'Ajustes', click: () => openSettings() },
   ];
 
@@ -1652,7 +1661,7 @@ function applyTranslucencyAll() {
   applySystemThemeSource();
   // Ni la barrita ni (desde la 2.8) el panel del dock ni (2.8.3) el recordatorio llevan
   // material: son transparentes a propósito, y applyTranslucency les haría setOpacity.
-  [mainWin, calendarWin, groupsWin, settingsWin]
+  [mainWin, calendarWin, groupsWin, notasWin, settingsWin]
     .forEach(w => applyTranslucency(w));
   broadcastTheme();
 }
@@ -1664,7 +1673,7 @@ function themeVars() {
 
 function broadcastTheme() {
   const vars = themeVars();
-  [mainWin, calendarWin, groupsWin, settingsWin, widgetWin, dockWin, splashWin]
+  [mainWin, calendarWin, groupsWin, notasWin, settingsWin, widgetWin, dockWin, splashWin]
     .forEach(w => sendToAllFrames(w, 'theme', vars));
   sendToAllFrames(dockPanelWin, 'theme', vars);
 }
@@ -2403,7 +2412,7 @@ function dockNavigate(view) {
 function applyDockMode(wasDock) {
   if (settings.dockMode) {
     // Al entrar en modo dock, escondemos las ventanas sueltas y creamos la barra.
-    [mainWin, calendarWin, groupsWin, settingsWin].forEach(w => { try { if (w && !w.isDestroyed()) w.hide(); } catch {} });   // escondidas (no cerradas) para que, al salir del dock, vuelvan con su tamaño y sitio; con el frenado por defecto no pintan
+    [mainWin, calendarWin, groupsWin, notasWin, settingsWin].forEach(w => { try { if (w && !w.isDestroyed()) w.hide(); } catch {} });   // escondidas (no cerradas) para que, al salir del dock, vuelvan con su tamaño y sitio; con el frenado por defecto no pintan
     createDock();
     if (!wasDock) dockNavigate('panel');
     else positionDock();   // reajusta a la pantalla elegida
@@ -2496,6 +2505,196 @@ function openGroups() {
   groupsWin.once('ready-to-show', () => { groupsWin.show(); sendStateToWindow(groupsWin); });
   groupsWin.on('closed', () => { groupsWin = null; });
 }
+
+// 2.16: Notas, como Tareas: en la barra flotante es una pestaña más; si no, su propia ventana.
+function openNotas() {
+  if (settings.dockMode) { dockNavigate('notas'); return; }
+  if (notasWin && !notasWin.isDestroyed()) { notasWin.show(); notasWin.focus(); sendStateToWindow(notasWin); return; }
+  notasWin = makeWindow('notas.html', 460, 680, { minWidth: 360, minHeight: 420, maxWidth: 1400, maxHeight: 1200 });
+  notasWin.once('ready-to-show', () => { notasWin.show(); sendStateToWindow(notasWin); });
+  notasWin.on('closed', () => { notasWin = null; });
+}
+
+// ── Notas y caja fuerte (2.16) ────────────────────────────────────────────────────
+// Notas: un planner sencillo. Cada nota va en un carril (ahora / siguiente / luego), puede ir en
+// una sección propia de notas, tener color y un recordatorio con fecha y hora (aviso de Windows).
+// Viven en state.notas y state.seccionesNotas: se guardan, se deshacen con Ctrl+Z y viajan con
+// la sincronización y las copias como las tareas.
+const CARRILES_NOTAS = ['ahora', 'siguiente', 'luego'];
+function notas() { if (!Array.isArray(state.notas)) state.notas = []; return state.notas; }
+function seccionesNotas() { if (!Array.isArray(state.seccionesNotas)) state.seccionesNotas = []; return state.seccionesNotas; }
+function limpiarNota(n, base) {
+  const r = { ...(base || {}) };
+  if (n.texto !== undefined) r.texto = String(n.texto || '').slice(0, 4000);
+  if (n.carril !== undefined) r.carril = CARRILES_NOTAS.includes(n.carril) ? n.carril : 'ahora';
+  if (n.seccion !== undefined) r.seccion = n.seccion && seccionesNotas().some(s => s.id === n.seccion) ? n.seccion : null;
+  if (n.color !== undefined) r.color = /^#[0-9a-fA-F]{6}$/.test(String(n.color || '')) ? n.color : null;
+  if (n.recordatorio !== undefined) {
+    const t = Number(n.recordatorio) || null;
+    if (t !== r.recordatorio) r.avisada = false;   // fecha nueva: vuelve a avisar
+    r.recordatorio = t;
+  }
+  if (n.hecha !== undefined) { r.hecha = !!n.hecha; r.hechaEn = r.hecha ? (r.hechaEn || Date.now()) : null; }
+  return r;
+}
+function crearNota(p) {
+  if (!p || !String(p.texto || '').trim()) return null;
+  const lista = notas();
+  const n = limpiarNota({ carril: 'ahora', seccion: null, color: null, recordatorio: null, hecha: false, ...p },
+    { id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creada: Date.now(), avisada: false });
+  n.texto = n.texto.trim();
+  lista.unshift(n);   // la nueva, arriba de su carril
+  saveData(); broadcastState();
+  return n.id;
+}
+function editarNota(p) {
+  const lista = notas();
+  const i = lista.findIndex(x => x.id === (p && p.id));
+  if (i < 0) return;
+  lista[i] = limpiarNota(p, lista[i]);
+  saveData(); broadcastState();
+}
+function borrarNota(id) {
+  const lista = notas();
+  const i = lista.findIndex(x => x.id === id);
+  if (i < 0) return;
+  lista.splice(i, 1);
+  saveData(); broadcastState();
+}
+// Arrastrar: a otro carril y delante de otra nota (o al final si antesDe no está).
+function moverNota(p) {
+  const lista = notas();
+  const i = lista.findIndex(x => x.id === (p && p.id));
+  if (i < 0) return;
+  const [n] = lista.splice(i, 1);
+  if (CARRILES_NOTAS.includes(p.carril)) n.carril = p.carril;
+  const j = p.antesDe ? lista.findIndex(x => x.id === p.antesDe) : -1;
+  if (j >= 0) lista.splice(j, 0, n); else lista.push(n);
+  saveData(); broadcastState();
+}
+function vaciarHechas() {
+  state.notas = notas().filter(n => !n.hecha);
+  saveData(); broadcastState();
+}
+function crearSeccionNotas(p) {
+  const name = String((p && p.name) || '').trim().slice(0, 40);
+  if (!name) return;
+  const color = /^#[0-9a-fA-F]{6}$/.test(String(p.color || '')) ? p.color : TASK_COLORS[seccionesNotas().length % TASK_COLORS.length];
+  seccionesNotas().push({ id: 's' + Date.now().toString(36), name, color });
+  saveData(); broadcastState();
+}
+function editarSeccionNotas(p) {
+  const s = seccionesNotas().find(x => x.id === (p && p.id));
+  if (!s) return;
+  if (p.name !== undefined && String(p.name).trim()) s.name = String(p.name).trim().slice(0, 40);
+  if (p.color !== undefined && /^#[0-9a-fA-F]{6}$/.test(String(p.color))) s.color = p.color;
+  saveData(); broadcastState();
+}
+function borrarSeccionNotas(id) {
+  state.seccionesNotas = seccionesNotas().filter(s => s.id !== id);
+  notas().forEach(n => { if (n.seccion === id) n.seccion = null; });   // sus notas se quedan, sin sección
+  saveData(); broadcastState();
+}
+
+// Recordatorios: cada 20 s. Si estás en «No molestar» o en una llamada, espera a que acabe.
+function vigilarRecordatoriosNotas() {
+  const ahora = Date.now();
+  const toca = notas().filter(n => !n.hecha && n.recordatorio && n.recordatorio <= ahora && !n.avisada);
+  if (!toca.length || silenciado()) return;
+  toca.forEach(n => {
+    n.avisada = true;
+    try {
+      const aviso = new Notification({ title: 'Cronota · recordatorio', body: n.texto.split('\n')[0].slice(0, 200) });
+      aviso.on('click', () => openNotas());
+      aviso.show();
+    } catch {}
+  });
+  saveData(); broadcastState();
+}
+
+// Caja fuerte: notas cifradas con AES-256-GCM. La clave sale del PIN o la contraseña con scrypt y
+// solo vive en memoria mientras está abierta; en el disco (y en la nube y las copias) solo va el
+// cifrado. Se cierra sola a los 5 minutos sin usarla, al bloquear Windows y al cerrar la app. Sin
+// el PIN no hay forma de leerla: no hay cuenta ni servidor que lo recupere.
+const nodeCrypto = require('crypto');
+let cajaClave = null, cajaTemporizador = null, cajaFallos = 0, cajaEsperaHasta = 0;
+const CAJA_MINUTOS = 5;
+function cajaDerivar(secreto, sal) {
+  return nodeCrypto.scryptSync(String(secreto), Buffer.from(sal, 'base64'), 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+}
+function cajaCifrar(clave, notasCaja) {
+  const iv = nodeCrypto.randomBytes(12);
+  const c = nodeCrypto.createCipheriv('aes-256-gcm', clave, iv);
+  const datos = Buffer.concat([c.update(JSON.stringify(notasCaja || []), 'utf8'), c.final()]);
+  return { iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), datos: datos.toString('base64') };
+}
+function cajaDescifrar(clave, caja) {
+  const d = nodeCrypto.createDecipheriv('aes-256-gcm', clave, Buffer.from(caja.iv, 'base64'));
+  d.setAuthTag(Buffer.from(caja.tag, 'base64'));
+  return JSON.parse(Buffer.concat([d.update(Buffer.from(caja.datos, 'base64')), d.final()]).toString('utf8'));
+}
+function cajaEstado() {
+  const c = state.cajaFuerte;
+  return { existe: !!(c && c.datos), tipo: c && c.tipo === 'clave' ? 'clave' : 'pin', abierta: !!cajaClave };
+}
+function cajaRearmar() {
+  clearTimeout(cajaTemporizador);
+  cajaTemporizador = setTimeout(() => cajaCerrar(), CAJA_MINUTOS * 60000);
+}
+function cajaCerrar() {
+  clearTimeout(cajaTemporizador); cajaTemporizador = null;
+  if (cajaClave) { try { cajaClave.fill(0); } catch {} }
+  cajaClave = null;
+  [dockPanelWin, notasWin].forEach(w => sendToAllFrames(w, 'caja-cerrada'));
+}
+ipcMain.handle('caja', async (_e, p) => {
+  const accion = p && p.accion;
+  try {
+    if (accion === 'estado') return cajaEstado();
+    if (accion === 'cerrar') { cajaCerrar(); return cajaEstado(); }
+    if (accion === 'crear') {
+      if (state.cajaFuerte && state.cajaFuerte.datos) return { error: 'Ya hay una caja fuerte' };
+      const secreto = String(p.secreto || '');
+      const tipo = p.tipo === 'clave' ? 'clave' : 'pin';
+      if (tipo === 'pin' ? !/^\d{4,8}$/.test(secreto) : secreto.length < 6) return { error: tipo === 'pin' ? 'El PIN tiene que tener de 4 a 8 números' : 'La contraseña tiene que tener al menos 6 caracteres' };
+      const sal = nodeCrypto.randomBytes(16).toString('base64');
+      cajaClave = cajaDerivar(secreto, sal);
+      state.cajaFuerte = { v: 1, tipo, sal, ...cajaCifrar(cajaClave, []) };
+      saveData(); broadcastState(); cajaRearmar();
+      return { ...cajaEstado(), notas: [] };
+    }
+    if (accion === 'abrir') {
+      const c = state.cajaFuerte;
+      if (!c || !c.datos) return { error: 'No hay caja fuerte' };
+      if (Date.now() < cajaEsperaHasta) return { error: `Demasiados intentos. Espera ${Math.ceil((cajaEsperaHasta - Date.now()) / 1000)} s` };
+      let clave;
+      try { clave = cajaDerivar(String(p.secreto || ''), c.sal); const lista = cajaDescifrar(clave, c); cajaClave = clave; cajaFallos = 0; cajaRearmar(); return { ...cajaEstado(), notas: lista }; }
+      catch {
+        cajaFallos++;
+        if (cajaFallos >= 5) { cajaEsperaHasta = Date.now() + 30000; cajaFallos = 0; }
+        await new Promise(r => setTimeout(r, 500));
+        return { error: c.tipo === 'clave' ? 'Contraseña incorrecta' : 'PIN incorrecto' };
+      }
+    }
+    if (accion === 'guardar') {
+      if (!cajaClave || !state.cajaFuerte) return { error: 'La caja fuerte está cerrada' };
+      const lista = (Array.isArray(p.notas) ? p.notas : []).slice(0, 500).map(n => ({
+        id: String(n.id || ('c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6))).slice(0, 40),
+        titulo: String(n.titulo || '').slice(0, 120), texto: String(n.texto || '').slice(0, 8000),
+        creada: Number(n.creada) || Date.now(), editada: Date.now(),
+      }));
+      state.cajaFuerte = { ...state.cajaFuerte, ...cajaCifrar(cajaClave, lista) };
+      saveData(); cajaRearmar();
+      return { ...cajaEstado(), notas: lista };
+    }
+    if (accion === 'tocar') { if (cajaClave) cajaRearmar(); return cajaEstado(); }
+    if (accion === 'borrar') {   // olvidaste el PIN: se borra entera (lo confirma la pantalla)
+      cajaCerrar(); delete state.cajaFuerte; saveData(); broadcastState();
+      return cajaEstado();
+    }
+  } catch (err) { return { error: String((err && err.message) || err) }; }
+  return { error: 'Acción desconocida' };
+});
 
 // ── Novedades al actualizar ───────────────────────────────────────────────────
 function openWhatsNew() {
@@ -2600,6 +2799,9 @@ function getSerializableState() {
     }),
     groups: sortedGroups(),
     palettes: todasLasPaletas(),
+    notas: state.notas || [],   // 2.16
+    seccionesNotas: state.seccionesNotas || [],
+    cajaFuerte: cajaEstado(),
     activeTaskId: state.activeTaskId,
     activeSubId: state.activeSubId || null,
     todayTotal: totalTodaySeconds(),
@@ -2617,7 +2819,7 @@ function getSerializableState() {
 // respuesta a 'am-i-visible' porque, si la vista de destino ya era la que estaba
 // abierta, el iframe no se recarga y esa página nunca llega a preguntar.
 function broadcastTourFlag() {
-  [dockPanelWin, mainWin, calendarWin, groupsWin, settingsWin].forEach(w => {
+  [dockPanelWin, mainWin, calendarWin, groupsWin, notasWin, settingsWin].forEach(w => {
     if (w && !w.isDestroyed()) sendToAllFrames(w, 'tutorial-tour');
   });
 }
@@ -2638,7 +2840,7 @@ function sendStateToWindow(win) {
 // Vista del dock que se ve ahora. Desde la 2.8 las cuatro viven a la vez (una por
 // iframe): solo la visible recibe el estado de cada segundo, y la que entra lo recibe al
 // momento al cambiar de pestaña (ver 'dock-view-changed').
-const DOCK_VIEW_FILE = { panel: 'main.html', calendar: 'calendar.html', groups: 'groups.html', settings: 'settings.html' };
+const DOCK_VIEW_FILE = { panel: 'main.html', calendar: 'calendar.html', groups: 'groups.html', notas: 'notas.html', settings: 'settings.html' };
 function activeDockFrames() {
   if (!dockPanelWin || dockPanelWin.isDestroyed()) return [];
   let todos = [];
@@ -2670,7 +2872,7 @@ function broadcastState(opts) {
   // 2.8.5: el tic de cada segundo (solo cambian los tiempos) va solo a lo que se ve. Antes iba
   // también a las ventanas escondidas y al panel plegado, que se repintaban todo el día sin que
   // nadie las viera. Al enseñarse se ponen al día (makeWindow 'show', showDockPanel).
-  const ventanas = [widgetWin, mainWin, calendarWin, groupsWin].filter(w => w && !w.isDestroyed() && (!tic || seVe(w)));
+  const ventanas = [widgetWin, mainWin, calendarWin, groupsWin, notasWin].filter(w => w && !w.isDestroyed() && (!tic || seVe(w)));
   // El panel del dock lo escucha su iframe (panel/calendario/tareas), no la página que lo
   // envuelve; la barrita (dockWin) no escucha 'state'. Con un cambio de verdad se ponen al
   // día TODAS sus vistas: así la que entra al cambiar de pestaña ya está pintada y no tiene
@@ -2700,6 +2902,7 @@ const ACCIONES_DESHACIBLES = new Set([
   'move-task-to-group', 'set-group-palette', 'recolor-group-tasks', 'reorder-groups',
   'restore-and-start-task', 'edit-entry', 'delete-entry', 'add-calendar-entry', 'archive-purge',
   'descartar-reunion', 'restaurar-descartadas',
+  'nota-crear', 'nota-editar', 'nota-borrar', 'nota-mover', 'notas-vaciar-hechas', 'nota-seccion-crear', 'nota-seccion-editar', 'nota-seccion-borrar',
 ]);
 const pilaDeshacer = [], pilaRehacer = [];
 let ultimaFoto = { type: null, t: 0 };
@@ -2715,7 +2918,9 @@ function deshacer(rehacer) {
   const de = rehacer ? pilaRehacer : pilaDeshacer, a = rehacer ? pilaDeshacer : pilaRehacer;
   if (!de.length) return false;
   a.push(JSON.stringify(state));
+  const cajaAhora = state.cajaFuerte;   // 2.16: deshacer no toca la caja fuerte (va cifrada aparte)
   state = JSON.parse(de.pop());
+  if (cajaAhora) state.cajaFuerte = cajaAhora; else delete state.cajaFuerte;
   ultimaFoto = { type: null, t: 0 };
   saveData(); broadcastState(); resetReminderTimer();
   return true;
@@ -3001,6 +3206,7 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'open-calendar': openCalendar(); break;
     case 'open-settings': openSettings(); break;
     case 'open-groups':   openGroups(); break;
+    case 'open-notas':    openNotas(); break;   // 2.16
     case 'close-widget':  hideWidget(); break;
     case 'widget-escala-vivo': {   // Ajustes: el deslizador de tamaño, mientras se mueve
       settings.widgetScale = Math.max(80, Math.min(150, Number(payload && payload.value) || 100));
@@ -3153,7 +3359,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       settings.dockMode = !!(payload && payload.enabled);
       saveSettings();
       if (settings.dockMode) {
-        [mainWin, calendarWin, groupsWin, settingsWin].forEach(w => { try { if (w && !w.isDestroyed()) w.hide(); } catch {} });
+        [mainWin, calendarWin, groupsWin, notasWin, settingsWin].forEach(w => { try { if (w && !w.isDestroyed()) w.hide(); } catch {} });
         createDock();
         if (!wasDock) dockNavigate('settings'); else positionDock();
       } else if (wasDock) {
@@ -3204,6 +3410,18 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (settings.dockMode) dockNavigate('panel');
       else if (settingsWin && !settingsWin.isDestroyed()) settingsWin.hide();
       break;
+    case 'close-notas':   // 2.16
+      if (settings.dockMode) dockNavigate('panel');
+      else { if (notasWin && !notasWin.isDestroyed()) notasWin.hide(); ensureSomeWindowVisible(); }
+      break;
+    case 'nota-crear': crearNota(payload); break;
+    case 'nota-editar': editarNota(payload); break;
+    case 'nota-borrar': borrarNota(payload && payload.id); break;
+    case 'nota-mover': moverNota(payload); break;
+    case 'notas-vaciar-hechas': vaciarHechas(); break;
+    case 'nota-seccion-crear': crearSeccionNotas(payload); break;
+    case 'nota-seccion-editar': editarSeccionNotas(payload); break;
+    case 'nota-seccion-borrar': borrarSeccionNotas(payload && payload.id); break;
     case 'close-groups':
       if (settings.dockMode) dockNavigate('panel');
       else { if (groupsWin && !groupsWin.isDestroyed()) groupsWin.hide(); ensureSomeWindowVisible(); }
@@ -3285,7 +3503,7 @@ ipcMain.handle('export-backup', async (_e, extra) => {
     // Copia completa: todas las tareas (con su historial de fichajes, también las archivadas y
     // las borradas), los grupos, todos los ajustes y las preferencias que guardan las pantallas.
     const local = extra && extra.local && typeof extra.local === 'object' ? extra.local : {};
-    const payload = { cronotaBackup: true, version: 2, appVersion: app.getVersion(), exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups, outlookDescartadas: state.outlookDescartadas || [], settings, local };
+    const payload = { cronotaBackup: true, version: 2, appVersion: app.getVersion(), exportedAt: new Date().toISOString(), tasks: state.tasks, groups: state.groups, outlookDescartadas: state.outlookDescartadas || [], notas: state.notas || [], seccionesNotas: state.seccionesNotas || [], cajaFuerte: state.cajaFuerte || null, settings, local };
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
     return { ok: true, path: filePath };
   } catch (e) {
@@ -3355,6 +3573,11 @@ ipcMain.handle('apply-import-backup', async (_e, payload) => {
     if (deepEqual(state.tasks[idx], t)) return;
     if (res[`task:${t.id}`] === 'replace') state.tasks[idx] = t;
   });
+  // 2.16: notas y secciones de notas: se añaden las que no hay (por id). La caja fuerte, solo si
+  // aquí no hay ninguna (no se mezclan dos cajas cifradas con PIN distintos).
+  if (Array.isArray(raw.seccionesNotas)) raw.seccionesNotas.forEach(s => { if (s && s.id && !seccionesNotas().some(x => x.id === s.id)) seccionesNotas().push(s); });
+  if (Array.isArray(raw.notas)) raw.notas.forEach(n => { if (n && n.id && !notas().some(x => x.id === n.id)) notas().push(n); });
+  if (raw.cajaFuerte && raw.cajaFuerte.datos && !(state.cajaFuerte && state.cajaFuerte.datos)) state.cajaFuerte = raw.cajaFuerte;
   // 2.14.1: las sugerencias de Outlook descartadas se suman a las de aquí.
   if (Array.isArray(raw.outlookDescartadas) && raw.outlookDescartadas.length) {
     state.outlookDescartadas = [...new Set([...(state.outlookDescartadas || []), ...raw.outlookDescartadas.map(String)])].slice(-500);
@@ -3659,6 +3882,8 @@ function arrancarNube() {
       getEstado: () => state,
       aplicar: (datos) => {
         fotoAntesDe('nube');   // Ctrl+Z vuelve a lo de antes
+        // 2.16: si la caja fuerte que llega es otra (otro PIN), se cierra la de aquí.
+        if (datos.cajaFuerte !== undefined && (datos.cajaFuerte && datos.cajaFuerte.sal) !== (state.cajaFuerte && state.cajaFuerte.sal)) cajaCerrar();
         state = { ...state, ...datos };
         if (!Array.isArray(state.groups)) state.groups = [];
         saveDataRaw(); broadcastState(); resetReminderTimer();
@@ -3776,7 +4001,8 @@ app.whenReady().then(() => {
   // encontraría paseándole por la app en cada arranque.
   if (!(settings.tutorialSeenSteps || []).length) tourActive = true;
   repararCierreDeGolpe();   // 2.13: antes que nada que use la tarea en marcha
-  try { const { powerMonitor } = require('electron'); powerMonitor.on('suspend', alSuspender); powerMonitor.on('resume', alDespertar); } catch {}
+  try { const { powerMonitor } = require('electron'); powerMonitor.on('suspend', alSuspender); powerMonitor.on('resume', alDespertar); powerMonitor.on('lock-screen', cajaCerrar); powerMonitor.on('suspend', cajaCerrar); } catch {}
+  setInterval(vigilarRecordatoriosNotas, 20000); setTimeout(vigilarRecordatoriosNotas, 5000);   // 2.16
   latir(); setInterval(latir, 60000);
   setTimeout(buscarVersionNueva, 60000); setInterval(buscarVersionNueva, 4 * 60 * 60 * 1000);   // 2.14.3
   startLeaveWatcher();

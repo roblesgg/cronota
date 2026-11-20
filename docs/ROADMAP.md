@@ -93,7 +93,7 @@ Decidido el 18-11-2026: nada de Microsoft Graph ni apps registradas en Azure (ha
 
 Cambiar el estado de Teams o crear eventos en Outlook desde Cronota necesita una app registrada en Azure (Microsoft Graph). Solo si algún día sistemas lo aprueba.
 
-### Fase 5 · Notas y caja fuerte (idea de Álvaro, 20-11-2026) — PENDIENTE
+### Fase 5 · Notas y caja fuerte (idea de Álvaro, 20-11-2026) — HECHA en la 2.16.0, falta que Álvaro la pruebe
 
 Un sitio para apuntar cosas y ver de un vistazo qué tienes pendiente y qué es lo siguiente. Muy sencillo, nada de gestor de proyectos: un planner de notas con la estética de la app (cristal líquido, animaciones, letras de siempre).
 
@@ -115,6 +115,8 @@ Un sitio para apuntar cosas y ver de un vistazo qué tienes pendiente y qué es 
 - Opcional más adelante: desbloquear con Windows Hello.
 
 **Por fases**: 1) tablero con carriles, secciones y borrar/deshacer; 2) recordatorios; 3) caja fuerte; 4) apuntar rápido desde la barra y pulido de animaciones.
+
+**Hecho (2.16.0, 20-11-2026)**: pestaña Notas en la píldora (y ventana suelta y en la bandeja; `src/notas.html`), carriles con arrastrar, secciones de notas (doble clic para cambiarlas), casillas con [ ], colores, buscador, Hechas plegables, Ctrl+Z, recordatorios cada 20 s con aviso que respeta No molestar y llamadas, caja fuerte AES-256-GCM + scrypt (PIN de 4–8 cifras o contraseña de 6+, se cierra a los 5 min, al bloquear Windows y al suspender; 5 fallos = 30 s de espera; «¿Lo has olvidado?» la borra). Notas, secciones y caja (cifrada) viajan con la sincronización, las copias y exportar. Decidido por Claude mientras Álvaro no diga otra cosa: carriles + secciones, recordatorios no salen en el calendario, PIN o contraseña a elegir, 5 minutos. Probado sin abrir ventanas y con capturas.
 
 **Por decidir con Álvaro**: si los carriles Ahora / Siguiente / Más tarde le encajan o prefiere solo secciones; si las notas con recordatorio salen también en el calendario; PIN de 4–6 cifras o contraseña libre (o las dos); cuánto tarda en cerrarse sola la caja fuerte.
 

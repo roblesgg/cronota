@@ -27,6 +27,11 @@ Lo que hay que saber para trabajar en la app y que no está a la vista en el có
 - Copias diarias en `Documentos\Cronota\Copias automáticas` (`copias.js`, las 14 últimas).
 - Sin cuentas: la sincronización con Supabase y la app del móvil se quitaron en la 2.13 (algunas tareas viejas conservan un `remoteId` que ya no se usa). Desde la 2.14 se sincroniza por la carpeta de OneDrive o Google Drive (`nube.js`): `settings.nube`, `nubeVersion` (marca del último archivo conocido) y `nubePendiente` (cambios de aquí sin subir). La carpeta dentro del servicio es `nubeCarpeta` (relativa a su raíz; por defecto `Cronota`, `.` es la raíz), y no viaja al restaurar copias. Desde la 2.14.1 viajan también los ajustes de `AJUSTES_QUE_SE_SINCRONIZAN` (main.js; los de cada pantalla no) y `outlookDescartadas`; un cambio de esos ajustes cuenta como cambio local (`vigilarAjustesNube` en `saveSettings`) y los que llegan se aplican sin reiniciar (`aplicarAjustesDeOtroPC`). Las copias diarias y «Exportar copia» llevan todo (tareas, secciones, ajustes, descartadas); al restaurar no se traen los de este equipo ni la nube elegida. OneDrive se busca en las variables `OneDriveCommercial`/`OneDrive`; Google Drive, en las unidades con «Mi unidad»/«My Drive».
 
+## Notas y caja fuerte (2.16)
+
+- `state.notas` ({ id, texto, carril: ahora|siguiente|luego, seccion, color, recordatorio, avisada, hecha, hechaEn, creada }) y `state.seccionesNotas`. Se deshacen con Ctrl+Z como lo demás. Recordatorios: `vigilarRecordatoriosNotas` cada 20 s.
+- `state.cajaFuerte` = { v, tipo, sal, iv, tag, datos }: AES-256-GCM con clave de `crypto.scryptSync` (N 32768). La clave solo vive en memoria (`cajaClave`) y se borra al cerrarla. A las pantallas solo les llega { existe, tipo, abierta }; el contenido va por `ipcMain.handle('caja')`. Deshacer no toca la caja. Si por la nube llega una caja con otra sal, la de aquí se cierra.
+
 ## Compilar y publicar
 
 Solo se publica en la Microsoft Store. El proceso completo (planificar → modo pruebas → Store) está en [ROADMAP.md](ROADMAP.md).

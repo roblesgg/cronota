@@ -10,7 +10,7 @@ Cronota es una aplicación para Windows que registra el tiempo que dedicas a cad
 
 ## Datos que se guardan en tu equipo
 
-Tus tareas, secciones, los ratos de tiempo registrados, sus notas y tus ajustes se guardan **solo en tu ordenador**, en la carpeta de datos de la aplicación de tu usuario de Windows. No salen de tu equipo salvo que actives la sincronización descrita abajo.
+Tus tareas, secciones, los ratos de tiempo registrados, sus notas, tus notas del apartado Notas (las de la caja fuerte, cifradas con tu PIN o contraseña) y tus ajustes se guardan **solo en tu ordenador**, en la carpeta de datos de la aplicación de tu usuario de Windows. No salen de tu equipo salvo que actives la sincronización descrita abajo.
 
 Para que no los pierdas si desinstalas la app, Cronota guarda además **una copia de tus tareas, secciones y ajustes cada día** en tu carpeta Documentos, en `Documentos\Cronota\Copias automáticas` (se quedan las 14 últimas). Al pasar de la versión del instalador a la de Microsoft Store también deja una copia en `Documentos\Cronota\cronota-traspaso.json`. Si tu carpeta Documentos se sincroniza con OneDrive u otro servicio, estas copias se sincronizan con ella como cualquier otro documento tuyo.
 
