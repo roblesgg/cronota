@@ -3530,11 +3530,21 @@ async function buscarVersionNueva() {
   } catch {}
 }
 function cerrarYActualizar() {
-  try { require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {}
+  // 2.14.9: antes se abría la Store y la app se cerraba con calma (app.quit cierra ventana a
+  // ventana y tarda unos segundos). Si le dabas a «Actualizar» enseguida, Cronota seguía viva y la
+  // Store daba error («Reintentar»). Ahora se guarda todo, se quitan bandeja y ventanas y el
+  // proceso sale en cuanto Windows ha lanzado la Store, que tarda más en abrirse que esto.
+  saliendo = true;
   settings.cerradoParaActualizar = Date.now();
   settings.ultimoLatido = Date.now();
-  saveSettings();
-  setTimeout(() => { saliendo = true; app.quit(); }, 600);   // que la Store llegue a abrirse
+  try { saveData(); saveSettings(); if (nubeSync) nubeSync.alSalir(); } catch {}
+  try { if (tray) { tray.destroy(); tray = null; } } catch {}
+  try { BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} }); } catch {}
+  const salir = () => { try { app.exit(0); } catch {} };
+  let abierta;
+  try { abierta = require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {}
+  Promise.resolve(abierta).catch(() => {}).then(() => setTimeout(salir, 100));
+  setTimeout(salir, 1500);   // por si Windows no contesta
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
