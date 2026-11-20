@@ -2838,6 +2838,35 @@ ipcMain.handle('caja', async (_e, p) => {
   return { error: 'Acción desconocida' };
 });
 
+// ── Sugerencias y fallos (2.16) ──────────────────────────────────────────────────
+// Se envían por Web3Forms (https://web3forms.com), que los reenvía al correo del autor. La clave
+// de acceso solo sirve para enviar a ese buzón; el correo no está en la app.
+const WEB3FORMS_CLAVE = '';   // la pone Álvaro (la de su cuenta de Web3Forms)
+ipcMain.handle('enviar-sugerencia', async (_e, p) => {
+  if (!WEB3FORMS_CLAVE) return { error: 'El envío de sugerencias aún no está activado.' };
+  const tipo = { idea: 'Sugerencia', fallo: 'Algo no funciona', otro: 'Otro' }[p && p.tipo] || 'Sugerencia';
+  const texto = String((p && p.texto) || '').trim().slice(0, 5000);
+  if (texto.length < 3) return { error: 'Escribe un poco más' };
+  const contacto = String((p && p.contacto) || '').trim().slice(0, 200);
+  const datos = p && p.conDatos ? `\n\n—\nCronota ${app.getVersion()}${IS_STORE ? ' (Microsoft Store)' : ''} · Windows ${require('os').release()} · ${settings.dockMode ? 'barra flotante' : 'ventanas'}` : '';
+  try {
+    const r = await net.fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_CLAVE,
+        subject: `Cronota · ${tipo}`,
+        from_name: 'Cronota',
+        tipo, mensaje: texto + datos,
+        ...(contacto ? { email: contacto, replyto: contacto } : {}),
+        botcheck: '',
+      }),
+    });
+    const j = await r.json().catch(() => ({}));
+    return r.ok && j.success !== false ? { ok: true } : { error: j.message || ('No se pudo enviar (' + r.status + ')') };
+  } catch { return { error: 'Sin conexión: inténtalo dentro de un rato (tu texto no se pierde mientras no cierres).' }; }
+});
+
 // ── Novedades al actualizar ───────────────────────────────────────────────────
 function openWhatsNew() {
   if (whatsNewWin && !whatsNewWin.isDestroyed()) { whatsNewWin.show(); whatsNewWin.focus(); return; }

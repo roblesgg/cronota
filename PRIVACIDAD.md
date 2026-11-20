@@ -42,6 +42,10 @@ Cronota solo escribe en el portapapeles cuando tú copias algo desde la aplicaci
 
 Cronota se instala y se actualiza a través de la Microsoft Store. Cada pocas horas Cronota mira en el catálogo público de la Microsoft Store qué versión hay publicada, para avisarte y ofrecerte «Cerrar y actualizar». Es una consulta como la que hace la propia Store: no envía tus datos, tus tareas ni nada que te identifique.
 
+## Sugerencias y fallos (opcional)
+
+Si usas «Enviar sugerencia» (Ajustes → General), se envía lo que escribas, el tipo (sugerencia, fallo u otro), tu correo solo si lo pones para que te respondamos y, si dejas marcada la casilla, la versión de Cronota y de Windows. Se manda a través de Web3Forms (web3forms.com), un servicio que lo reenvía por correo a quien hace Cronota; no se envía nada más ni se hace sin que pulses «Enviar».
+
 ## Lo que no hacemos
 
 - No mostramos publicidad.
