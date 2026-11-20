@@ -519,6 +519,8 @@
   .tp-name { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
   .tp-new { color:var(--accent);font-weight:600; }
   .tp-empty { font-size:12px;color:var(--text2);padding:10px 8px;text-align:center; }
+  .tp-crear { border:none;background:none;padding:0;font:inherit;font-weight:700;color:var(--accent);cursor:pointer; }
+  .tp-crear:hover { text-decoration:underline; }
 
   /* Popup de exportación */
   .export-opts { display:flex;flex-direction:column;gap:2px; }
@@ -693,6 +695,7 @@
 
     <div class="entry-popup-actions">
       <button class="btn-danger" id="popupDeleteBtn" style="display:none" onclick="deletePopupEntry()">Eliminar</button>
+      <button class="btn-ghost" id="popupNuevaTareaBtn" style="display:none;white-space:nowrap" onclick="alternarNuevaTarea()">+ Nueva tarea</button>
       <div style="flex:1"></div>
       <button class="btn-ghost" onclick="closePopup()">Cancelar</button>
       <button class="btn-primary" onclick="savePopup()">Guardar</button>
@@ -1675,12 +1678,12 @@ function tpColapsarTodo() { tpSectionKeys().forEach(k => tpCollapsed.add(k)); re
 function tpExpandirTodo() { tpCollapsed.clear(); renderTaskPicker(); }
 
 // Enter en el buscador va directo al primer resultado, sin soltar el teclado. El
-// primer .tp-item de la lista es siempre "+ Nueva tarea"; con texto escrito, el
-// siguiente es el primer resultado de verdad.
+// primer .tp-item es el primer resultado (2.14.8: «+ Nueva tarea» ya no está en la lista).
 function tpElegirPrimero() {
   if (!document.getElementById('popupTaskSearch').value.trim()) return;
-  const target = document.querySelectorAll('#popupTaskList .tp-item')[1];
+  const target = document.querySelectorAll('#popupTaskList .tp-item')[0];
   if (target) target.click();
+  else alternarNuevaTarea(true);   // 2.14.8: sin resultados, Enter crea una tarea con ese nombre
 }
 
 function renderDayEntries(col, date) {
@@ -2333,6 +2336,8 @@ function openCreatePopup(date, startHour, endHour) {
   document.getElementById('popupSubRow').style.display = 'none';
   document.getElementById('popupTaskPicker').style.display = '';
   document.getElementById('popupTaskSearch').value = '';
+  document.getElementById('popupNewTaskName').value = '';
+  popupTareaAntesDeNueva = null;
   // Preseleccionada, la que se ha usado más recientemente: es la que casi siempre toca
   // repetir, y ahora coincide con la que sale primero en la lista.
   // Las del Archivador tampoco: no salen en la lista, así que no pueden venir marcadas.
@@ -2385,7 +2390,7 @@ function renderTaskPicker() {
     list.appendChild(el);
   };
 
-  addItem('+ Nueva tarea', '__new__', null);
+  // 2.14.8: «+ Nueva tarea» ya no va en la lista: es un botón abajo a la izquierda.
 
   // Las tareas borradas no se pueden elegir para una entrada nueva (siguen en el
   // calendario como registro, pero ya no son "tareas" activas de verdad). Las que
@@ -2426,7 +2431,15 @@ function renderTaskPicker() {
 
   if (!anyShown) {
     const empty = document.createElement('div');
-    empty.className = 'tp-empty'; empty.textContent = 'Sin resultados. Puedes crear una tarea nueva arriba.';
+    empty.className = 'tp-empty';
+    const qTxt = document.getElementById('popupTaskSearch').value.trim();
+    if (qTxt) {
+      empty.textContent = 'Sin resultados. ';
+      const crear = document.createElement('button');
+      crear.type = 'button'; crear.className = 'tp-crear'; crear.textContent = `Crear «${qTxt}»`;
+      crear.onclick = () => alternarNuevaTarea(true);
+      empty.appendChild(crear);
+    } else empty.textContent = 'No hay tareas todavía. Crea una con «+ Nueva tarea».';
     list.appendChild(empty);
   }
   onPopupTaskChange();
@@ -2491,6 +2504,7 @@ function openEditPopup(task, entryIndex, entry, ancla) {
   document.getElementById('entryPopup').classList.remove('wide');
   document.getElementById('popupTaskPicker').style.display = 'none';
   document.getElementById('popupNewTaskFields').style.display = 'none';
+  document.getElementById('popupNuevaTareaBtn').style.display = 'none';
 
   const s = new Date(entry.start);
   document.getElementById('popupStart').value = `${pad2(s.getHours())}:${pad2(s.getMinutes())}`;
@@ -2791,9 +2805,37 @@ function renderPopupQuickActions(task, entryIndex, entry) {
   }
 }
 
+// 2.14.8: «+ Nueva tarea» (abajo a la izquierda) cambia la ventana a crear tarea: fuera la lista,
+// y el nombre ya viene con lo que se hubiera escrito en el buscador. El mismo botón vuelve.
+let popupTareaAntesDeNueva = null;
+function alternarNuevaTarea(forzarNueva) {
+  if (popupMode !== 'create') return;
+  const yaNueva = popupSelectedTaskId === '__new__';
+  if (forzarNueva === true || !yaNueva) {
+    if (!yaNueva) popupTareaAntesDeNueva = popupSelectedTaskId;
+    popupSelectedTaskId = '__new__';
+    const nombre = document.getElementById('popupNewTaskName');
+    const q = document.getElementById('popupTaskSearch').value.trim();
+    if (q) nombre.value = q;
+    onPopupTaskChange();
+    updatePopupTaskMemo(null);
+    setTimeout(() => { nombre.focus(); nombre.select(); }, 0);
+  } else {
+    popupSelectedTaskId = popupTareaAntesDeNueva && (currentState.tasks || []).some(t => t.id === popupTareaAntesDeNueva) ? popupTareaAntesDeNueva : null;
+    renderTaskPicker();
+    updatePopupTaskMemo((currentState.tasks || []).find(t => t.id === popupSelectedTaskId));
+    setTimeout(() => document.getElementById('popupTaskSearch').focus(), 0);
+  }
+}
+
 function onPopupTaskChange() {
+  if (popupMode !== 'create') return;
   const isNew = popupSelectedTaskId === '__new__';
   document.getElementById('popupNewTaskFields').style.display = isNew ? 'flex' : 'none';
+  document.getElementById('popupTaskPicker').style.display = isNew ? 'none' : '';
+  const btnNueva = document.getElementById('popupNuevaTareaBtn');
+  btnNueva.style.display = '';
+  btnNueva.textContent = isNew ? '← Elegir una tarea' : '+ Nueva tarea';
   const manualColors = currentState.settings && currentState.settings.colorMode === 'manual';
   document.getElementById('popupColorSection').style.display = manualColors ? '' : 'none';
   // El borrador de la rejilla y el punto de la cabecera toman el color de la tarea elegida.
