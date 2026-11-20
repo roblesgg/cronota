@@ -65,8 +65,11 @@
   /* Transición entre maneras: las notas se deslizan a su sitio nuevo, una tras otra. */
   .lienzo.animando .nota { transition:left .65s cubic-bezier(.34,1.25,.64,1), top .65s cubic-bezier(.34,1.25,.64,1), width .5s cubic-bezier(.22,1,.36,1), height .5s cubic-bezier(.22,1,.36,1), opacity .3s, filter .3s; }
   .lienzo.ordenado .nota { cursor:grab; }
-  .lienzo.m-cuadricula .nota { height:168px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 78%, transparent);mask-image:linear-gradient(#000 78%, transparent); }
-  .lienzo.m-cuadricula .nota:hover { -webkit-mask-image:none;mask-image:none;overflow:auto; }
+  /* Cuadrícula: todas del mismo alto. Se recorta solo el contenido (con fundido), no la nota: así
+     los botones de arriba, que asoman por fuera, se siguen viendo. */
+  .lienzo.m-cuadricula .nota { height:168px;display:flex;flex-direction:column; }
+  .lienzo.m-cuadricula .nota > .nota-texto, .lienzo.m-cuadricula .nota > .archivo-prev { flex:1 1 auto;min-height:0;overflow:hidden;-webkit-mask-image:linear-gradient(#000 70%, transparent);mask-image:linear-gradient(#000 70%, transparent); }
+  .lienzo.m-cuadricula .nota > .nota-meta { flex-shrink:0; }
   .grupo-cab { position:absolute;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);white-space:nowrap;animation:notaCae .5s cubic-bezier(.34,1.56,.64,1) both;pointer-events:none; }
   .grupo-cab i { width:8px;height:8px;border-radius:50%;background:var(--c, var(--text3)); }
   .grupo-cab span { color:var(--text3);font-weight:600; }
@@ -385,7 +388,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="vidrio" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%271.6%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%277%27 y=%277%27 width=%2786%27 height=%2786%27 rx=%279.799999999999999%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
-    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.3" xChannelSelector="R" yChannelSelector="B"/>
+    <feDisplacementMap in="SourceGraphic" in2="mapa" scale="0.06" xChannelSelector="R" yChannelSelector="B"/>
   </filter>
   <filter id="vidrio-boton" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
     <feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27 y1=%270%27 y2=%270%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23f00%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27b%27 x1=%270%27 x2=%270%27 y1=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23000%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300f%27/%3E%3C/linearGradient%3E%3Cfilter id=%27f%27%3E%3CfeGaussianBlur stdDeviation=%278%27/%3E%3C/filter%3E%3C/defs%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27100%27 height=%27100%27 fill=%27url(%23b)%27 style=%27mix-blend-mode:screen%27/%3E%3Crect x=%2724%27 y=%2724%27 width=%2752%27 height=%2752%27 rx=%2724%27 fill=%27%23808080%27 filter=%27url(%23f)%27/%3E%3C/svg%3E" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapa"/>
