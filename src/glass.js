@@ -53,7 +53,9 @@ uniform float u_shapeWidth;
 uniform float u_shapeHeight;
 uniform float u_shapeRadius;
 uniform float u_shapeRoundness;
-uniform int u_showShape1;`;
+uniform int u_showShape1;
+uniform float u_ondas;     // 2.16: ondulaciones en todo el fondo (px; 0 = sin ellas)
+uniform float u_tiempo;`;
 
   const SDF = `
 float sdCircle(vec2 p, float r) { return length(p) - r; }
@@ -213,7 +215,14 @@ void main() {
   float merged = mainSDF(p1, p2, gl_FragCoord.xy);
   vec4 outColor = vec4(0.0);
   vec3 tint = u_tint.rgb;
-  if (merged < 0.005) {
+  // Ondulaciones: el fondo se desplaza con unas ondas suaves que se mueven despacio (como agua),
+  // en toda la forma y no solo en el canto. Se suman a la refracción de los bordes.
+  vec2 q = gl_FragCoord.xy / u_dpr;
+  vec2 onda = u_ondas > 0.0
+    ? vec2(sin(q.y * 0.16 + u_tiempo * 1.7 + sin(q.x * 0.045 + u_tiempo * 0.8) * 2.2),
+           cos(q.x * 0.085 - u_tiempo * 1.3 + sin(q.y * 0.12 + u_tiempo) * 1.5)) * u_ondas / u_resolution1x
+    : vec2(0.0);
+  if (merged < 0.005 + 1.0 / u_resolution.y) {   // hasta donde llega el suavizado del canto
     float nmerged = -1.0 * (merged * u_resolution1x.y);
     float x_R_ratio = 1.0 - nmerged / u_refThickness;
     float thetaI = safeAsin(pow(x_R_ratio, 2.0));
@@ -221,12 +230,12 @@ void main() {
     float edgeFactor = -1.0 * tan(thetaT - thetaI);
     if (nmerged >= u_refThickness) { edgeFactor = 0.0; }
     if (edgeFactor <= 0.0) {
-      outColor = texture(u_blurredBg, mapUV(v_uv));
+      outColor = texture(u_blurredBg, mapUV(v_uv + onda));
       outColor = mix(outColor, vec4(tint, 1.0), u_tint.a * 0.8);
     } else {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       vec2 offset = -normal * edgeFactor * u_refDistance * u_dpr * vec2(u_resolution.y / (u_resolution1x.x * u_dpr), 1.0);
-      vec4 blurredPixel = texture(u_blurredBg, mapUV(v_uv + offset));
+      vec4 blurredPixel = texture(u_blurredBg, mapUV(v_uv + offset + onda));
       outColor = mix(blurredPixel, vec4(tint, 1.0), u_tint.a * 0.8);
       float fresnelFactor = clamp(pow(1.0 + merged * u_resolution1x.y / 1500.0 * pow(500.0 / u_refFresnelRange, 2.0) + u_refFresnelHardness, 5.0), 0.0, 1.0);
       vec3 fresnelTintLCH = SRGB_TO_LCH_(mix(vec3(1.0), tint, u_tint.a * 0.5));
@@ -254,7 +263,10 @@ void main() {
   // Se apaga del todo antes del borde del lienzo: si no, quedaba un rectángulo marcado.
   float apagado = clamp(1.0 - dSombra / u_shadowMax, 0.0, 1.0);
   float shadow = exp(-1.0 / u_shadowExpand * dSombra) * 0.6 * u_shadowFactor * apagado * apagado;
-  float inside = 1.0 - smoothstep(-0.001, 0.001, merged);
+  // 2.16: el canto suavizado en un píxel de verdad (antes 0,001 de la altura: menos de un píxel,
+  // y las curvas se veían en dientes de sierra).
+  float aa = 0.9 / u_resolution.y;
+  float inside = 1.0 - smoothstep(-aa, aa, merged);
   vec4 sombra = vec4(0.0, 0.0, 0.0, ms > 0.0 ? shadow : 0.6 * u_shadowFactor);
   vec4 c = mix(sombra, vec4(outColor.rgb, 1.0), inside);
   // Alfa PREMULTIPLICADO (el lienzo se crea así, que es lo que espera el compositor): con alfa
@@ -712,6 +724,8 @@ void main() {
       this._u(p, 'u_shadowOffset', [CFG.shadow.x, -CFG.shadow.y]);
       this._u(p, 'u_shadowMax', Math.max(8, this.margen - Math.abs(CFG.shadow.y) - 4));
       this._u(p, 'u_opacity', this.opacity);
+      this._u(p, 'u_ondas', this.opts.ondas || 0);
+      this._u(p, 'u_tiempo', this.opts.ondasQuietas ? 0 : (performance.now() / 1000) % 10000);   // quietas: el dibujo de las ondas no se mueve
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 

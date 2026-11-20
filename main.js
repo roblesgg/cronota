@@ -246,6 +246,12 @@ const NOVEDADES_2_9 = {
 };
 
 const WHATS_NEW = {
+  '2.17.0': { title: 'Novedades de Cronota 2.17', steps: [
+    { icon:'bell', title:'Avisos nuevos',
+      text:'Los recordatorios bajan desde el borde de arriba de la pantalla, de cristal: Hecha con un clic, la rueda del ratón elige cuánto posponer y un clic abre la nota. En Ajustes → Avisos eliges en qué pantalla salen todos los avisos.' },
+    { icon:'pencil', title:'Notas más cómodas',
+      text:'Escribir una nota es ahora un editor grande. Las notas largas se pliegan con «Ver más», las hechas se ven aparte sin taparse, «Ordenar» coloca las notas del modo en que estés y Notas recuerda su propio tamaño.' },
+  ] },
   '2.16.0': { title: 'Novedades de Cronota 2.16', steps: [
     { icon:'spark', title:'Notas, a la vista',
       text:'Una pestaña nueva, Notas: tus notas sueltas en un mapa, o en cuadrícula, filas, por sección, urgencia o fecha. Clic derecho para todo: urgencia, recordatorio, vencimiento, sección, color… Y se escriben con Markdown.' },
@@ -458,6 +464,7 @@ let settings = {
   lastSeenVersion: null,    // última versión cuyas novedades ya se han visto
   lastSeenWhatsNew: null,   // y de qué hablaban, para no repetir el mismo recorrido
   dockCalendarWidth: 1180, // el calendario se abre bastante más ancho (y se puede estirar)
+  dockNotasWidth: 1000,    // 2.16: Notas también tiene su propio ancho (una pizarra necesita sitio)
   lastView: 'panel',    // última vista abierta: la app vuelve a abrirse por donde la dejaste
   archiveDays: 30,      // días sin usar una tarea antes de que pase al Archivador (0 = nunca)
   uiVersion: 0,         // versión de la interfaz ya estrenada (ver UI_VERSION)
@@ -1364,19 +1371,13 @@ function notifyLeaveTime(task, parada, corte) {
   const nombre = task ? task.name : 'una tarea';
   const llevas = task ? fmtDuration(todaySecondsForTask(task)) : '';
   const hora = corte ? `${String(new Date(corte).getHours()).padStart(2, '0')}:${String(new Date(corte).getMinutes()).padStart(2, '0')}` : '';
-  try {
-    if (!Notification.isSupported()) return;
-    const n = new Notification({
-      title: 'Cronota · hora de salida',
-      body: parada
-        ? `He parado "${nombre}"${hora ? ` a las ${hora}` : ''}. Hasta mañana.`
-        : `Sigues con "${nombre}"${llevas ? ` (${llevas} hoy)` : ''}. ¿La paras antes de irte?`,
-      icon: APP_ICON_PATH,
-      silent: false,
-    });
-    n.on('click', () => openMain());   // el panel, con el play/pausa a mano
-    n.show();
-  } catch {}
+  avisar({
+    que: 'Hora de salida', icono: 'salida', duracion: parada ? 15000 : 60000,
+    titulo: parada ? `He parado «${nombre}»${hora ? ` a las ${hora}` : ''}` : `Sigues con «${nombre}»`,
+    sub: parada ? 'Hasta mañana' : `${llevas ? llevas + ' hoy · ' : ''}¿La paras antes de irte?`,
+    clic: 'abrir', acciones: [],
+    al: { abrir: () => openMain() },   // el panel, con el play/pausa a mano
+  });
 }
 
 function fmtDuration(secs) {
@@ -1540,7 +1541,7 @@ const EYE_RATIO = 0.78;   // alto respecto al ancho de la burbuja
 // del redondeo, así que no hace falta reservarle hueco (y el tamaño de Ajustes vuelve
 // a ser el de lo que se ve).
 function eyeCareBounds() {
-  const work = dockDisplay().workArea;
+  const work = pantallaAvisos().workArea;
   const w = Math.max(80, Math.min(420, Number(settings.eyeCareSize) || 150));
   const h = Math.round(w * EYE_RATIO);
   const m = 18;   // separación del borde
@@ -1790,13 +1791,11 @@ function widgetEscala() { return Math.max(80, Math.min(150, Number(settings.widg
 // cambia en vivo solo con CSS, sin redimensionar una ventana transparente (parpadea).
 function widgetVentana() { return { w: Math.round(330 * 1.5) + 44 + 20, h: Math.round(200 * 1.5) + 44 + 20 }; }
 function createWidgetWindow() {
-  const work = getReferenceDisplay().workArea;
-  // Si el usuario lo movió, vuelve donde lo dejó, siempre que siga dentro de alguna pantalla.
+  // 2.16: en la pantalla de los avisos (Ajustes → Avisos). Si lo moviste dentro de esa pantalla,
+  // vuelve donde lo dejaste; si no, a su esquina de abajo a la derecha.
+  const work = pantallaAvisos().workArea;
   const wb = widgetBounds;
-  const ok = !!wb && screen.getAllDisplays().some(d => {
-    const a = d.workArea;
-    return wb.x >= a.x && wb.y >= a.y && wb.x < a.x + a.width && wb.y < a.y + a.height;
-  });
+  const ok = !!wb && wb.x >= work.x && wb.y >= work.y && wb.x < work.x + work.width && wb.y < work.y + work.height;
   const { w: W, h: H } = widgetVentana();
   const w = widgetWin = new BrowserWindow({
     width: W, height: H,
@@ -1807,6 +1806,8 @@ function createWidgetWindow() {
     icon: WINDOW_ICON_PATH,
     webPreferences: { nodeIntegration: true, contextIsolation: false },
   });
+  // 2.16: por encima de todo (también de la barra y los paneles de Cronota, que van en un nivel más alto).
+  try { w.setAlwaysOnTop(true, 'screen-saver'); } catch {}
   w.loadFile(path.join(__dirname, 'src', 'widget.html'), { search: 'k=' + widgetEscala() });
   try { w.setIgnoreMouseEvents(true, { forward: true }); } catch {}
   // showInactive: aparece encima pero SIN robar el foco, para no sacarte de lo que
@@ -1887,6 +1888,7 @@ function dockConfig() {
     panelWidth: Math.max(320, Math.min(1600, Number(settings.dockPanelWidth) || 460)),
     panelHeight: Math.max(260, Math.min(1400, Number(settings.dockPanelHeight) || 620)),
     calendarWidth: Math.max(760, Math.min(1900, Number(settings.dockCalendarWidth) || 1180)),
+    notasWidth: Math.max(420, Math.min(1900, Number(settings.dockNotasWidth) || 1000)),
     closeMode: ['button','clickOutside','mouseLeave'].includes(settings.dockCloseMode) ? settings.dockCloseMode : 'button',
     closeSeconds: Math.max(0, Math.min(30, Number(settings.dockCloseSeconds) ?? 3)),
   };
@@ -1903,7 +1905,7 @@ function computeDockBounds() {
 // calendario es más ancho) o el alto con la barra arriba/abajo.
 function tamPanelVista(view) {
   const c = dockConfig();
-  if (c.anchor === 'left' || c.anchor === 'right') return view === 'calendar' ? c.calendarWidth : c.panelWidth;
+  if (c.anchor === 'left' || c.anchor === 'right') return view === 'calendar' ? c.calendarWidth : view === 'notas' ? c.notasWidth : c.panelWidth;
   return c.panelHeight;
 }
 // Rectángulo en pantalla de una tarjeta de ese tamaño, pegada a su borde.
@@ -2514,7 +2516,7 @@ function openGroups() {
 function openNotas() {
   if (settings.dockMode) { dockNavigate('notas'); return; }
   if (notasWin && !notasWin.isDestroyed()) { notasWin.show(); notasWin.focus(); sendStateToWindow(notasWin); return; }
-  notasWin = makeWindow('notas.html', 460, 680, { minWidth: 360, minHeight: 420, maxWidth: 1400, maxHeight: 1200 });
+  notasWin = makeWindow('notas.html', 980, 760, { minWidth: 360, minHeight: 420, maxWidth: 2400, maxHeight: 1600 });
   notasWin.once('ready-to-show', () => { notasWin.show(); sendStateToWindow(notasWin); });
   notasWin.on('closed', () => { notasWin = null; });
 }
@@ -2555,6 +2557,7 @@ function limpiarNota(n, base) {
   if (n.hecha !== undefined) { r.hecha = !!n.hecha; r.hechaEn = r.hecha ? (r.hechaEn || Date.now()) : null; }
   if (n.vence !== undefined) r.vence = Number(n.vence) || null;   // vencimiento: un día (su medianoche)
   if (n.fijada !== undefined) r.fijada = !!n.fijada;              // fijada: siempre encima de las demás
+  if (n.desplegada !== undefined) r.desplegada = !!n.desplegada;  // las largas se ven plegadas salvo que se desplieguen
   if (n.archivo !== undefined) r.archivo = usandoCaja ? null : archivoLimpio(n.archivo);   // en la caja no hay archivos (no van cifrados)
   if (n.adjuntos !== undefined) r.adjuntos = usandoCaja || !Array.isArray(n.adjuntos) ? [] : n.adjuntos.map(archivoLimpio).filter(Boolean).slice(0, 30);   // los demás archivos
   if (n.celda !== undefined) r.celda = n.celda && Number.isFinite(Number(n.celda.c)) && Number.isFinite(Number(n.celda.f)) ? { c: Math.max(0, Math.min(500, Math.round(n.celda.c))), f: Math.max(0, Math.min(2000, Math.round(n.celda.f))) } : null;   // cuadrícula libre
@@ -2799,14 +2802,82 @@ function vigilarRecordatoriosNotas() {
   if (!toca.length || silenciado()) return;
   toca.forEach(n => {
     n.avisada = true;
-    try {
-      const aviso = new Notification({ title: 'Cronota · recordatorio', body: n.texto.split('\n')[0].slice(0, 200) });
-      aviso.on('click', () => openNotas());
-      aviso.show();
-    } catch {}
+    const sec = (state.groups || []).find(g => g.id === n.seccion);
+    const pal = sec && todasLasPaletas()[sec.palette];
+    avisar({ id: n.id, texto: n.texto, archivo: n.archivo ? n.archivo.nombre : null, cuando: n.recordatorio, color: n.color || (pal && pal.colors && pal.colors[0]) || null,
+      duracion: Math.max(5, Math.min(300, Number(settings.avisoNotasSegundos) || 30)) * 1000,   // Ajustes → Avisos
+      clic: 'abrir',   // un clic en el aviso abre la nota
+      acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min', titulo: 'Recuérdamelo dentro de 10 minutos' }],
+      al: {
+        hecha: () => { if (!notas().some(x => x.id === n.id)) return; fotoAntesDe('nota-editar'); editarNota({ id: n.id, hecha: true }); },
+        posponer: (p) => editarNota({ id: n.id, recordatorio: Date.now() + Math.max(1, Math.min(525600, Number(p && p.minutos) || 10)) * 60000 }),   // lo elegido con la rueda
+        abrir: () => { openNotas(); setTimeout(() => { [notasWin, dockPanelWin].forEach(w => { try { if (w && !w.isDestroyed()) sendToAllFrames(w, 'abrir-nota', n.id); } catch {} }); }, 700); },
+      } });
   });
   saveData(); broadcastState();
 }
+
+// ── Aviso de los recordatorios (2.16) ─────────────────────────────────────────────
+// Una isla de cristal líquido pegada al borde de arriba, en el centro de la pantalla (src/aviso.html),
+// en vez de la notificación de Windows. Si saltan varios a la vez van en cola, de uno en uno. No
+// coge el foco (no te saca de lo que haces) y está por encima de todo, como la burbuja de la vista.
+let avisoWin = null;
+const colaAvisos = [];
+// La ventana es más ancha que el aviso (70 px por lado) para la franja ancha con la que entra y sale.
+const AVISO_W = 460 + 140, AVISO_H = 64, AVISO_ARRIBA = 0;   // pegada al borde de arriba (no asoma en otra pantalla de encima)
+// En qué pantalla salen los avisos (Ajustes → General): la de la barra (por defecto), la que tiene
+// el ratón, la principal o una concreta. Vale para todos: recordatorios, descanso de la vista y demás.
+function pantallaAvisos(elegida) {
+  const v = elegida || settings.avisosPantalla;
+  const displays = screen.getAllDisplays();
+  if (v === 'raton') return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  if (v === 'principal') return screen.getPrimaryDisplay();
+  if (v && v !== 'barra') { const d = displays.find(x => String(x.id) === String(v)); if (d) return d; }
+  return dockDisplay();
+}
+function avisoBounds(elegida) {
+  const work = pantallaAvisos(elegida).workArea;
+  return { x: work.x + Math.round((work.width - AVISO_W) / 2), y: work.y - AVISO_ARRIBA, width: AVISO_W, height: AVISO_H };
+}
+function crearAvisoWin() {
+  if (avisoWin && !avisoWin.isDestroyed()) return avisoWin;
+  avisoWin = new BrowserWindow({
+    ...avisoBounds(),
+    frame: false, transparent: true, hasShadow: false, backgroundColor: '#00000000', resizable: false, roundedCorners: false,
+    skipTaskbar: true, alwaysOnTop: true, focusable: false, show: false, movable: false,
+    webPreferences: { nodeIntegration: true, contextIsolation: false },
+  });
+  try { avisoWin.setAlwaysOnTop(true, 'screen-saver'); } catch {}
+  avisoWin.loadFile(path.join(__dirname, 'src', 'aviso.html'));
+  avisoWin.on('closed', () => { avisoWin = null; });
+  return avisoWin;
+}
+// a = { titulo, sub (o texto, el de una nota), que, icono, color, duracion, acciones: [{ a, label, … }],
+//       al: { accion: función } }. Las funciones se quedan aquí; a la ventana va solo lo que se pinta.
+function avisar(a) {
+  colaAvisos.push(a);
+  if (colaAvisos.length === 1) mostrarSiguienteAviso();
+}
+// Para los sitios que antes usaban la notificación de Windows.
+function avisoSimple(titulo, sub, extra) { avisar({ que: 'Cronota', titulo, sub, icono: 'campana', duracion: 12000, acciones: [], ...(extra || {}) }); }
+function mostrarSiguienteAviso() {
+  const a = colaAvisos[0];
+  if (!a) { try { if (avisoWin && !avisoWin.isDestroyed()) avisoWin.hide(); } catch {} return; }
+  const win = crearAvisoWin();
+  try { win.setBounds({ ...avisoBounds(a.pantalla), height: a.titulo && a.sub ? 82 : AVISO_H }); } catch {}   // con una segunda línea, un poco más alto
+  const lanzar = () => {
+    if (!win || win.isDestroyed()) return;
+    const { al, pantalla, ...visible } = a;
+    try { win.showInactive(); win.webContents.send('aviso-mostrar', visible, colaAvisos.length - 1); } catch {}
+  };
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', lanzar); else lanzar();
+}
+ipcMain.on('aviso-accion', (_e, p) => {
+  const a = colaAvisos.shift();
+  const fn = a && a.al && p && a.al[p.accion];
+  if (fn) { try { fn(p); } catch {} }
+  setTimeout(mostrarSiguienteAviso, colaAvisos.length ? 250 : 0);
+});
 
 // Caja fuerte: notas cifradas con AES-256-GCM. La clave sale del PIN o la contraseña con scrypt y
 // solo vive en memoria mientras está abierta; en el disco (y en la nube y las copias) solo va el
@@ -3628,6 +3699,7 @@ ipcMain.on('action', (event, { type, payload }) => {
         const lim = (a, b) => Math.max(a, Math.min(b, size));
         if (!vertical) settings.dockPanelHeight = lim(260, 1400);
         else if ((payload && payload.view) === 'calendar') settings.dockCalendarWidth = lim(760, 1900);
+        else if ((payload && payload.view) === 'notas') settings.dockNotasWidth = lim(420, 1900);
         else settings.dockPanelWidth = lim(320, 1600);
         saveSettingsSoon();
         sendDockConfig();   // la barrita necesita el tamaño para colocar su botón
@@ -3738,6 +3810,11 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'close-settings':
       if (settings.dockMode) dockNavigate('panel');
       else if (settingsWin && !settingsWin.isDestroyed()) settingsWin.hide();
+      break;
+    case 'aviso-probar':   // 2.16: «Ver cómo queda» de los recordatorios de notas (Ajustes → Avisos)
+      avisar({ que: 'Recordatorio', texto: 'Así se ven los recordatorios de tus notas', cuando: Date.now(), color: '#ffb383',
+        duracion: Math.max(5, Math.min(300, Number((payload && payload.segundos) || settings.avisoNotasSegundos) || 30)) * 1000,
+        acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min' }] });
       break;
     case 'close-notas':   // 2.16
       if (settings.dockMode) dockNavigate('panel');
@@ -4132,9 +4209,8 @@ async function buscarVersionNueva() {
     [settingsWin, dockPanelWin].forEach(w => sendToAllFrames(w, 'version-nueva', v));
     if (yaAvisada) return;
     settings.versionNuevaAvisada = v; saveSettings();
-    const n = new Notification({ title: `Cronota ${v} está lista`, body: 'Pulsa aquí para cerrar Cronota y actualizarla en la Store. Si tienes una tarea en marcha, sigue contando al volver a abrirla.' });
-    n.on('click', () => cerrarYActualizar());
-    n.show();
+    avisar({ que: 'Actualización', icono: 'flecha', duracion: 60000, titulo: `Cronota ${v} está lista`, sub: 'Se cierra, se actualiza en la Store y tu tarea sigue contando',
+      acciones: [{ a: 'actualizar', label: 'Cerrar y actualizar', clase: 'hecha' }], al: { actualizar: () => cerrarYActualizar() } });
   } catch {}
 }
 function cerrarYActualizar() {
@@ -4233,7 +4309,7 @@ function arrancarNube() {
         bajar: (dir) => { if (copias.copiarArchivosNotas(dir, carpetaArchivosNotas(), copias.ficherosEnNotas(state))) broadcastState(); },
       },
       aplicarAjustes: aplicarAjustesDeOtroPC,
-      avisar: (title, body) => { try { new Notification({ title, body }).show(); } catch {} },
+      avisar: (title, body) => avisoSimple(title, body, { que: 'Sincronizar', icono: 'nube' }),
       alCambiarEstado: avisarNube,
     });
     firmaAjustesNube = JSON.stringify(ajustesQueViajan());   // 2.14.1: punto de partida
@@ -4444,7 +4520,7 @@ function alDespertar() {
   state.activeTaskId = null; state.activeSubId = null;
   saveData(); broadcastState(); resetReminderTimer();
   const hora = new Date(desde).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  try { new Notification({ title: 'Cronota paró una tarea', body: `El equipo se suspendió con «${task.name}» en marcha. La he parado a las ${hora}. Si seguías trabajando, Ctrl+Z en el calendario lo deshace.` }).show(); } catch {}
+  avisoSimple('Cronota paró una tarea', `El equipo se suspendió con «${task.name}» en marcha. La he parado a las ${hora}. Si seguías trabajando, Ctrl+Z en el calendario lo deshace.`, { icono: 'pausa', duracion: 30000 });
 }
 
 function latir() { settings.ultimoLatido = Date.now(); saveSettings(); }
@@ -4468,10 +4544,7 @@ function repararCierreDeGolpe() {
   const hora = new Date(latido).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   setTimeout(() => {
     try {
-      new Notification({
-        title: 'Cronota paró una tarea',
-        body: `Cronota se cerró de golpe con «${task.name}» en marcha. La he parado a las ${hora}, la última vez que estaba abierta.`,
-      }).show();
+      avisoSimple('Cronota paró una tarea', `Se cerró de golpe con «${task.name}» en marcha: la he parado a las ${hora}`, { icono: 'pausa', duracion: 30000 });
     } catch {}
   }, 4000);
 }

@@ -537,6 +537,30 @@
     <div class="section-label">Avisos</div>
     <div class="card">
       <div class="row">
+        <span class="ico" data-ico="pantalla" style="--ic:#ff9f5a"></span>
+        <div class="row-text">
+          <span class="row-title">Pantalla de los avisos</span>
+          <span class="row-desc">Dónde salen todos los avisos de Cronota: recordatorios, descanso visual, hora de salida…</span>
+        </div>
+      </div>
+      <div class="row-sub open">
+        <div class="campo"><select id="avisosPantalla"></select></div>
+      </div>
+      <div class="row">
+        <span class="ico" data-ico="campana" style="--ic:#f472b6"></span>
+        <div class="row-text">
+          <span class="row-title">Recordatorios de notas</span>
+          <span class="row-desc">Bajan desde el borde de arriba: Hecha, 10 min o clic para abrir la nota</span>
+        </div>
+      </div>
+      <div class="row-sub open">
+        <div class="campo">
+          <div class="campo-top"><span class="sub-label">Se quitan solos tras</span><span class="valor" id="avisoNotasSegundosLabel">30 s</span></div>
+          <input type="range" id="avisoNotasSegundos" min="5" max="120" step="5" value="30">
+        </div>
+        <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'aviso-probar', payload:{ segundos: Number(document.getElementById('avisoNotasSegundos').value) } })" style="align-self:flex-start;padding:8px 14px">Ver cómo queda</button>
+      </div>
+      <div class="row">
         <span class="ico" data-ico="campana" style="--ic:#5e5ce6"></span>
         <div class="row-text">
           <span class="row-title">Sin avisos en llamadas</span>
@@ -1380,7 +1404,21 @@ function populateDisplays(selectedId) {
   pendingDisplayId = selectedId;
   ipcRenderer.send('action', { type:'get-displays' });   // responde por 'displays'
 }
+// Las opciones de «Pantalla de los avisos»: las de siempre y luego cada pantalla conectada.
+let avisosPantallaGuardada = 'barra';
+document.getElementById('avisoNotasSegundos').addEventListener('input', (e) => { document.getElementById('avisoNotasSegundosLabel').textContent = e.target.value + ' s'; });
+document.getElementById('avisoNotasSegundos').addEventListener('change', (e) => ipcRenderer.send('action', { type:'save-settings', payload:{ avisoNotasSegundos: Number(e.target.value) } }));
+document.getElementById('avisosPantalla').addEventListener('change', (e) => { avisosPantallaGuardada = e.target.value; ipcRenderer.send('action', { type:'save-settings', payload:{ avisosPantalla: e.target.value } }); });
+function pintarPantallaAvisos(list) {
+  const sel = document.getElementById('avisosPantalla');
+  sel.innerHTML = '';
+  [['barra', 'La de la barra'], ['raton', 'Donde esté el ratón'], ['principal', 'La principal']].concat((list || []).map(d => [String(d.id), `Pantalla ${d.index}${d.primary ? ' (principal)' : ''} · ${d.width}×${d.height}`]))
+    .forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+  if (![...sel.options].some(o => o.value === String(avisosPantallaGuardada))) { const o = document.createElement('option'); o.value = String(avisosPantallaGuardada); o.textContent = 'Pantalla elegida (ahora desconectada)'; sel.appendChild(o); }
+  sel.value = String(avisosPantallaGuardada);
+}
 ipcRenderer.on('displays', (_, list) => {
+  pintarPantallaAvisos(list);
   const sel = document.getElementById('dockDisplay');
   sel.innerHTML = '';
   (list || []).forEach(d => {
@@ -1415,6 +1453,7 @@ const ICONOS = {
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   salida: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
   ojo: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  pantalla: '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M9 7.5h6"/>',
   calendario: '<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/>',
   enlace: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
   archivo: '<rect x="2" y="3" width="20" height="5" rx="1.5"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
@@ -1644,6 +1683,10 @@ ipcRenderer.on('settings', (_, s) => {
   document.getElementById('eyeCareSoloOjos').checked = !!s.eyeCareSoloOjos;
   document.getElementById('dockBarGlass').checked = s.dockBarGlass !== false;
   eyeCarePos = s.eyeCarePos || 'top';
+  avisosPantallaGuardada = s.avisosPantalla || 'barra';
+  document.getElementById('avisoNotasSegundos').value = s.avisoNotasSegundos || 30;
+  document.getElementById('avisoNotasSegundosLabel').textContent = (s.avisoNotasSegundos || 30) + ' s';
+  document.getElementById('avisosPantalla').value = avisosPantallaGuardada;
   document.querySelectorAll('#eyeCarePosSeg button').forEach(b => b.classList.toggle('active', b.dataset.pos === eyeCarePos));
   updateEyeCareVisibility();
 
@@ -1709,6 +1752,8 @@ function save() {
   const archiveDaysVal = parseInt(document.getElementById('archiveDays').value);
   const sel = document.getElementById('dockDisplay').value;
   ipcRenderer.send('action', { type:'save-settings', payload:{
+    avisosPantalla: document.getElementById('avisosPantalla').value || 'barra',   // 2.16
+    avisoNotasSegundos: Number(document.getElementById('avisoNotasSegundos').value) || 30,
     reminderMinutes: Math.max(1, Math.min(120, mins)),
     archiveDays: Math.max(0, Math.min(365, isNaN(archiveDaysVal) ? 30 : archiveDaysVal)),
     widgetAutoHide: document.getElementById('widgetAutoHide').checked,

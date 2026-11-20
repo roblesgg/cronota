@@ -213,11 +213,11 @@ const frames = {};   // vista → su iframe (se crean una vez y no se recargan)
 // colocar el botón de esconder; forma = cuánto de la ventana dejar visible, lo demás deja
 // pasar los clics). Cada vista tiene su propio ancho fijo (el calendario es más ancho): al
 // cambiar de pestaña la tarjeta destapa o tapa la vista, pero ninguna se vuelve a maquetar.
-let cfg = { anchor:'right', panelWidth:460, calendarWidth:1180, panelHeight:620 };
+let cfg = { anchor:'right', panelWidth:460, calendarWidth:1180, notasWidth:1000, panelHeight:620 };
 let tamActual = 0;   // lo que mide la tarjeta, o hacia lo que va animando
 function esVertical() { return anchor === 'left' || anchor === 'right'; }
 function tamVista(v) {
-  if (esVertical()) return Math.min(v === 'calendar' ? cfg.calendarWidth : cfg.panelWidth, window.innerWidth);
+  if (esVertical()) return Math.min(v === 'calendar' ? cfg.calendarWidth : v === 'notas' ? (cfg.notasWidth || 1000) : cfg.panelWidth, window.innerWidth);
   return Math.min(cfg.panelHeight, window.innerHeight);
 }
 function limitesVista(v) {
@@ -259,7 +259,7 @@ let firmaCfg = '';
 ipcRenderer.on('dock-config', (_, c) => {
   // Los deslizadores de la barrita en Ajustes mandan la config muchas veces por segundo:
   // solo se recoloca la tarjeta si cambia lo que le afecta.
-  const firma = [c.anchor, c.panelWidth, c.calendarWidth, c.panelHeight].join('|');
+  const firma = [c.anchor, c.panelWidth, c.calendarWidth, c.notasWidth, c.panelHeight].join('|');
   if (firma === firmaCfg) return;
   const cambiaBorde = c.anchor !== cfg.anchor;
   firmaCfg = firma;
@@ -303,7 +303,7 @@ function extensionBorde() {
 function zonaCristal() {
   const W = window.innerWidth, H = window.innerHeight, M = 80;
   if (esVertical()) {
-    const w = Math.min(W, Math.max(cfg.panelWidth, cfg.calendarWidth) + M);
+    const w = Math.min(W, Math.max(cfg.panelWidth, cfg.calendarWidth, cfg.notasWidth || 0) + M);
     return { x: anchor === 'left' ? 0 : W - w, y: 0, w, h: H };
   }
   const h = Math.min(H, cfg.panelHeight + M);
@@ -631,7 +631,7 @@ function endResize() {
   ponerTam(size, false);
   panel.classList.remove('sin-anim-ancho');
   // Lo nuevo se apunta ya aquí (main lo guarda y lo devolverá igual en la config).
-  if (esVertical()) { if (view === 'calendar') cfg.calendarWidth = size; else cfg.panelWidth = size; }
+  if (esVertical()) { if (view === 'calendar') cfg.calendarWidth = size; else if (view === 'notas') cfg.notasWidth = size; else cfg.panelWidth = size; }
   else cfg.panelHeight = size;
   anchosVistas();
   avisarTam(size, size);

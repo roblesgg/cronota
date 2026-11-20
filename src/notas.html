@@ -176,6 +176,12 @@
   @keyframes halo { 0%,100% { opacity:.15; } 50% { opacity:.7; } }
 
   .nota-texto { font-size:13.5px;line-height:1.4;word-break:break-word; }
+  /* Notas largas plegadas: altura máxima y el final que se desvanece */
+  .nota-texto.plegada { max-height:210px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom, #000 70%, transparent);mask-image:linear-gradient(to bottom, #000 70%, transparent); }
+  .plegar { display:flex;align-items:center;gap:4px;margin:6px auto 0;padding:3px 10px 3px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);
+    color:var(--text2);font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s, color .15s; }
+  .plegar:hover { background:rgba(255,255,255,.08);color:var(--text); }
+  .plegar svg { width:12px;height:12px;transition:transform .25s; }
   /* 2.16: Markdown en las notas. */
   .md-p { white-space:pre-wrap;min-height:1.2em; }
   .md-h1 { font-size:17px;font-weight:800;margin:2px 0 4px;letter-spacing:-.01em; }
@@ -309,6 +315,23 @@
   /* Popups */
   .pop-nota { width:390px;max-height:calc(100vh - 40px);overflow-y:auto; }
   .pop-nota textarea { min-height:110px;resize:vertical; }
+  /* La ventana de la nota es sobre todo un editor: grande, con el texto ocupando casi todo; la
+     barra de formato y las propiedades, pequeñas y recogidas. */
+  .pop-nota { width:min(780px, calc(100vw - 32px)); height:min(660px, calc(100vh - 32px)); max-height:none; overflow:hidden; padding:14px 16px 14px; gap:9px; }
+  .pop-nota .entry-popup-title { font-size:13px; font-weight:700; color:var(--text2); }
+  .pop-nota .md-barra { gap:1px; }
+  .pop-nota .md-barra button { min-width:26px; height:24px; padding:0 6px; border-radius:7px; border:none; background:transparent; box-shadow:none; font-size:12px; color:var(--text2); }
+  .pop-nota .md-barra button:hover { transform:none; background:var(--bg2); color:var(--text); }
+  .pop-nota .md-barra .sep { height:14px; margin:0 4px; }
+  .pop-nota .modo-md button { height:22px; min-width:28px; }
+  .pop-nota #pnVivo, .pop-nota #pnVista { flex:1 1 auto; min-height:0; max-height:none; font-size:14.5px; line-height:1.5; padding:16px 18px; border-radius:14px; }
+  .pop-nota .props { gap:4px; }
+  .pop-nota .pildora { height:24px; padding:0 9px; gap:5px; font-size:11px; font-weight:600; background:transparent; border-color:color-mix(in srgb, var(--border) 80%, transparent); }
+  .pop-nota .pildora svg { width:11px; height:11px; }
+  .pop-nota .pildora i { width:8px; height:8px; }
+  .pop-nota .adjuntos { max-height:132px; overflow:auto; flex-shrink:0; }
+  .pop-nota .entry-popup-actions { margin-top:0; }
+  .pop-nota .entry-popup-actions button { padding:6px 14px; font-size:12px; }
   .fila { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
   .fila > label.et, .fila > span.et { font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);min-width:80px; }
   .seg { display:flex;background:var(--bg2);border-radius:999px;padding:3px;gap:2px; }
@@ -338,6 +361,14 @@
   .paso button:hover { background:var(--bg3); }
   .paso input { width:44px !important;text-align:center;padding:4px !important;background:transparent !important;border:none !important;font-weight:750;font-size:14px !important; }
   .dentro .que { font-size:11.5px;color:var(--text2);width:100%; }
+  /* Las unidades ocupan todo el ancho y se reparten el sitio: nunca se salen del recuadro. */
+  .dentro .seg { width:100%;min-width:0; }
+  .dentro .seg button { flex:1 1 0;min-width:0;justify-content:center;padding:6px 4px;overflow:hidden;text-overflow:ellipsis; }
+  /* El número: sin las flechas de Windows (ya están − y +) ni el recuadro del foco. */
+  .paso input::-webkit-inner-spin-button, .paso input::-webkit-outer-spin-button { -webkit-appearance:none;appearance:none;margin:0; }
+  .paso input { -moz-appearance:textfield;appearance:textfield; }
+  .paso input:focus, .paso input:focus-visible { outline:none !important;box-shadow:none !important; }
+  .paso:focus-within { box-shadow:0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent); }
   /* Campos propios (2.16): botón con el valor; al pulsarlo sale su selector de cristal. */
   .campo {
     display:flex;align-items:center;gap:8px;min-height:40px;padding:9px 14px;border-radius:14px;border:1px solid transparent;
@@ -950,6 +981,8 @@ const ICO = {
 
 // Las recién creadas entran con un brillo (solo la primera vez que se pintan).
 const yaRecien = new Set();
+// Larga = más de unas 12 líneas a lo ancho de la nota (cuenta las que se parten por largas).
+function esLarga(t) { return String(t || '').split(String.fromCharCode(10)).reduce((s, l) => s + Math.max(1, Math.ceil(l.length / 30)), 0) > 12; }
 function tarjeta(n) {
   const el = document.createElement('div');
   el.className = 'nota' + (n.hecha ? ' hecha' : '') + (n.fijada ? ' fijada' : '') + (n.urgencia === 'alta' && !n.hecha ? ' u-alta' : '') + (encaja(n) ? '' : ' apagada');
@@ -966,7 +999,7 @@ function tarjeta(n) {
     pv.innerHTML = (a.miniatura ? `<img src="${a.miniatura}" class="${a.icono ? 'icono' : ''}" alt="">` : '') + (a.ext ? `<span class="ext">${esc(a.ext)}</span>` : '');
     // Cuando carga la imagen cambia el alto de la nota: las vistas ordenadas se recolocan.
     const img = pv.querySelector('img');
-    if (img) img.addEventListener('load', () => { if (modo !== 'libre') { clearTimeout(recolocarT); recolocarT = setTimeout(() => colocar(false), 30); } }, { once: true });
+    if (img) img.addEventListener('load', () => { if (modo !== 'libre' || verHechas) { clearTimeout(recolocarT); recolocarT = setTimeout(() => colocar(false), 30); } }, { once: true });
     el.appendChild(pv);
     const pie = document.createElement('div'); pie.className = 'archivo-pie';
     pie.innerHTML = `<span class="nom" title="${esc(a.nombre)}">${esc(a.nombre)}</span><span class="tam">${tamanoLegible(a.tamano)}</span>`;
@@ -975,6 +1008,16 @@ function tarjeta(n) {
   const txt = document.createElement('div'); txt.className = 'nota-texto';
   pintarMarkdown(txt, n.texto, n.id);
   if (n.texto || !n.archivo) el.appendChild(txt);
+  // Las largas, plegadas (con el final difuminado) y un botón para desplegarlas o volver a plegarlas.
+  if (esLarga(n.texto)) {
+    if (!n.desplegada) txt.classList.add('plegada');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'plegar';
+    b.innerHTML = (n.desplegada ? 'Ver menos' : 'Ver más') + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(' + (n.desplegada ? 180 : 0) + 'deg)"><path d="M6 9l6 6 6-6"/></svg>';
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('dblclick', (e) => e.stopPropagation());
+    b.onclick = (e) => { e.stopPropagation(); const v = !n.desplegada; aplicarLocal([{ id: n.id, desplegada: v }]); firmaPintada = ''; pintar(true); if (modo !== 'libre') colocar(true); enviar('nota-editar', { id: n.id, desplegada: v }); };
+    el.appendChild(b);
+  }
   if (Array.isArray(n.adjuntos) && n.adjuntos.length) {
     const fila = document.createElement('div'); fila.className = 'adj-tarjeta';
     n.adjuntos.forEach(a => {
@@ -1209,7 +1252,32 @@ function colocar(animar) {
     e.style.width = (w || ANCHO_NOTA) + 'px';
     e.style.left = x + 'px'; e.style.top = y + 'px';
   };
-  if (!ordenado) { lista.forEach((n, i) => poner(n, n.x, n.y, ANCHO_NOTA, i)); return; }
+  if (!ordenado) {
+    // Sueltas: cada una en su sitio. Las hechas (si se enseñan) no vuelven al sitio que tenían,
+    // que ya puede estar ocupado: van aparte, a la derecha de las demás, en columnas y con su
+    // título. Es solo para verlas; su sitio guardado no cambia (si arrastras una, sí se guarda).
+    const pendientes = lista.filter(n => !n.hecha), hechas = lista.filter(n => n.hecha);
+    pendientes.forEach((n, i) => poner(n, n.x, n.y, ANCHO_NOTA, i));
+    if (!hechas.length) return;
+    const ref = pendientes.length ? pendientes : hechas;
+    const x0 = (pendientes.length ? Math.max(...pendientes.map(n => n.x + ANCHO_NOTA)) + 90 : Math.min(...hechas.map(n => n.x)));
+    const y0 = Math.min(...ref.map(n => n.y)) + 34;
+    const cols = Math.max(1, Math.min(3, Math.ceil(hechas.length / 4)));
+    const altos = new Array(cols).fill(y0);
+    hechas.slice().sort((a, b) => (b.hechaEn || 0) - (a.hechaEn || 0)).forEach((n, i) => {
+      let c = 0; altos.forEach((h, k) => { if (h < altos[c] - 1) c = k; });
+      poner(n, x0 + c * (ANCHO_NOTA + ANCHO_G), altos[c], ANCHO_NOTA, i);
+      const e = lienzo.querySelector('.nota[data-id="' + n.id + '"]');
+      altos[c] += (e ? e.offsetHeight : 90) + ANCHO_G;
+    });
+    const cab = document.createElement('div');
+    cab.className = 'grupo-cab';
+    cab.style.setProperty('--c', '#34d399');
+    cab.innerHTML = '<i></i>Hechas <span>' + hechas.length + '</span>';
+    cab.style.left = x0 + 'px'; cab.style.top = (y0 - 30) + 'px';
+    lienzo.appendChild(cab);
+    return;
+  }
   // Orden de las ordenadas: fijadas primero, luego las más urgentes, luego las más nuevas.
   const peso = { alta: 0, media: 1, baja: 2, '': 3 };
   // El orden guardado manda; las que aún no tienen (nuevas) van delante, las urgentes y nuevas primero.
@@ -2297,6 +2365,8 @@ async function alternarCaja() {
   pintarBotonCaja();
   mostrarVista();
 }
+// Desde el aviso de un recordatorio: «Abrir» enseña esa nota (en el mapa normal).
+ipcRenderer.on('abrir-nota', (_, id) => { if (enCaja) alternarCaja(); setTimeout(() => abrirPopNota(id), 150); });
 ipcRenderer.on('caja-cerrada', () => { if (currentState) currentState.cajaNotas = null; if (enCaja) mostrarVista(); });
 let vistaActual = 'mapa';
 function mostrarVista() {

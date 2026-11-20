@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Aviso</title>
+<style>
+  /* 2.16: los avisos de Cronota. Un rectángulo de cristal líquido con las esquinas redondeadas,
+     pegado al borde de arriba de la pantalla, en el centro. Entra saliendo del propio borde: una
+     franja ancha, negra y desenfocada (del color del marco) que se estrecha, baja y se aclara; al
+     irse hace lo contrario. La ventana empieza por encima de la pantalla (--arriba) y es más ancha
+     que el aviso para que quepa la franja ancha del principio y del final. */
+  /* Las letras de la app (como en shared.css): Zalando Sans y la ancha, Zalando Sans Expanded. */
+  @font-face { font-family: 'Zalando Sans'; font-style: normal; font-weight: 200 900; font-display: block; src: url('../assets/fonts/zalando-sans-latin-variable.woff2') format('woff2'); }
+  @font-face { font-family: 'Zalando Sans Expanded'; font-style: normal; font-weight: 200 900; font-display: block; src: url('../assets/fonts/zalando-sans-expanded-latin-variable.woff2') format('woff2'); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: transparent; overflow: hidden;
+    font-family: 'Zalando Sans', 'Segoe UI', system-ui, sans-serif; -webkit-user-select: none; user-select: none; }
+  :root { --lado: 70px; --acento: #ffb383; --radio: 20px; }   /* como un notch: paredes rectas y solo la curva de abajo */
+  .isla {
+    /* Pegado al borde de arriba: los lados suben rectos hasta el borde y solo se redondean las
+       esquinas de abajo (el cristal sigue por encima de la ventana, ver «extiende»). */
+    position: fixed; top: 0; bottom: 10px; left: var(--lado); right: var(--lado); isolation: isolate; border-radius: 0 0 var(--radio) var(--radio);
+    display: flex; align-items: center; gap: 12px; padding: 6px 14px 12px 24px;
+    color: #fffaf6; visibility: hidden; transform-origin: 50% 0; cursor: default;
+  }
+  .isla.visible { visibility: visible; }
+  .isla.con-clic { cursor: pointer; }
+  .lg-canvas { position: absolute; z-index: -1; pointer-events: none; }
+  .isla.sin-cristal { background: rgba(22, 20, 22, .94); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .18), 0 18px 40px -16px rgba(0, 0, 0, .75); }
+
+  /* Lo de dentro entra y sale aparte (después y antes de la forma). */
+  .dentro { display: contents; }
+  .pieza { transition: opacity .28s ease, filter .28s ease, transform .35s cubic-bezier(.22, 1, .36, 1); }
+  .isla.oculto .pieza { opacity: 0; filter: blur(6px); transform: translateY(-4px); transition-duration: .16s; }
+
+  /* El icono de Cronota, como hace macOS con el de cada app. */
+  .icono { width: 38px; height: 38px; flex-shrink: 0; position: relative; }
+  .icono img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
+  .texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .que { font-size: 11px; font-weight: 650; color: rgba(255, 250, 246, .55); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .que .punto { width: 7px; height: 7px; border-radius: 50%; background: var(--acento); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acento) 25%, transparent); }
+  .que .sep { opacity: .5; }
+  .que .mas { margin-left: auto; color: rgba(255, 250, 246, .55); }
+  .titulo { font-size: 16.5px; font-weight: 700; line-height: 1.25; display: flex; align-items: baseline; gap: 8px; min-width: 0; letter-spacing: -.005em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 0 14px rgba(0, 0, 0, .35); }   /* legible aunque el fondo sea claro */
+  /* El texto con la letra ancha; si no cabe, la rueda lo hace correr (con difuminado donde queda más). */
+  .carril { flex: 1; min-width: 0; overflow: hidden; }
+  .carril.der { -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }
+  .carril.izq { -webkit-mask-image: linear-gradient(to left, #000 85%, transparent); mask-image: linear-gradient(to left, #000 85%, transparent); }
+  .carril.izq.der { -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 85%, transparent); mask-image: linear-gradient(to right, transparent, #000 12%, #000 85%, transparent); }
+  .titulo #titulo { display: inline-block; white-space: nowrap; font-family: 'Zalando Sans Expanded', 'Zalando Sans', sans-serif; font-size: 14.5px; font-weight: 700; letter-spacing: 0;
+    transition: transform .28s cubic-bezier(.22, 1, .36, 1); will-change: transform; }
+  .titulo .mas { font-size: 11px; font-weight: 650; color: rgba(255, 250, 246, .5); flex-shrink: 0; }
+  .titulo .mas:empty { display: none; }
+  .sub { font-size: 12.5px; color: rgba(255, 250, 246, .7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub:empty { display: none; }
+  /* Botones como los de macOS: grises translúcidos, esquinas suaves; el principal, un punto más claro. */
+  .acciones { display: flex; gap: 5px; flex-shrink: 0; }
+  .acciones button { border: none; background: rgba(255, 255, 255, .11); color: rgba(255, 250, 246, .92); font: inherit; font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px; cursor: pointer; transition: background .15s, transform .12s;
+    box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .14); }
+  .acciones button:hover { background: rgba(255, 255, 255, .2); }
+  .acciones button:active { transform: scale(.96); }
+  .acciones button.principal { background: rgba(255, 255, 255, .22); color: #fff; }
+  /* Posponer: con la letra ancha de los títulos, en mayúsculas; se cambia con la rueda */
+  .acciones button[data-a="posponer"] { font-family: 'Zalando Sans Expanded', 'Zalando Sans', sans-serif; text-transform: uppercase; letter-spacing: .06em; font-size: 10px; font-weight: 700; min-width: 64px; }
+  /* Solo icono (el check de «Hecha»): redondo */
+  .acciones button.icono-solo { width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 50%; }
+  .acciones button.icono-solo svg { width: 13px; height: 13px; }
+  .acciones button.principal:hover { background: rgba(255, 255, 255, .3); }
+  .cerrar { position: absolute; left: 6px; top: 6px; width: 20px; height: 20px; border-radius: 50%; border: none;
+    background: rgba(60, 58, 62, .92); box-shadow: 0 1px 4px rgba(0, 0, 0, .4), inset 0 0 0 .5px rgba(255, 255, 255, .2);
+    color: rgba(255, 250, 246, .8); display: grid; place-items: center; cursor: pointer; opacity: 0; transform: scale(.8); transition: opacity .18s, transform .18s; z-index: 2; }
+  .isla:hover .cerrar { opacity: 1; transform: none; }
+  .cerrar:hover { background: rgba(90, 88, 92, .95); color: #fff; }
+  /* La barrita que se va gastando mientras el aviso sigue ahí (se para con el ratón encima). */
+  .tiempo { position: absolute; left: 22px; right: 22px; bottom: 4px; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+  .tiempo i { display: block; height: 100%; background: rgba(255, 255, 255, .35); transform-origin: left; }
+  :root[data-scheme="light"] .isla { color: #1d1d1f; }
+  :root[data-scheme="light"] .que, :root[data-scheme="light"] .sub, :root[data-scheme="light"] .que .mas { color: rgba(29, 29, 31, .6); }
+  :root[data-scheme="light"] .acciones button { color: #1d1d1f; background: rgba(0, 0, 0, .07); }
+  :root[data-scheme="light"] .acciones button.principal { background: rgba(0, 0, 0, .14); }
+  :root[data-scheme="light"] .isla.sin-cristal { background: rgba(248, 246, 248, .96); }
+</style>
+</head>
+<body>
+  <div class="isla oculto" id="isla">
+    <div class="texto pieza">
+      <div class="titulo"><div class="carril" id="carril"><span id="titulo"></span></div><span class="mas" id="mas"></span></div>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="acciones pieza" id="acciones"></div>
+    <button type="button" class="cerrar" title="Cerrar"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <div class="tiempo pieza"><i id="barra"></i></div>
+  </div>
+<script src="shared.js"></script>
+<script src="glass.js"></script>
+<script>
+const { ipcRenderer } = require('electron');
+const isla = document.getElementById('isla');
+// Los tiempos para posponer (en minutos): 3–10, 15–60 de 5 en 5, 2–5 h y de 1 a 365 días.
+const POSPONER = [3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 120, 180, 240, 300]
+  .concat(Array.from({ length: 365 }, (_, d) => (d + 1) * 1440));
+function textoMinutos(m) {
+  if (m < 60) return m + ' min';
+  if (m < 1440) return (m / 60) + ' h';
+  const d = m / 1440; return d + (d === 1 ? ' día' : ' días');
+}
+// Correr el texto con la rueda (arriba/abajo o de lado) para leerlo entero.
+let corrido = 0;
+function correr(d, desdeCero) {
+  const c = document.getElementById('carril'), t = document.getElementById('titulo');
+  const max = Math.max(0, t.scrollWidth - c.clientWidth);
+  corrido = desdeCero ? 0 : Math.max(0, Math.min(max, corrido + d));
+  t.style.transform = 'translateX(' + (-corrido) + 'px)';
+  c.classList.toggle('izq', corrido > 2);
+  c.classList.toggle('der', corrido < max - 2);
+}
+document.getElementById('carril').addEventListener('wheel', (e) => {
+  e.preventDefault(); e.stopPropagation();
+  correr((Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * 0.8);
+}, { passive: false });
+let DURA = 30000;   // si no lo tocas, se va solo (por defecto a los 30 s)
+let actual = null, vidrio = null, enVivo = null, turno = 0, gasto = null, forma = null;
+
+// El texto de una nota sin las marcas de Markdown: la primera línea con algo es el título.
+function limpio(l) {
+  return String(l || '').replace(/^\s*(?:-\s*)?\[( |x|X)\]\s*/, '').replace(/^#{1,3}\s+/, '').replace(/^\s*(?:[-*•>]|\d+[.)])\s+/, '')
+    .replace(/\*\*|__|~~|==/g, '').replace(/[*_]/g, '').split(String.fromCharCode(96)).join('').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').trim();
+}
+
+// Las ondas se mueven solas: se repinta el cristal en cada fotograma mientras el aviso está.
+let rafOndas = 0;
+function ondular() {
+  cancelAnimationFrame(rafOndas);
+  const paso = () => { if (!vidrio) return; try { vidrio.draw(); } catch {} rafOndas = requestAnimationFrame(paso); };
+  rafOndas = requestAnimationFrame(paso);
+}
+async function ponerCristal(mio) {
+  if (vidrio) { vidrio.detach(); vidrio = null; }
+  isla.classList.remove('sin-cristal');
+  let g = null;
+  if (window.LiquidGlass && LiquidGlass.supported() && document.documentElement.dataset.glass !== 'off') {
+    if (!enVivo) enVivo = await LiquidGlass.pantallaNativa(() => ({ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }));
+    if (!enVivo) enVivo = await LiquidGlass.pantallaEnVivo(60);
+    g = await LiquidGlass.attach(isla, {
+      nativo: enVivo && enVivo.captura ? enVivo : null, vivo: enVivo && enVivo.video ? enVivo : null,
+      foto: enVivo ? null : ipcRenderer.invoke('capture-desktop', { propia: true }).catch(() => null),
+      margen: 0, sombra: false, sinMarca: true,
+      dpr: Math.min(2, window.devicePixelRatio || 1),   // a la resolución de la pantalla: curvas sin dientes
+      tinte: 0.02, desenfoque: 5,                       // casi transparente: apenas tinte y desenfoque
+      refThickness: 40, refDistance: 0.25, refFactor: 2.0,   // el canto dobla el fondo (sin pliegue)
+      ondas: 0.8, ondasQuietas: true,                        // y por dentro el fondo ondula muy suave, sin moverse
+      radius: 20, roundness: 2, extiende: { top: 80 },   // esquina de cuarto de círculo (90°), no la superelipse   // la forma sigue por encima: arriba, lados rectos
+    });
+  }
+  if (mio !== turno) { if (g) g.detach(); return; }
+  if (g) { vidrio = g; g.entrar(1); } else isla.classList.add('sin-cristal');   // ondas quietas: no hace falta repintar
+}
+
+// La forma: de franja ancha, negra y borrosa pegada al borde, a su sitio (y al revés al irse).
+const BORDE = { transform: 'translateY(-34%) scale(1.24, .3)', filter: 'brightness(0) blur(10px)', borderRadius: '0 0 3px 3px', opacity: 1 };
+const MEDIO = { transform: 'translateY(-8%) scale(1.07, .78)', filter: 'brightness(.45) blur(3px)', borderRadius: '0 0 14px 14px' };
+const SITIO = { transform: 'none', filter: 'brightness(1) blur(0px)', borderRadius: '0 0 20px 20px', opacity: 1 };
+function entrar() {
+  if (forma) forma.cancel();
+  forma = isla.animate([BORDE, { ...MEDIO, offset: .5 }, SITIO], { duration: 760, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'forwards' });
+  setTimeout(() => isla.classList.remove('oculto'), 300);
+}
+function salir() {
+  isla.classList.add('oculto');
+  if (forma) forma.cancel();
+  forma = isla.animate([SITIO, { ...MEDIO, offset: .45 }, { ...BORDE, opacity: 0 }], { duration: 560, delay: 120, easing: 'cubic-bezier(.55, 0, .78, .3)', fill: 'forwards' });
+  return forma.finished.catch(() => {});
+}
+
+function empezarCuenta() {
+  const barra = document.getElementById('barra');
+  if (gasto) gasto.cancel();
+  gasto = barra.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: DURA, easing: 'linear', fill: 'forwards' });
+  gasto.onfinish = () => irse('caducar');
+}
+isla.addEventListener('mouseenter', () => { if (gasto) gasto.pause(); });
+isla.addEventListener('mouseleave', () => { if (gasto) gasto.play(); });
+
+ipcRenderer.on('aviso-mostrar', (_, a, quedan) => {
+  const mio = ++turno;
+  actual = a;
+  const lineas = String(a.texto || '').split(String.fromCharCode(10)).map(limpio).filter(Boolean);
+  // Los de las notas traen su texto (se limpia aquí); los demás, título y detalle ya hechos.
+  // Las notas, con todo su texto en una línea (la rueda lo hace correr); los demás, su título.
+  document.getElementById('titulo').textContent = a.titulo || lineas.join('   ·   ') || (a.archivo ? a.archivo : 'Nota');
+  correr(0, true);
+  document.getElementById('sub').textContent = a.titulo ? (a.sub || '') : '';   // las notas: solo su título
+  document.getElementById('mas').textContent = quedan > 0 ? '+' + quedan : '';
+  DURA = Math.max(4000, Number(a.duracion) || 30000);
+  const acc = document.getElementById('acciones'); acc.innerHTML = '';
+  (a.acciones || []).forEach((x, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.a = x.a;
+    if (i === 0) b.className = 'principal';
+    if (x.titulo) b.title = x.titulo;
+    // «Hecha»: solo un check (el texto queda de título al pasar el ratón).
+    if (x.a === 'hecha') { b.classList.add('icono-solo'); b.title = x.label; b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'; }
+    else if (x.a === 'posponer') {
+      // Con la rueda encima se elige cuánto: 3–10 min de 1 en 1, hasta 1 h de 5 en 5, hasta 5 h de hora
+      // en hora y luego de día en día. Al pulsar, se pospone lo que ponga.
+      let i = POSPONER.indexOf(10);
+      const pintar = () => { b.textContent = textoMinutos(POSPONER[i]); b.title = 'Recuérdamelo dentro de ' + textoMinutos(POSPONER[i]) + ' (rueda del ratón para cambiarlo)'; };
+      pintar();
+      b.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); i = Math.max(0, Math.min(POSPONER.length - 1, i + (e.deltaY < 0 ? 1 : -1))); pintar(); }, { passive: false });
+      b.onclick = (e) => { e.stopPropagation(); irse('posponer', { minutos: POSPONER[i] }); };
+      acc.appendChild(b);
+      return;
+    }
+    else b.textContent = x.label;
+    b.onclick = (e) => { e.stopPropagation(); irse(x.a); };
+    acc.appendChild(b);
+  });
+  if (a.color) document.documentElement.style.setProperty('--acento', a.color);
+  else document.documentElement.style.removeProperty('--acento');
+  isla.classList.add('oculto', 'visible');
+  isla.classList.toggle('con-clic', !!a.clic);
+  ponerCristal(mio);
+  entrar();
+  empezarCuenta();
+});
+
+async function irse(accion, extra) {
+  if (!actual) return;
+  const a = actual; actual = null;
+  const mio = turno;
+  if (gasto) { gasto.cancel(); gasto = null; }
+  await salir();
+  if (mio === turno) {
+    isla.classList.remove('visible');
+    cancelAnimationFrame(rafOndas);
+    if (vidrio) { vidrio.detach(); vidrio = null; }
+    if (enVivo && enVivo.parar) { try { enVivo.parar(); } catch {} enVivo = null; }
+  }
+  ipcRenderer.send('aviso-accion', { id: a.id, accion, ...(extra || {}) });
+}
+document.querySelector('.cerrar').onclick = (e) => { e.stopPropagation(); irse('cerrar'); };
+// Un clic en el aviso (fuera de los botones) hace lo que diga el aviso (abrir la nota, el panel…) o lo quita.
+isla.addEventListener('click', () => { if (actual) irse(actual.clic || 'cerrar'); });
+</script>
+</body>
+</html>
