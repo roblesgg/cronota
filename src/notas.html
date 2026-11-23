@@ -76,6 +76,10 @@
   .grupo-cab { position:absolute;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);white-space:nowrap;animation:notaCae .5s cubic-bezier(.34,1.56,.64,1) both;pointer-events:none; }
   .grupo-cab i { width:8px;height:8px;border-radius:50%;background:var(--c, var(--text3)); }
   .grupo-cab span { color:var(--text3);font-weight:600; }
+  /* En «Por sección», el nombre de la sección grande: es lo que manda en esa vista */
+  .lienzo.m-seccion .grupo-cab { font-family:var(--font-display, inherit);font-size:17px;font-weight:800;letter-spacing:.02em;text-transform:none;color:var(--text);gap:10px; }
+  .lienzo.m-seccion .grupo-cab i { width:11px;height:11px;box-shadow:0 0 0 3px color-mix(in srgb, var(--c, var(--text3)) 25%, transparent); }
+  .lienzo.m-seccion .grupo-cab span { font-size:12px;color:var(--text3);font-family:inherit; }
   .mapa-herr button:hover { background:var(--bg3); }
 
   /* Nota de cristal */
@@ -905,7 +909,7 @@ function encaja(n) { return (!filtroSeccion || n.seccion === filtroSeccion) && (
 let arrastrandoNota = false, firmaPintada = '';
 function pintar(forzar) {
   if (!currentState || arrastrandoNota) return;
-  const firma = JSON.stringify([notasActuales(), enCaja, currentState.groups, currentState.palettes, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
+  const firma = JSON.stringify([notasActuales(), enCaja, modo, currentState.groups, currentState.palettes, filtroSeccion, busqueda, verHechas, new Date().getMinutes()]);
   if (!forzar && firma === firmaPintada) return;
   firmaPintada = firma;
   pintarFiltros();
@@ -1043,7 +1047,7 @@ function tarjeta(n) {
     const cls = n.hecha ? '' : dias < 0 ? ' vence-pasado' : dias === 0 ? ' vence-hoy' : '';
     meta.insertAdjacentHTML('beforeend', `<span class="etq${cls}">${IC.calendario.replace('viewBox', 'width="10" height="10" viewBox')}${txtV}</span>`);
   }
-  if (sec) meta.insertAdjacentHTML('beforeend', `<span class="etq">${esc(sec.name)}</span>`);
+  if (sec && modo !== 'seccion') meta.insertAdjacentHTML('beforeend', `<span class="etq">${esc(sec.name)}</span>`);   // en «Por sección» ya lo dice la columna
   if (n.fijada) meta.insertAdjacentHTML('beforeend', `<span class="etq" title="Fijada encima">${IC.chincheta.replace('viewBox', 'width="10" height="10" viewBox')}</span>`);
   if (meta.children.length) el.appendChild(meta);
   const acc = document.createElement('div'); acc.className = 'nota-acc';
@@ -1196,6 +1200,7 @@ function cambiarModo(m) {
   modo = m;
   try { localStorage.setItem('notas.modo', m); } catch {}
   pintarModos();
+  pintar();   // las tarjetas cambian un poco según la vista (en «Por sección» sin su etiqueta)
   colocar(true);
   if (m === 'libre') encuadrar(true);
   else { vista = { x: 24, y: 92, z: Math.min(vista.z, 1) }; lienzo.style.transition = 'transform .55s cubic-bezier(.22,1,.36,1)'; aplicarVista(); }
@@ -1240,7 +1245,7 @@ function colocar(animar) {
   if (!currentState) return;
   lienzo.querySelectorAll('.grupo-cab').forEach(x => x.remove());
   const ordenado = modo !== 'libre';
-  ['m-cuadricula', 'm-mosaico', 'm-filas'].forEach(c => lienzo.classList.toggle(c, c === 'm-' + modo));
+  ['m-cuadricula', 'm-mosaico', 'm-filas', 'm-seccion'].forEach(c => lienzo.classList.toggle(c, c === 'm-' + modo));
   lienzo.classList.toggle('ordenado', ordenado);
   if (animar) { moviendose(1150); lienzo.classList.add('animando'); clearTimeout(colocar.t); colocar.t = setTimeout(() => lienzo.classList.remove('animando'), 1100); }
   const lista = notasVisibles();
@@ -1319,7 +1324,7 @@ function colocar(animar) {
       cab.className = 'grupo-cab';
       if (g.color) cab.style.setProperty('--c', g.color);
       cab.innerHTML = `<i></i>${esc(g.nombre)} <span>${g.notas.length}</span>`;
-      cab.style.left = x + 'px'; cab.style.top = '-30px'; cab.style.animationDelay = (animar ? gi * 60 : 0) + 'ms';
+      cab.style.left = x + 'px'; cab.style.top = modo === 'seccion' ? '-42px' : '-30px'; cab.style.animationDelay = (animar ? gi * 60 : 0) + 'ms';
       lienzo.appendChild(cab);
       let y = 0;
       g.notas.forEach((n, i) => { const h = alto(n, ANCHO_NOTA); huecos.push({ id: n.id, x, y, w: ANCHO_NOTA, h, clave: g.clave }); poner(n, x, y, ANCHO_NOTA, gi * 3 + i); y += h + ANCHO_G; });
