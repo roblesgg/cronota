@@ -550,15 +550,11 @@
         <span class="ico" data-ico="campana" style="--ic:#f472b6"></span>
         <div class="row-text">
           <span class="row-title">Recordatorios de notas</span>
-          <span class="row-desc">Bajan desde el borde de arriba: Hecha, 10 min o clic para abrir la nota</span>
+          <span class="row-desc">Bajan desde el borde de arriba y se quedan hasta que los marcas, los pospones o los cierras</span>
         </div>
       </div>
       <div class="row-sub open">
-        <div class="campo">
-          <div class="campo-top"><span class="sub-label">Se quitan solos tras</span><span class="valor" id="avisoNotasSegundosLabel">30 s</span></div>
-          <input type="range" id="avisoNotasSegundos" min="5" max="120" step="5" value="30">
-        </div>
-        <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'aviso-probar', payload:{ segundos: Number(document.getElementById('avisoNotasSegundos').value) } })" style="align-self:flex-start;padding:8px 14px">Ver cómo queda</button>
+        <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'aviso-probar', payload:{} })" style="align-self:flex-start;padding:8px 14px">Ver cómo queda</button>
       </div>
       <div class="row">
         <span class="ico" data-ico="campana" style="--ic:#5e5ce6"></span>
@@ -1406,8 +1402,6 @@ function populateDisplays(selectedId) {
 }
 // Las opciones de «Pantalla de los avisos»: las de siempre y luego cada pantalla conectada.
 let avisosPantallaGuardada = 'barra';
-document.getElementById('avisoNotasSegundos').addEventListener('input', (e) => { document.getElementById('avisoNotasSegundosLabel').textContent = e.target.value + ' s'; });
-document.getElementById('avisoNotasSegundos').addEventListener('change', (e) => ipcRenderer.send('action', { type:'save-settings', payload:{ avisoNotasSegundos: Number(e.target.value) } }));
 document.getElementById('avisosPantalla').addEventListener('change', (e) => { avisosPantallaGuardada = e.target.value; ipcRenderer.send('action', { type:'save-settings', payload:{ avisosPantalla: e.target.value } }); });
 function pintarPantallaAvisos(list) {
   const sel = document.getElementById('avisosPantalla');
@@ -1684,8 +1678,6 @@ ipcRenderer.on('settings', (_, s) => {
   document.getElementById('dockBarGlass').checked = s.dockBarGlass !== false;
   eyeCarePos = s.eyeCarePos || 'top';
   avisosPantallaGuardada = s.avisosPantalla || 'barra';
-  document.getElementById('avisoNotasSegundos').value = s.avisoNotasSegundos || 30;
-  document.getElementById('avisoNotasSegundosLabel').textContent = (s.avisoNotasSegundos || 30) + ' s';
   document.getElementById('avisosPantalla').value = avisosPantallaGuardada;
   document.querySelectorAll('#eyeCarePosSeg button').forEach(b => b.classList.toggle('active', b.dataset.pos === eyeCarePos));
   updateEyeCareVisibility();
@@ -1753,7 +1745,6 @@ function save() {
   const sel = document.getElementById('dockDisplay').value;
   ipcRenderer.send('action', { type:'save-settings', payload:{
     avisosPantalla: document.getElementById('avisosPantalla').value || 'barra',   // 2.16
-    avisoNotasSegundos: Number(document.getElementById('avisoNotasSegundos').value) || 30,
     reminderMinutes: Math.max(1, Math.min(120, mins)),
     archiveDays: Math.max(0, Math.min(365, isNaN(archiveDaysVal) ? 30 : archiveDaysVal)),
     widgetAutoHide: document.getElementById('widgetAutoHide').checked,

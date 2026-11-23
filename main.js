@@ -2805,7 +2805,6 @@ function vigilarRecordatoriosNotas() {
     const sec = (state.groups || []).find(g => g.id === n.seccion);
     const pal = sec && todasLasPaletas()[sec.palette];
     avisar({ id: n.id, texto: n.texto, archivo: n.archivo ? n.archivo.nombre : null, cuando: n.recordatorio, color: n.color || (pal && pal.colors && pal.colors[0]) || null,
-      duracion: Math.max(5, Math.min(300, Number(settings.avisoNotasSegundos) || 30)) * 1000,   // Ajustes → Avisos
       clic: 'abrir',   // un clic en el aviso abre la nota
       acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min', titulo: 'Recuérdamelo dentro de 10 minutos' }],
       al: {
@@ -3813,7 +3812,6 @@ ipcMain.on('action', (event, { type, payload }) => {
       break;
     case 'aviso-probar':   // 2.16: «Ver cómo queda» de los recordatorios de notas (Ajustes → Avisos)
       avisar({ que: 'Recordatorio', texto: 'Así se ven los recordatorios de tus notas', cuando: Date.now(), color: '#ffb383',
-        duracion: Math.max(5, Math.min(300, Number((payload && payload.segundos) || settings.avisoNotasSegundos) || 30)) * 1000,
         acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min' }] });
       break;
     case 'close-notas':   // 2.16

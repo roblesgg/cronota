@@ -91,7 +91,6 @@
     </div>
     <div class="acciones pieza" id="acciones"></div>
     <button type="button" class="cerrar" title="Cerrar"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
-    <div class="tiempo pieza"><i id="barra"></i></div>
   </div>
 <script src="shared.js"></script>
 <script src="glass.js"></script>
@@ -222,7 +221,7 @@ ipcRenderer.on('aviso-mostrar', (_, a, quedan) => {
   isla.classList.toggle('con-clic', !!a.clic);
   ponerCristal(mio);
   entrar();
-  empezarCuenta();
+  // No se quita solo: se va con el check, la x o al posponer.
 });
 
 async function irse(accion, extra) {
