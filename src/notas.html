@@ -1545,6 +1545,14 @@ const BT = String.fromCharCode(96);   // la comilla invertida del código
 function textoPlano(t) {
   return String(t || '').replace(/^\s*(?:-\s*)?\[( |x|X)\]\s*|^#{1,3}\s+|^\s*[-*•>]\s+/, '').replace(/\*\*|__|~~|==|[*_]/g, '').split(BT).join('');
 }
+// Un enlace suelto, abreviado: sin https:// ni www., la barra del final fuera y, si es largo,
+// el principio con «…» (la dirección entera se abre al pulsarlo y se ve al pasar el ratón).
+function abreviarEnlace(u) {
+  const crudo = String(u).replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  let v = crudo.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
+  if (v.length > 34) v = v.slice(0, 32) + '…';
+  return esc(v);
+}
 function mdLinea(t) {
   let h = esc(t);
   h = h.replace(new RegExp(BT + '([^' + BT + ']+)' + BT, 'g'), '<code>$1</code>');
@@ -1554,7 +1562,7 @@ function mdLinea(t) {
   // Enlaces: [texto](dirección) y las direcciones sueltas (https://… o www.…), que se detectan solas.
   h = h.replace(/\[([^\]]+)\]\(((?:https?:\/\/|www\.)[^\s)]+)\)|((?:https?:\/\/|www\.)[^\s<]*[^\s<.,;:!?)\]'"])/gi, (m, txt, url, suelto) => {
     const u = url || suelto;
-    return '<a data-url="' + (/^www\./i.test(u) ? 'https://' + u : u) + '">' + (txt || suelto) + '</a>';
+    return '<a data-url="' + (/^www\./i.test(u) ? 'https://' + u : u) + '" title="' + u + '">' + (txt || abreviarEnlace(suelto)) + '</a>';
   });
   return h;
 }
