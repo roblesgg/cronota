@@ -1551,7 +1551,11 @@ function mdLinea(t) {
   h = h.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(new RegExp('__([^_]+)__', 'g'), '<b>$1</b>');
   h = h.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>').replace(/(^|\W)_([^_\s][^_]*)_(?=\W|$)/g, '$1<i>$2</i>');
   h = h.replace(/~~([^~]+)~~/g, '<s>$1</s>').replace(/==([^=]+)==/g, '<mark>$1</mark>');
-  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a data-url="$2">$1</a>');
+  // Enlaces: [texto](dirección) y las direcciones sueltas (https://… o www.…), que se detectan solas.
+  h = h.replace(/\[([^\]]+)\]\(((?:https?:\/\/|www\.)[^\s)]+)\)|((?:https?:\/\/|www\.)[^\s<]*[^\s<.,;:!?)\]'"])/gi, (m, txt, url, suelto) => {
+    const u = url || suelto;
+    return '<a data-url="' + (/^www\./i.test(u) ? 'https://' + u : u) + '">' + (txt || suelto) + '</a>';
+  });
   return h;
 }
 function pintarMarkdown(cont, texto, idNota) {
@@ -1636,7 +1640,15 @@ function mdPrefijo(prefijo) {
 const MD_ACCIONES = {
   b: () => mdEnvolver('**', '**', 'negrita'), i: () => mdEnvolver('*', '*', 'cursiva'), s: () => mdEnvolver('~~', '~~', 'tachado'),
   mark: () => mdEnvolver('==', '==', 'resaltado'), code: () => mdEnvolver(BT, BT, 'código'),
-  link: () => mdEnvolver('[', '](https://)'),
+  link: () => {
+    if (vivoActiva < 0) vivoActivar(vivoLineas.length - 1, null);
+    const el = vivoEl(); const [a, b] = vivoSeleccion(el);
+    const l = vivoLineas[vivoActiva];
+    if (a === b) { vivoLineas[vivoActiva] = l.slice(0, a) + 'https://' + l.slice(a); vivoPintar([a + 8, null]); return; }
+    const antes = l.slice(0, a) + '[' + l.slice(a, b) + '](https://';
+    vivoLineas[vivoActiva] = antes + ')' + l.slice(b);
+    vivoPintar([antes.length, null]);
+  },
   h1: () => mdPrefijo('# '), h2: () => mdPrefijo('## '), ul: () => mdPrefijo('- '), ol: () => mdPrefijo(k => k + '. '),
   check: () => mdPrefijo('[ ] '), quote: () => mdPrefijo('> '),
   hr: () => { const i = vivoActiva < 0 ? vivoLineas.length - 1 : vivoActiva; vivoLineas.splice(i + 1, 0, '---', ''); vivoActiva = i + 2; vivoPintar([0, 0]); },
@@ -1756,6 +1768,8 @@ vivo.addEventListener('mousedown', (e) => {
   const linea = e.target.closest('.vivo-linea');
   if (linea && linea.classList.contains('activa')) return;   // dentro de la que editas: el cursor normal
   e.preventDefault();
+  const enlace = e.target.closest('a[data-url]');
+  if (enlace && e.button === 0) { try { require('electron').shell.openExternal(enlace.dataset.url); } catch {} return; }   // abre el enlace
   if (linea) vivoActivar(Number(linea.dataset.i), e.clientX, e.clientY);
   else vivoActivar(vivoLineas.length - 1, null);   // en el hueco de abajo: al final
 });
@@ -1780,6 +1794,13 @@ vivo.addEventListener('paste', (e) => {
   e.preventDefault();
   const pegado = (e.clipboardData.getData('text/plain') || '').replace(/\r/g, '');
   const [a, b] = vivoSeleccion(el), l = vivoLineas[vivoActiva];
+  // Una dirección pegada encima de un texto seleccionado: se convierte en enlace con ese texto.
+  if (a !== b && /^(?:https?:\/\/|www\.)\S+$/i.test(pegado.trim())) {
+    const enlace = '[' + l.slice(a, b) + '](' + pegado.trim() + ')';
+    vivoLineas[vivoActiva] = l.slice(0, a) + enlace + l.slice(b);
+    vivoPintar([a + enlace.length, null]);
+    return;
+  }
   const partes = (l.slice(0, a) + pegado + l.slice(b)).split('\n');
   const cola = l.length - b;
   vivoLineas.splice(vivoActiva, 1, ...partes); vivoActiva += partes.length - 1;
