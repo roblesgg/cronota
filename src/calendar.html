@@ -236,6 +236,9 @@
   /* 2.12: sugerencias de reuniones de Outlook (enlace ICS), POR ENCIMA de las entradas. Son
      gotas de cristal líquido: translúcidas, con brillo arriba y sombra dentro. Clic o «Añadir»:
      la gota se convierte en una tarjeta normal (lo de debajo se parte). La × la descarta. */
+  /* 2.17: la campanita de las citas con aviso */
+  .marca-aviso { position:absolute; right:6px; top:5px; width:13px; height:13px; color:var(--accent); pointer-events:none; filter:drop-shadow(0 1px 2px rgba(0,0,0,.4)); z-index:3; }
+  .marca-aviso svg { width:100%; height:100%; display:block; }
   .reunion-block {
     position:absolute;left:3px;right:3px;border-radius:14px;padding:5px 22px 5px 8px;box-sizing:border-box;z-index:5;
     font-size:11px;line-height:1.25;color:var(--text);overflow:hidden;cursor:pointer;-webkit-app-region:no-drag;
@@ -1523,6 +1526,17 @@ ${hora} · Reunión de Outlook. Clic para añadirla a tus horas.`;
     i.innerHTML = '<span>Añadir</span><span class="rb-largo">desde Outlook</span>';
     const x = document.createElement('button'); x.type = 'button'; x.className = 'rb-descartar'; x.textContent = '×'; x.title = 'Descartar esta reunión (Ctrl+Z la recupera)';
     b.appendChild(t); b.appendChild(h); b.appendChild(i); b.appendChild(x); b.appendChild(marcaOutlook(r.inicio));
+    { const ma = marcaAviso('o:' + r.id); if (ma) b.appendChild(ma); }   // 2.17: tiene aviso
+    // 2.17: clic derecho: el menú redondo de la reunión (añadirla a tus horas, avisarme, descartarla).
+    b.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const its = [
+        { label: 'Añadir a mis horas', hint: 'Desde Outlook', icon: IC.plus, tone: 'accent', run: () => b.click() },
+        itemAvisarme('o:' + r.id, r.titulo, r.inicio, '#6cb8f6'),
+        { label: 'Descartar', hint: 'Ctrl+Z la recupera', icon: IC.trash, tone: 'danger', run: () => descartarReunion(r.id, b) },
+      ].filter(Boolean);
+      RadialMenu.open({ x: e.clientX, y: e.clientY, title: r.titulo.slice(0, 26), subtitle: hora, color: '#6cb8f6', items: its });
+    });
     b.addEventListener('mousedown', (e) => e.stopPropagation());   // no es el gesto de crear arrastrando
     // 2.14.4: si debajo de la gota hay una tarjeta tuya (p. ej. del mismo tamaño), al pinchar en la
     // gota se coge la tarjeta: así se puede arrastrar aunque la sugerencia esté delante. Los
@@ -1779,6 +1793,7 @@ function renderDayEntries(col, date) {
       }
 
       if (entry.outlookId) block.appendChild(marcaOutlook(entry.start));   // 2.12: viene de una reunión de Outlook; el iconito abre ese día
+      { const ma = marcaAviso('e:' + task.id + ':' + entry.start); if (ma) block.appendChild(ma); }   // 2.17: tiene aviso
       col.appendChild(block);
       // 2.12: la tarjeta nueva de una reunión sale de su gota (la gota se disuelve encima).
       if (gotaPendiente && entry.outlookId === gotaPendiente.id && Date.now() - gotaPendiente.t < 6000) {
@@ -2157,6 +2172,28 @@ function toast(texto, tipo) {
 }
 
 // ---------- Menús circulares (clic derecho) ----------
+// 2.17: «Avisarme» en las citas (las tuyas y las de Outlook), como en las notas.
+const IC_CAMPANA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+const ANTELACIONES = [[0, 'A la hora'], [5, '5 min antes'], [10, '10 min antes'], [15, '15 min antes'], [30, '30 min antes'], [60, '1 h antes'], [1440, '1 día antes']];
+function avisoDe(clave) { return ((currentState && currentState.avisosCalendario) || []).find(a => a.clave === clave) || null; }
+function textoAntelacion(m) { const x = ANTELACIONES.find(([v]) => v === m); return x ? x[1] : m + ' min antes'; }
+// El elemento del menú redondo: si la cita ya empezó no se ofrece.
+function itemAvisarme(clave, titulo, inicio, color) {
+  if (inicio <= Date.now()) return null;
+  const ya = avisoDe(clave);
+  return { label: 'Avisarme', hint: ya ? textoAntelacion(ya.antes) : 'Un aviso antes de que empiece', icon: IC_CAMPANA, tone: ya ? 'accent' : undefined,
+    sub: () => ({ kind: 'list', title: 'Avisarme', items: [
+      ...ANTELACIONES.filter(([m]) => inicio - m * 60000 > Date.now()).map(([m, t]) => ({ label: t, icon: IC_CAMPANA, selected: !!ya && ya.antes === m,
+        run: () => enviar('aviso-cal-poner', { clave, titulo, inicio, antes: m, color }) })),
+      ...(ya ? [{ separator: true }, { label: 'Quitar el aviso', icon: IC.trash, tone: 'danger', run: () => enviar('aviso-cal-quitar', { clave }) }] : []),
+    ] }) };
+}
+// La campanita en las citas con aviso.
+function marcaAviso(clave) {
+  const ya = avisoDe(clave); if (!ya) return null;
+  const m = document.createElement('span'); m.className = 'marca-aviso'; m.innerHTML = IC_CAMPANA; m.title = 'Te aviso ' + textoAntelacion(ya.antes).toLowerCase();
+  return m;
+}
 const IC = {
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.83 2.83 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.6"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.6"/></svg>',
@@ -2229,6 +2266,8 @@ function abrirMenuEntrada(ev, task, idx, entry, block) {
     items.push({ label: entry.note ? 'Cambiar nota' : 'Añadir nota', hint: entry.note || 'Solo de este rato', icon: IC.nota,
       run: () => editarNotaEntrada(task, entry, idx) });
   }
+  const av = itemAvisarme('e:' + task.id + ':' + entry.start, nombreEntrada(task, entry), entry.start, task.color);
+  if (av) items.push(av);
   items.push({ label: 'Eliminar entrada', hint: 'Supr', icon: IC.trash, tone: 'danger', run: () => confirmarEliminarEntrada(task, idx) });
   RadialMenu.open({
     x: ev.clientX, y: ev.clientY,

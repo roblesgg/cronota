@@ -545,6 +545,13 @@
       </div>
       <div class="row-sub open">
         <div class="campo"><select id="avisosPantalla"></select></div>
+        <div class="campo">
+          <span class="sub-label">Estilo de los avisos</span>
+          <div class="seg" id="estiloAvisosSeg">
+            <button type="button" data-e="isla">Arriba, en isla</button>
+            <button type="button" data-e="abajo">Abajo, en tarjeta</button>
+          </div>
+        </div>
       </div>
       <div class="row">
         <span class="ico" data-ico="campana" style="--ic:#f472b6"></span>
@@ -579,7 +586,7 @@
       </div>
       <div class="row-sub open">
         <div class="campo">
-          <div class="campo-top"><span class="sub-label">Tamaño del recordatorio</span><span class="valor" id="widgetScaleLabel">100%</span></div>
+          <div class="campo-top"><span class="sub-label">Tamaño de los avisos</span><span class="valor" id="widgetScaleLabel">100%</span></div>
           <input type="range" id="widgetScale" min="80" max="150" step="5" value="100">
         </div>
         <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'preview-widget' })" style="align-self:flex-start;padding:8px 14px">Ver cómo queda</button>
@@ -1402,6 +1409,9 @@ function populateDisplays(selectedId) {
 }
 // Las opciones de «Pantalla de los avisos»: las de siempre y luego cada pantalla conectada.
 let avisosPantallaGuardada = 'barra';
+// 2.17: estilo de todos los avisos (isla arriba por defecto, o tarjeta abajo como antes).
+function pintarEstiloAvisos(e) { document.querySelectorAll('#estiloAvisosSeg button').forEach(b => b.classList.toggle('active', b.dataset.e === (e === 'abajo' ? 'abajo' : 'isla'))); }
+document.querySelectorAll('#estiloAvisosSeg button').forEach(b => b.onclick = () => { pintarEstiloAvisos(b.dataset.e); ipcRenderer.send('action', { type:'save-settings', payload:{ estiloAvisos: b.dataset.e } }); });
 document.getElementById('avisosPantalla').addEventListener('change', (e) => { avisosPantallaGuardada = e.target.value; ipcRenderer.send('action', { type:'save-settings', payload:{ avisosPantalla: e.target.value } }); });
 function pintarPantallaAvisos(list) {
   const sel = document.getElementById('avisosPantalla');
@@ -1678,6 +1688,7 @@ ipcRenderer.on('settings', (_, s) => {
   document.getElementById('dockBarGlass').checked = s.dockBarGlass !== false;
   eyeCarePos = s.eyeCarePos || 'top';
   avisosPantallaGuardada = s.avisosPantalla || 'barra';
+  pintarEstiloAvisos(s.estiloAvisos);
   document.getElementById('avisosPantalla').value = avisosPantallaGuardada;
   document.querySelectorAll('#eyeCarePosSeg button').forEach(b => b.classList.toggle('active', b.dataset.pos === eyeCarePos));
   updateEyeCareVisibility();

@@ -248,7 +248,9 @@ const NOVEDADES_2_9 = {
 const WHATS_NEW = {
   '2.17.0': { title: 'Novedades de Cronota 2.17', steps: [
     { icon:'bell', title:'Avisos nuevos',
-      text:'Los recordatorios bajan desde el borde de arriba de la pantalla, de cristal: Hecha con un clic, la rueda del ratón elige cuánto posponer y un clic abre la nota. En Ajustes → Avisos eliges en qué pantalla salen todos los avisos.' },
+      text:'Todos los avisos bajan desde el borde de arriba, de cristal. Los que te piden algo (recordatorios, citas) se quedan, con un toque naranja; los demás se van solos. La rueda del ratón elige cuánto posponer. En Ajustes → Avisos: pantalla, tamaño y estilo (arriba o abajo).' },
+    { icon:'calendar', title:'Avisarme en el calendario',
+      text:'Clic derecho en una cita tuya o en una reunión de Outlook → Avisarme: a la hora, 5, 10, 15 o 30 min antes, 1 h o 1 día. Y el recordatorio de la tarea en marcha enseña el tiempo corriendo.' },
     { icon:'pencil', title:'Notas más cómodas',
       text:'Escribir una nota es ahora un editor grande. Las notas largas se pliegan con «Ver más», las hechas se ven aparte sin taparse, «Ordenar» coloca las notas del modo en que estés y Notas recuerda su propio tamaño.' },
   ] },
@@ -1258,8 +1260,10 @@ function resetReminderTimer() {
 function showReminder() {
   if (!state.activeTaskId) return;
   if (silenciado()) { reminderTimer = setTimeout(showReminder, getReminderMs()); return; }
-  if (widgetWin && !widgetWin.isDestroyed()) { sendStateToWindow(widgetWin); widgetWin.showInactive(); scheduleWidgetAutoHide(); }
-  else createWidgetWindow();
+  if (settings.estiloAvisos === 'abajo') {   // la tarjeta de abajo de siempre
+    if (widgetWin && !widgetWin.isDestroyed()) { sendStateToWindow(widgetWin); widgetWin.showInactive(); scheduleWidgetAutoHide(); }
+    else createWidgetWindow();
+  } else avisarTarea();                       // 2.17: por defecto, como los demás avisos (arriba, en isla)
   reminderTimer = setTimeout(showReminder, getReminderMs());
 }
 
@@ -1372,7 +1376,7 @@ function notifyLeaveTime(task, parada, corte) {
   const llevas = task ? fmtDuration(todaySecondsForTask(task)) : '';
   const hora = corte ? `${String(new Date(corte).getHours()).padStart(2, '0')}:${String(new Date(corte).getMinutes()).padStart(2, '0')}` : '';
   avisar({
-    que: 'Hora de salida', icono: 'salida', duracion: parada ? 15000 : 60000,
+    que: 'Hora de salida', icono: 'salida', duracion: parada ? 15000 : 0, programado: !parada,   // te pide pararla: se queda
     titulo: parada ? `He parado «${nombre}»${hora ? ` a las ${hora}` : ''}` : `Sigues con «${nombre}»`,
     sub: parada ? 'Hasta mañana' : `${llevas ? llevas + ' hoy · ' : ''}¿La paras antes de irte?`,
     clic: 'abrir', acciones: [],
@@ -2797,6 +2801,7 @@ function limpiarArchivosNotas() {
 
 // Recordatorios: cada 20 s. Si estás en «No molestar» o en una llamada, espera a que acabe.
 function vigilarRecordatoriosNotas() {
+  try { vigilarAvisosCalendario(); } catch {}   // 2.17: los del calendario, con el mismo vigilante
   const ahora = Date.now();
   const toca = notas().filter(n => !n.hecha && n.recordatorio && n.recordatorio <= ahora && !n.avisada);
   if (!toca.length || silenciado()) return;
@@ -2805,7 +2810,7 @@ function vigilarRecordatoriosNotas() {
     const sec = (state.groups || []).find(g => g.id === n.seccion);
     const pal = sec && todasLasPaletas()[sec.palette];
     avisar({ id: n.id, texto: n.texto, archivo: n.archivo ? n.archivo.nombre : null, cuando: n.recordatorio, color: n.color || (pal && pal.colors && pal.colors[0]) || null,
-      clic: 'abrir',   // un clic en el aviso abre la nota
+      clic: 'abrir', programado: true,   // un clic en el aviso abre la nota; se queda hasta que hagas algo
       acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min', titulo: 'Recuérdamelo dentro de 10 minutos' }],
       al: {
         hecha: () => { if (!notas().some(x => x.id === n.id)) return; fotoAntesDe('nota-editar'); editarNota({ id: n.id, hecha: true }); },
@@ -2834,9 +2839,19 @@ function pantallaAvisos(elegida) {
   if (v && v !== 'barra') { const d = displays.find(x => String(x.id) === String(v)); if (d) return d; }
   return dockDisplay();
 }
-function avisoBounds(elegida) {
+function avisoBounds(elegida, alto) {
   const work = pantallaAvisos(elegida).workArea;
-  return { x: work.x + Math.round((work.width - AVISO_W) / 2), y: work.y - AVISO_ARRIBA, width: AVISO_W, height: AVISO_H };
+  const k = widgetEscala();   // el tamaño de Ajustes → Avisos («Tamaño del recordatorio»)
+  const h = Math.round((alto || AVISO_H) * k);
+  // 2.17: con el estilo «Abajo», tarjeta en la esquina de abajo a la derecha (sin el margen ancho de la franja de la isla).
+  if (settings.estiloAvisos === 'abajo') { const w = Math.round((460 + 32) * k); return { x: work.x + work.width - w - 4, y: work.y + work.height - h - 18, width: w, height: h + 10 }; }
+  const W = Math.round(AVISO_W * k);
+  return { x: work.x + Math.round((work.width - W) / 2), y: work.y - AVISO_ARRIBA, width: W, height: h };
+}
+// Cambia el tamaño de la isla que se está viendo (el deslizador de Ajustes, en vivo).
+function ajustarTamanoAviso() {
+  const a = colaAvisos[0]; if (!a || !avisoWin || avisoWin.isDestroyed()) return;
+  try { avisoWin.setBounds(avisoBounds(a.pantalla, a.titulo && a.sub ? 82 : AVISO_H)); avisoWin.webContents.setZoomFactor(widgetEscala()); } catch {}
 }
 function crearAvisoWin() {
   if (avisoWin && !avisoWin.isDestroyed()) return avisoWin;
@@ -2857,17 +2872,79 @@ function avisar(a) {
   colaAvisos.push(a);
   if (colaAvisos.length === 1) mostrarSiguienteAviso();
 }
+// 2.17: el recordatorio de la tarea en marcha, como aviso (Pausar / Cambiar; un clic abre el panel).
+// Si ya hay uno de tarea a la vista no se repite; si estaba en cola, se cambia por el nuevo.
+function avisarTarea(prueba) {
+  const t = (state.tasks || []).find(x => x.id === state.activeTaskId);
+  if (!t && !prueba) return;
+  if (colaAvisos[0] && colaAvisos[0].tipo === 'tarea' && !prueba) return;
+  for (let i = colaAvisos.length - 1; i > 0; i--) if (colaAvisos[i].tipo === 'tarea') colaAvisos.splice(i, 1);
+  const sub = t && t.subtasks && state.activeSubId ? (t.subtasks.find(x => x.id === state.activeSubId) || {}).name : '';
+  avisar({
+    tipo: 'tarea', titulo: t ? t.name + (sub ? ' · ' + sub : '') : 'Tu tarea en marcha',
+    sub: t ? 'En marcha' : 'Así te recuerda Cronota la tarea que tienes en marcha',
+    // Lo que enseñaba la tarjeta de abajo; la isla lo hace correr segundo a segundo.
+    tarea: t ? { segs: Math.floor(todaySecondsForTask(t)), hoy: Math.floor(totalTodaySeconds()), desde: Date.now(),
+      clase: t.taskType === 'oneShot' ? 'Puntual' : 'Recurrente', memo: String(t.memo || '').trim().slice(0, 120) } : null,
+    color: t ? t.color : null, clic: 'cambiar', duracion: 15000,   // informativo: se va solo
+    acciones: [{ a: 'pausar', label: 'Pausar' }, { a: 'cambiar', label: 'Cambiar' }],
+    al: { pausar: () => { if (t) { pauseActive(); } }, cambiar: () => openMain() },
+  });
+}
+// 2.17: «Avisarme» en las citas del calendario (las tuyas y las de Outlook). Cada aviso guarda su
+// cita (clave), el título, a qué hora empieza y cuántos minutos antes avisar.
+function avisosCal() { if (!Array.isArray(state.avisosCalendario)) state.avisosCalendario = []; return state.avisosCalendario; }
+function ponerAvisoCal(p) {
+  if (!p || !p.clave) return;
+  const inicio = Number(p.inicio) || 0, antes = Math.max(0, Math.min(10080, Number(p.antes) || 0));
+  const lista = avisosCal().filter(a => a.clave !== p.clave);
+  lista.push({ clave: String(p.clave).slice(0, 200), titulo: String(p.titulo || 'Cita').slice(0, 200), inicio, antes, cuando: inicio - antes * 60000, avisada: false,
+    color: /^#[0-9a-fA-F]{6}$/.test(String(p.color || '')) ? p.color : null });
+  state.avisosCalendario = lista;
+  saveData(); broadcastState();
+}
+function quitarAvisoCal(clave) {
+  state.avisosCalendario = avisosCal().filter(a => a.clave !== clave);
+  saveData(); broadcastState();
+}
+function vigilarAvisosCalendario() {
+  const ahora = Date.now();
+  let cambio = false;
+  // Los ya avisados de hace más de un día, fuera.
+  const antes = avisosCal().length;
+  state.avisosCalendario = avisosCal().filter(a => !(a.avisada && a.inicio < ahora - 86400000));
+  if (state.avisosCalendario.length !== antes) cambio = true;
+  const toca = avisosCal().filter(a => !a.avisada && a.cuando <= ahora);
+  if (toca.length && !silenciado()) {
+    toca.forEach(a => {
+      a.avisada = true; cambio = true;
+      const h = new Date(a.inicio), hora = String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0');
+      const falta = Math.round((a.inicio - Date.now()) / 60000);
+      avisar({
+        tipo: 'calendario', titulo: a.titulo, color: a.color, clic: 'abrir', programado: true,
+        sub: falta > 1 ? `A las ${hora} · dentro de ${falta >= 60 ? Math.round(falta / 60) + ' h' : falta + ' min'}` : `A las ${hora} · ahora`,
+        acciones: [{ a: 'hecha', label: 'Vale' }, { a: 'posponer', label: '10 min' }],
+        al: {
+          posponer: (p) => { const x = avisosCal().find(y => y.clave === a.clave); if (x) { x.cuando = Date.now() + Math.max(1, Number(p && p.minutos) || 10) * 60000; x.avisada = false; saveData(); broadcastState(); } },
+          abrir: () => openCalendar(),
+        },
+      });
+    });
+  }
+  if (cambio) { saveData(); broadcastState(); }
+}
 // Para los sitios que antes usaban la notificación de Windows.
-function avisoSimple(titulo, sub, extra) { avisar({ que: 'Cronota', titulo, sub, icono: 'campana', duracion: 12000, acciones: [], ...(extra || {}) }); }
+function avisoSimple(titulo, sub, extra) { avisar({ que: 'Cronota', titulo, sub, icono: 'campana', duracion: 15000, acciones: [], ...(extra || {}) }); }
 function mostrarSiguienteAviso() {
   const a = colaAvisos[0];
   if (!a) { try { if (avisoWin && !avisoWin.isDestroyed()) avisoWin.hide(); } catch {} return; }
   const win = crearAvisoWin();
-  try { win.setBounds({ ...avisoBounds(a.pantalla), height: a.titulo && a.sub ? 82 : AVISO_H }); } catch {}   // con una segunda línea, un poco más alto
+  try { win.setBounds(avisoBounds(a.pantalla, a.titulo && a.sub ? 82 : AVISO_H)); } catch {}   // con una segunda línea, un poco más alto
   const lanzar = () => {
     if (!win || win.isDestroyed()) return;
     const { al, pantalla, ...visible } = a;
-    try { win.showInactive(); win.webContents.send('aviso-mostrar', visible, colaAvisos.length - 1); } catch {}
+    visible.abajo = settings.estiloAvisos === 'abajo';
+    try { win.webContents.setZoomFactor(widgetEscala()); win.showInactive(); win.webContents.send('aviso-mostrar', visible, colaAvisos.length - 1); } catch {}
   };
   if (win.webContents.isLoading()) win.webContents.once('did-finish-load', lanzar); else lanzar();
 }
@@ -3199,6 +3276,7 @@ function getSerializableState() {
     notas: state.notas || [],   // 2.16
     seccionesNotas: state.seccionesNotas || [],
     cajaFuerte: cajaEstado(),
+    avisosCalendario: state.avisosCalendario || [],   // 2.17
     cajaNotas: cajaClave && Array.isArray(cajaNotasMem) ? cajaNotasMem : null,   // solo abierta
     activeTaskId: state.activeTaskId,
     activeSubId: state.activeSubId || null,
@@ -3610,16 +3688,24 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'widget-escala-vivo': {   // Ajustes: el deslizador de tamaño, mientras se mueve
       settings.widgetScale = Math.max(80, Math.min(150, Number(payload && payload.value) || 100));
       saveSettingsSoon();
+      if (settings.estiloAvisos !== 'abajo') {   // 2.17: con la isla, se ve la isla cambiando de tamaño
+        if (colaAvisos[0] && avisoWin && !avisoWin.isDestroyed() && avisoWin.isVisible()) ajustarTamanoAviso();
+        else avisarTarea(true);
+        break;
+      }
       if (widgetWin && !widgetWin.isDestroyed()) {
         try { widgetWin.webContents.send('widget-escala', widgetEscala()); } catch {}
         scheduleWidgetAutoHide();   // que no se esconda mientras lo ajustas
       } else createWidgetWindow();
       break;
     }
-    case 'preview-widget':   // Ajustes: enseñar el recordatorio con el tamaño elegido
+    case 'preview-widget':   // Ajustes: enseñar el recordatorio (en isla o, con el estilo «Abajo», la tarjeta)
+      if (settings.estiloAvisos !== 'abajo') { avisarTarea(true); break; }
       if (widgetWin && !widgetWin.isDestroyed()) { try { widgetWin.destroy(); } catch {} widgetWin = null; }
       createWidgetWindow();
       break;
+    case 'aviso-cal-poner': ponerAvisoCal(payload); break;     // 2.17: «Avisarme» en el calendario
+    case 'aviso-cal-quitar': quitarAvisoCal(payload && payload.clave); break;
     case 'widget-raton': {   // la tarjeta pide los clics solo mientras el ratón está encima
       const win = BrowserWindow.fromWebContents(event.sender);
       if (win && !win.isDestroyed()) try { win.setIgnoreMouseEvents(!payload.dentro, { forward: true }); } catch {}
@@ -3811,7 +3897,7 @@ ipcMain.on('action', (event, { type, payload }) => {
       else if (settingsWin && !settingsWin.isDestroyed()) settingsWin.hide();
       break;
     case 'aviso-probar':   // 2.16: «Ver cómo queda» de los recordatorios de notas (Ajustes → Avisos)
-      avisar({ que: 'Recordatorio', texto: 'Así se ven los recordatorios de tus notas', cuando: Date.now(), color: '#ffb383',
+      avisar({ que: 'Recordatorio', texto: 'Así se ven los recordatorios de tus notas', cuando: Date.now(), color: '#ffb383', programado: true,
         acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min' }] });
       break;
     case 'close-notas':   // 2.16
@@ -4207,7 +4293,7 @@ async function buscarVersionNueva() {
     [settingsWin, dockPanelWin].forEach(w => sendToAllFrames(w, 'version-nueva', v));
     if (yaAvisada) return;
     settings.versionNuevaAvisada = v; saveSettings();
-    avisar({ que: 'Actualización', icono: 'flecha', duracion: 60000, titulo: `Cronota ${v} está lista`, sub: 'Se cierra, se actualiza en la Store y tu tarea sigue contando',
+    avisar({ que: 'Actualización', icono: 'flecha', duracion: 20000, titulo: `Cronota ${v} está lista`, sub: 'Se cierra, se actualiza en la Store y tu tarea sigue contando',
       acciones: [{ a: 'actualizar', label: 'Cerrar y actualizar', clase: 'hecha' }], al: { actualizar: () => cerrarYActualizar() } });
   } catch {}
 }

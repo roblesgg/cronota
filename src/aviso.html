@@ -24,6 +24,23 @@
     color: #fffaf6; visibility: hidden; transform-origin: 50% 0; cursor: default;
   }
   .isla.visible { visibility: visible; }
+  /* La tarea en marcha: el punto de su color y el tiempo corriendo, con la letra ancha. */
+  .punto-tarea { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; align-self: center; display: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, .14); }
+  .isla.es-tarea .punto-tarea { display: block; }
+  .reloj { display: none; font-family: 'Zalando Sans Expanded', 'Zalando Sans', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 0 14px rgba(0, 0, 0, .35); }
+  .isla.es-tarea .reloj { display: block; }
+  /* Los programados (te piden algo: recordatorios, citas, hora de salida) se quedan y llevan una
+     silueta naranja fina y un puntito delante del título. */
+  .isla.programado { box-shadow: inset 0 -1.5px 0 #ff9f5a, inset 1.5px 0 0 #ff9f5a, inset -1.5px 0 0 #ff9f5a, 0 6px 22px -8px rgba(255, 159, 90, .55); }
+  body.abajo .isla.programado { box-shadow: inset 0 0 0 1.5px #ff9f5a, 0 6px 22px -8px rgba(255, 159, 90, .55); }
+  .punto-aviso { width: 7px; height: 7px; border-radius: 50%; background: #ff9f5a; flex-shrink: 0; align-self: center; display: none;
+    box-shadow: 0 0 0 3px rgba(255, 159, 90, .22); animation: latido 2.2s ease-in-out infinite; }
+  .isla.programado .punto-aviso { display: block; }
+  @keyframes latido { 0%, 100% { box-shadow: 0 0 0 3px rgba(255, 159, 90, .22); } 50% { box-shadow: 0 0 0 5px rgba(255, 159, 90, .08); } }
+  /* 2.17: estilo «Abajo»: tarjeta en la esquina de abajo a la derecha, redondeada entera, que sube. */
+  body.abajo { --lado: 16px; }
+  body.abajo .isla { top: 10px; bottom: 0; border-radius: var(--radio); transform-origin: 50% 100%; padding: 10px 14px 10px 22px; }
   .isla.con-clic { cursor: pointer; }
   .lg-canvas { position: absolute; z-index: -1; pointer-events: none; }
   .isla.sin-cristal { background: rgba(22, 20, 22, .94); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .18), 0 18px 40px -16px rgba(0, 0, 0, .75); }
@@ -86,9 +103,10 @@
 <body>
   <div class="isla oculto" id="isla">
     <div class="texto pieza">
-      <div class="titulo"><div class="carril" id="carril"><span id="titulo"></span></div><span class="mas" id="mas"></span></div>
+      <div class="titulo"><span class="punto-aviso"></span><span class="punto-tarea" id="puntoTarea"></span><div class="carril" id="carril"><span id="titulo"></span></div><span class="mas" id="mas"></span></div>
       <div class="sub" id="sub"></div>
     </div>
+    <div class="reloj pieza" id="reloj"></div>
     <div class="acciones pieza" id="acciones"></div>
     <button type="button" class="cerrar" title="Cerrar"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
   </div>
@@ -119,6 +137,21 @@ document.getElementById('carril').addEventListener('wheel', (e) => {
   e.preventDefault(); e.stopPropagation();
   correr((Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * 0.8);
 }, { passive: false });
+// El reloj de la tarea en marcha: cuenta solo desde lo que mandó el proceso principal.
+let ticTarea = 0;
+function fmtLargo(s) { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return h > 0 ? h + 'h ' + String(m).padStart(2, '0') + 'm ' + String(x).padStart(2, '0') + 's' : m + 'm ' + String(x).padStart(2, '0') + 's'; }
+function fmtCorto(s) { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h > 0 ? h + 'h ' + String(m).padStart(2, '0') + 'm' : m + 'm'; }
+function pintarTarea(t) {
+  clearInterval(ticTarea);
+  if (!t) return;
+  const paso = () => {
+    const mas = (Date.now() - t.desde) / 1000;
+    document.getElementById('reloj').textContent = fmtLargo(t.segs + mas);
+    document.getElementById('sub').textContent = ['En marcha', t.clase, 'Hoy ' + fmtCorto(t.hoy + mas), t.memo].filter(Boolean).join(' · ');
+  };
+  paso(); ticTarea = setInterval(paso, 1000);
+}
 let DURA = 30000;   // si no lo tocas, se va solo (por defecto a los 30 s)
 let actual = null, vidrio = null, enVivo = null, turno = 0, gasto = null, forma = null;
 
@@ -150,7 +183,7 @@ async function ponerCristal(mio) {
       tinte: 0.02, desenfoque: 5,                       // casi transparente: apenas tinte y desenfoque
       refThickness: 40, refDistance: 0.25, refFactor: 2.0,   // el canto dobla el fondo (sin pliegue)
       ondas: 0.8, ondasQuietas: true,                        // y por dentro el fondo ondula muy suave, sin moverse
-      radius: 20, roundness: 2, extiende: { top: 80 },   // esquina de cuarto de círculo (90°), no la superelipse   // la forma sigue por encima: arriba, lados rectos
+      radius: 20, roundness: 2, extiende: document.body.classList.contains('abajo') ? null : { top: 80 },   // esquina de cuarto de círculo (90°), no la superelipse   // la forma sigue por encima: arriba, lados rectos
     });
   }
   if (mio !== turno) { if (g) g.detach(); return; }
@@ -158,9 +191,15 @@ async function ponerCristal(mio) {
 }
 
 // La forma: de franja ancha, negra y borrosa pegada al borde, a su sitio (y al revés al irse).
-const BORDE = { transform: 'translateY(-34%) scale(1.24, .3)', filter: 'brightness(0) blur(10px)', borderRadius: '0 0 3px 3px', opacity: 1 };
-const MEDIO = { transform: 'translateY(-8%) scale(1.07, .78)', filter: 'brightness(.45) blur(3px)', borderRadius: '0 0 14px 14px' };
-const SITIO = { transform: 'none', filter: 'brightness(1) blur(0px)', borderRadius: '0 0 20px 20px', opacity: 1 };
+// Arriba sale del borde de arriba; con el estilo «Abajo», sube desde abajo.
+let BORDE, MEDIO, SITIO;
+function formas() {
+  const ab = document.body.classList.contains('abajo');
+  BORDE = { transform: (ab ? 'translateY(34%)' : 'translateY(-34%)') + ' scale(1.24, .3)', filter: 'brightness(0) blur(10px)', borderRadius: ab ? '3px' : '0 0 3px 3px', opacity: 1 };
+  MEDIO = { transform: (ab ? 'translateY(8%)' : 'translateY(-8%)') + ' scale(1.07, .78)', filter: 'brightness(.45) blur(3px)', borderRadius: ab ? '14px' : '0 0 14px 14px' };
+  SITIO = { transform: 'none', filter: 'brightness(1) blur(0px)', borderRadius: ab ? '20px' : '0 0 20px 20px', opacity: 1 };
+}
+formas();
 function entrar() {
   if (forma) forma.cancel();
   forma = isla.animate([BORDE, { ...MEDIO, offset: .5 }, SITIO], { duration: 760, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'forwards' });
@@ -174,8 +213,11 @@ function salir() {
 }
 
 function empezarCuenta() {
+  if (gasto) { gasto.cancel(); gasto = null; }
+  let tiempo = isla.querySelector('.tiempo');
+  if (!DURA) { if (tiempo) tiempo.remove(); return; }
+  if (!tiempo) { tiempo = document.createElement('div'); tiempo.className = 'tiempo pieza'; tiempo.innerHTML = '<i id="barra"></i>'; isla.appendChild(tiempo); }
   const barra = document.getElementById('barra');
-  if (gasto) gasto.cancel();
   gasto = barra.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: DURA, easing: 'linear', fill: 'forwards' });
   gasto.onfinish = () => irse('caducar');
 }
@@ -192,7 +234,7 @@ ipcRenderer.on('aviso-mostrar', (_, a, quedan) => {
   correr(0, true);
   document.getElementById('sub').textContent = a.titulo ? (a.sub || '') : '';   // las notas: solo su título
   document.getElementById('mas').textContent = quedan > 0 ? '+' + quedan : '';
-  DURA = Math.max(4000, Number(a.duracion) || 30000);
+  DURA = a.programado ? 0 : Math.max(0, Number(a.duracion) || 0);   // 0: se queda hasta que hagas algo
   const acc = document.getElementById('acciones'); acc.innerHTML = '';
   (a.acciones || []).forEach((x, i) => {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.a = x.a;
@@ -217,14 +259,21 @@ ipcRenderer.on('aviso-mostrar', (_, a, quedan) => {
   });
   if (a.color) document.documentElement.style.setProperty('--acento', a.color);
   else document.documentElement.style.removeProperty('--acento');
+  document.body.classList.toggle('abajo', !!a.abajo); formas();
   isla.classList.add('oculto', 'visible');
+  isla.classList.toggle('programado', !!a.programado);
+  isla.classList.toggle('es-tarea', !!a.tarea);
+  document.getElementById('puntoTarea').style.background = a.color || 'var(--acento)';
+  pintarTarea(a.tarea);
   isla.classList.toggle('con-clic', !!a.clic);
   ponerCristal(mio);
   entrar();
-  // No se quita solo: se va con el check, la x o al posponer.
+  // Programados: se quedan (con el check, la x o posponer). Informativos: se van solos.
+  empezarCuenta();
 });
 
 async function irse(accion, extra) {
+  clearInterval(ticTarea);
   if (!actual) return;
   const a = actual; actual = null;
   const mio = turno;
