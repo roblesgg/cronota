@@ -1640,15 +1640,7 @@ function mdPrefijo(prefijo) {
 const MD_ACCIONES = {
   b: () => mdEnvolver('**', '**', 'negrita'), i: () => mdEnvolver('*', '*', 'cursiva'), s: () => mdEnvolver('~~', '~~', 'tachado'),
   mark: () => mdEnvolver('==', '==', 'resaltado'), code: () => mdEnvolver(BT, BT, 'código'),
-  link: () => {
-    if (vivoActiva < 0) vivoActivar(vivoLineas.length - 1, null);
-    const el = vivoEl(); const [a, b] = vivoSeleccion(el);
-    const l = vivoLineas[vivoActiva];
-    if (a === b) { vivoLineas[vivoActiva] = l.slice(0, a) + 'https://' + l.slice(a); vivoPintar([a + 8, null]); return; }
-    const antes = l.slice(0, a) + '[' + l.slice(a, b) + '](https://';
-    vivoLineas[vivoActiva] = antes + ')' + l.slice(b);
-    vivoPintar([antes.length, null]);
-  },
+  link: () => mdEnvolver('[', '](https://)'),
   h1: () => mdPrefijo('# '), h2: () => mdPrefijo('## '), ul: () => mdPrefijo('- '), ol: () => mdPrefijo(k => k + '. '),
   check: () => mdPrefijo('[ ] '), quote: () => mdPrefijo('> '),
   hr: () => { const i = vivoActiva < 0 ? vivoLineas.length - 1 : vivoActiva; vivoLineas.splice(i + 1, 0, '---', ''); vivoActiva = i + 2; vivoPintar([0, 0]); },
