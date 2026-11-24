@@ -55,7 +55,9 @@ uniform float u_shapeRadius;
 uniform float u_shapeRoundness;
 uniform int u_showShape1;
 uniform float u_ondas;     // 2.16: ondulaciones en todo el fondo (px; 0 = sin ellas)
-uniform float u_tiempo;`;
+uniform float u_tiempo;
+// 2.18: u_oscurecer, cuánto se oscurece el cristal donde el fondo es muy claro (0 = nada)
+uniform float u_oscurecer;`;
 
   const SDF = `
 float sdCircle(vec2 p, float r) { return length(p) - r; }
@@ -266,6 +268,12 @@ void main() {
   // 2.16: el canto suavizado en un píxel de verdad (antes 0,001 de la altura: menos de un píxel,
   // y las curvas se veían en dientes de sierra).
   float aa = 0.9 / u_resolution.y;
+  // 2.18: legible sobre fondos blancos: donde lo de detrás es muy claro, el cristal se oscurece un
+  // poco (solo ahí; sobre fondos oscuros no cambia nada).
+  if (u_oscurecer > 0.0) {
+    float lum = dot(outColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    outColor.rgb = mix(outColor.rgb, outColor.rgb * 0.38, smoothstep(0.5, 0.92, lum) * u_oscurecer);
+  }
   float inside = 1.0 - smoothstep(-aa, aa, merged);
   vec4 sombra = vec4(0.0, 0.0, 0.0, ms > 0.0 ? shadow : 0.6 * u_shadowFactor);
   vec4 c = mix(sombra, vec4(outColor.rgb, 1.0), inside);
@@ -725,6 +733,7 @@ void main() {
       this._u(p, 'u_shadowMax', Math.max(8, this.margen - Math.abs(CFG.shadow.y) - 4));
       this._u(p, 'u_opacity', this.opacity);
       this._u(p, 'u_ondas', this.opts.ondas || 0);
+      this._u(p, 'u_oscurecer', this.opts.oscurecerClaro || 0);
       this._u(p, 'u_tiempo', this.opts.ondasQuietas ? 0 : (performance.now() / 1000) % 10000);   // quietas: el dibujo de las ondas no se mueve
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }

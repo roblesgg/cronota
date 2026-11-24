@@ -161,13 +161,6 @@ function limpio(l) {
     .replace(/\*\*|__|~~|==/g, '').replace(/[*_]/g, '').split(String.fromCharCode(96)).join('').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').trim();
 }
 
-// Las ondas se mueven solas: se repinta el cristal en cada fotograma mientras el aviso está.
-let rafOndas = 0;
-function ondular() {
-  cancelAnimationFrame(rafOndas);
-  const paso = () => { if (!vidrio) return; try { vidrio.draw(); } catch {} rafOndas = requestAnimationFrame(paso); };
-  rafOndas = requestAnimationFrame(paso);
-}
 async function ponerCristal(mio) {
   if (vidrio) { vidrio.detach(); vidrio = null; }
   isla.classList.remove('sin-cristal');
@@ -182,7 +175,7 @@ async function ponerCristal(mio) {
       dpr: Math.min(2, window.devicePixelRatio || 1),   // a la resolución de la pantalla: curvas sin dientes
       tinte: 0.02, desenfoque: 5,                       // casi transparente: apenas tinte y desenfoque
       refThickness: 40, refDistance: 0.25, refFactor: 2.0,   // el canto dobla el fondo (sin pliegue)
-      ondas: 0.8, ondasQuietas: true,                        // y por dentro el fondo ondula muy suave, sin moverse
+      ondas: 0.8, ondasQuietas: true, oscurecerClaro: 0.85,   // sobre fondo blanco, el cristal se oscurece y se lee                        // y por dentro el fondo ondula muy suave, sin moverse
       radius: 20, roundness: 2, extiende: document.body.classList.contains('abajo') ? null : { top: 80 },   // esquina de cuarto de círculo (90°), no la superelipse   // la forma sigue por encima: arriba, lados rectos
     });
   }
@@ -281,7 +274,6 @@ async function irse(accion, extra) {
   await salir();
   if (mio === turno) {
     isla.classList.remove('visible');
-    cancelAnimationFrame(rafOndas);
     if (vidrio) { vidrio.detach(); vidrio = null; }
     if (enVivo && enVivo.parar) { try { enVivo.parar(); } catch {} enVivo = null; }
   }

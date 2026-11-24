@@ -539,12 +539,12 @@
       <div class="row">
         <span class="ico" data-ico="pantalla" style="--ic:#ff9f5a"></span>
         <div class="row-text">
-          <span class="row-title">Pantalla de los avisos</span>
-          <span class="row-desc">Dónde salen todos los avisos de Cronota: recordatorios, descanso visual, hora de salida…</span>
+          <span class="row-title">Avisos</span>
+          <span class="row-desc">Para todos: recordatorios de notas, citas del calendario, tarea en marcha, hora de salida…</span>
         </div>
       </div>
       <div class="row-sub open">
-        <div class="campo"><select id="avisosPantalla"></select></div>
+        <div class="campo"><span class="sub-label">Pantalla</span><select id="avisosPantalla"></select></div>
         <div class="campo">
           <span class="sub-label">Estilo de los avisos</span>
           <div class="seg" id="estiloAvisosSeg">
@@ -552,15 +552,10 @@
             <button type="button" data-e="abajo">Abajo, en tarjeta</button>
           </div>
         </div>
-      </div>
-      <div class="row">
-        <span class="ico" data-ico="campana" style="--ic:#f472b6"></span>
-        <div class="row-text">
-          <span class="row-title">Recordatorios de notas</span>
-          <span class="row-desc">Bajan desde el borde de arriba y se quedan hasta que los marcas, los pospones o los cierras</span>
+        <div class="campo">
+          <div class="campo-top"><span class="sub-label">Tamaño</span><span class="valor" id="widgetScaleLabel">110%</span></div>
+          <input type="range" id="widgetScale" min="80" max="150" step="5" value="110">
         </div>
-      </div>
-      <div class="row-sub open">
         <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'aviso-probar', payload:{} })" style="align-self:flex-start;padding:8px 14px">Ver cómo queda</button>
       </div>
       <div class="row">
@@ -585,10 +580,6 @@
         <span class="unit">min</span>
       </div>
       <div class="row-sub open">
-        <div class="campo">
-          <div class="campo-top"><span class="sub-label">Tamaño de los avisos</span><span class="valor" id="widgetScaleLabel">100%</span></div>
-          <input type="range" id="widgetScale" min="80" max="150" step="5" value="100">
-        </div>
         <button class="btn-ghost" onclick="ipcRenderer.send('action', { type:'preview-widget' })" style="align-self:flex-start;padding:8px 14px">Ver cómo queda</button>
       </div>
       <div class="row">
@@ -1660,7 +1651,7 @@ ipcRenderer.on('settings', (_, s) => {
   setTimeout(pintarDibujos, 0);   // cuando ya están puestos todos los valores
   setTimeout(() => { ajustesCargados = true; }, 0);   // 2.14: desde aquí, cada cambio se guarda solo
 
-  const escala = Math.max(80, Math.min(150, Number(s.widgetScale) || 100));
+  const escala = Math.max(80, Math.min(150, Number(s.widgetScale) || 110));
   document.getElementById('widgetScale').value = escala;
   document.getElementById('widgetScaleLabel').textContent = escala + '%';
   const secs = Math.max(2, Math.min(60, s.widgetAutoHideSeconds || 10));

@@ -429,7 +429,7 @@ let settings = {
   eyeCareSize: 150,      // ancho de la burbuja en px (el alto va en proporción)
   widgetAutoHide: true,
   widgetAutoHideSeconds: 10,
-  widgetScale: 100,         // 2.8.3: tamaño del recordatorio de la esquina (en %)
+  widgetScale: 110,         // 2.8.3: tamaño de los avisos (en %); 2.18: 110 por defecto
   colorMode: 'auto', // 'auto' | 'manual'
   bgOpacity: 85,       // 100 = mate; por debajo, el panel lateral es de cristal (2.8.3: de serie, un toque)
   liquidGlass: true,   // estilo: cristal líquido (true) o plano (false), en Ajustes → Apariencia
@@ -1790,7 +1790,7 @@ function makeWindow(file, w, h, opts = {}) {   // 2.16: plugins = visor de PDF e
 // transparente, con aire alrededor para su sombra y para la gota con la que entra y sale
 // por el borde de la pantalla (ver widget.html). La tarjeta va abajo a la derecha de la
 // ventana, a 20 px del borde; lo transparente deja pasar los clics (widget-raton).
-function widgetEscala() { return Math.max(80, Math.min(150, Number(settings.widgetScale) || 100)) / 100; }
+function widgetEscala() { return Math.max(80, Math.min(150, Number(settings.widgetScale) || 110)) / 100; }
 // La ventana tiene siempre el tamaño del recordatorio más grande (150 %): así el tamaño se
 // cambia en vivo solo con CSS, sin redimensionar una ventana transparente (parpadea).
 function widgetVentana() { return { w: Math.round(330 * 1.5) + 44 + 20, h: Math.round(200 * 1.5) + 44 + 20 }; }
@@ -2551,7 +2551,7 @@ function limpiarNota(n, base) {
   if (n.x !== undefined) r.x = numMapa(n.x);
   if (n.y !== undefined) r.y = numMapa(n.y);
   // 2.16: las secciones de las notas son las de Tareas (pedido por Álvaro).
-  if (n.seccion !== undefined) r.seccion = n.seccion && (state.groups || []).some(g => g.id === n.seccion) ? n.seccion : null;
+  if (n.seccion !== undefined) r.seccion = n.seccion && seccionesNotas().some(s => s.id === n.seccion) ? n.seccion : null;   // 2.18: secciones propias de Notas
   if (n.color !== undefined) r.color = /^#[0-9a-fA-F]{6}$/.test(String(n.color || '')) ? n.color : null;
   if (n.recordatorio !== undefined) {
     const t = Number(n.recordatorio) || null;
@@ -2719,6 +2719,16 @@ ipcMain.handle('notas-archivos', async (_e, p) => {
   const accion = p && p.accion;
   try {
     // Un archivo para una nota (la ventana de la nota): de una ruta (soltado) o eligiéndolo.
+    // 2.18: una imagen pegada (Ctrl+V): se guarda como «Imagen pegada …png» y se adjunta.
+    if (accion === 'imagen') {
+      const datos = Buffer.from(p.datos || []);
+      if (!datos.length || datos.length > MAX_ARCHIVO) return { error: 'No hay imagen que pegar' };
+      const d = new Date(), dos = (x) => String(x).padStart(2, '0');
+      const tmp = path.join(app.getPath('temp'), `Imagen pegada ${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())} ${dos(d.getHours())}.${dos(d.getMinutes())}.${dos(d.getSeconds())}.png`);
+      fs.writeFileSync(tmp, datos);
+      try { const c = await copiarArchivoNota(tmp); return c.aviso ? { error: c.aviso } : { ok: true, archivo: c.archivo }; }
+      finally { try { fs.unlinkSync(tmp); } catch {} }
+    }
     if (accion === 'preparar') {
       let rutas = Array.isArray(p.rutas) ? p.rutas : [];
       if (!rutas.length) {
@@ -2874,6 +2884,11 @@ function avisar(a) {
 }
 // 2.17: el recordatorio de la tarea en marcha, como aviso (Pausar / Cambiar; un clic abre el panel).
 // Si ya hay uno de tarea a la vista no se repite; si estaba en cola, se cambia por el nuevo.
+// «Ver cómo queda» de Ajustes → Avisos: un aviso de ejemplo con la pantalla, el estilo y el tamaño elegidos.
+function avisoDePrueba() {
+  avisar({ que: 'Recordatorio', texto: 'Así se ven los avisos de Cronota', cuando: Date.now(), color: '#ffb383', programado: true,
+    acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min' }] });
+}
 function avisarTarea(prueba) {
   const t = (state.tasks || []).find(x => x.id === state.activeTaskId);
   if (!t && !prueba) return;
@@ -2994,9 +3009,27 @@ function cajaCerrar() {
   [dockPanelWin, notasWin].forEach(w => sendToAllFrames(w, 'caja-cerrada'));
 }
 // Las de antes (título + texto) pasan a notas normales, colocadas en rejilla.
+// 2.18: las notas vuelven a tener secciones propias (en la 2.16 eran las de Tareas). Las que
+// apuntan a una sección de Tareas pasan a una sección de notas con el mismo id, nombre y color.
+function asegurarSeccionesNotas(lista) {
+  const ids = new Set(seccionesNotas().map(s => s.id));
+  let cambio = false;
+  (lista || []).forEach(n => {
+    if (!n || !n.seccion || ids.has(n.seccion)) return;
+    const g = (state.groups || []).find(x => x.id === n.seccion);
+    if (g) {
+      const pal = todasLasPaletas()[g.palette];
+      seccionesNotas().push({ id: g.id, name: g.name, color: (pal && pal.colors && pal.colors[0]) || TASK_COLORS[0] });
+      ids.add(g.id);
+    } else n.seccion = null;
+    cambio = true;
+  });
+  return cambio;
+}
 function migrarCaja(lista) {
   usandoCaja = true;
   try {
+    if (Array.isArray(lista)) asegurarSeccionesNotas(lista);   // 2.18
     return (Array.isArray(lista) ? lista : []).map((n, k) => {
       if (!n) return null;
       if (n.x !== undefined && n.urgencia !== undefined) return n;
@@ -3686,11 +3719,11 @@ ipcMain.on('action', (event, { type, payload }) => {
     case 'open-notas':    openNotas(); break;   // 2.16
     case 'close-widget':  hideWidget(); break;
     case 'widget-escala-vivo': {   // Ajustes: el deslizador de tamaño, mientras se mueve
-      settings.widgetScale = Math.max(80, Math.min(150, Number(payload && payload.value) || 100));
+      settings.widgetScale = Math.max(80, Math.min(150, Number(payload && payload.value) || 110));
       saveSettingsSoon();
       if (settings.estiloAvisos !== 'abajo') {   // 2.17: con la isla, se ve la isla cambiando de tamaño
         if (colaAvisos[0] && avisoWin && !avisoWin.isDestroyed() && avisoWin.isVisible()) ajustarTamanoAviso();
-        else avisarTarea(true);
+        else avisoDePrueba();
         break;
       }
       if (widgetWin && !widgetWin.isDestroyed()) {
@@ -3896,10 +3929,8 @@ ipcMain.on('action', (event, { type, payload }) => {
       if (settings.dockMode) dockNavigate('panel');
       else if (settingsWin && !settingsWin.isDestroyed()) settingsWin.hide();
       break;
-    case 'aviso-probar':   // 2.16: «Ver cómo queda» de los recordatorios de notas (Ajustes → Avisos)
-      avisar({ que: 'Recordatorio', texto: 'Así se ven los recordatorios de tus notas', cuando: Date.now(), color: '#ffb383', programado: true,
-        acciones: [{ a: 'hecha', label: 'Hecha' }, { a: 'posponer', label: '10 min' }] });
-      break;
+    case 'aviso-probar':   // «Ver cómo queda» de los avisos (Ajustes → Avisos)
+      avisoDePrueba(); break;
     case 'close-notas':   // 2.16
       if (settings.dockMode) dockNavigate('panel');
       else { if (notasWin && !notasWin.isDestroyed()) notasWin.hide(); ensureSomeWindowVisible(); }
@@ -4504,6 +4535,8 @@ app.whenReady().then(() => {
   repararCierreDeGolpe();   // 2.13: antes que nada que use la tarea en marcha
   try { const { powerMonitor } = require('electron'); powerMonitor.on('suspend', alSuspender); powerMonitor.on('resume', alDespertar); powerMonitor.on('lock-screen', cajaCerrar); powerMonitor.on('suspend', cajaCerrar); } catch {}
   setInterval(vigilarRecordatoriosNotas, 20000); setTimeout(vigilarRecordatoriosNotas, 5000);   // 2.16
+  if (!settings.avisos110) { if (!settings.widgetScale || Number(settings.widgetScale) === 100) settings.widgetScale = 110; settings.avisos110 = true; saveSettings(); }   // 2.18: avisos al 110 % de serie
+  try { if (asegurarSeccionesNotas(notas())) { saveData(); broadcastState(); } } catch {}   // 2.18: secciones propias
   setTimeout(limpiarArchivosNotas, 15000);
   latir(); setInterval(latir, 60000);
   setTimeout(buscarVersionNueva, 60000); setInterval(buscarVersionNueva, 4 * 60 * 60 * 1000);   // 2.14.3

@@ -605,7 +605,7 @@
 <div class="popup-backdrop" id="popSecFondo" style="display:none" onclick="cerrarPopSec()"></div>
 <div class="entry-popup" id="popSec" style="display:none;width:320px">
   <div class="entry-popup-title" id="popSecTitulo">Nueva sección</div>
-  <input type="text" id="psNombre" maxlength="40" placeholder="Nombre de la sección (la verás también en Tareas)">
+  <input type="text" id="psNombre" maxlength="40" placeholder="Nombre de la sección">
   <div class="colores" id="psColores"></div>
   <div class="entry-popup-actions">
     <button class="btn-danger" id="psBorrar" onclick="borrarSeccion()">Borrar</button>
@@ -889,9 +889,9 @@ setTimeout(() => {
 
 // ── Pintar ────────────────────────────────────────────────────────────────────
 // 2.16: las secciones son las de Tareas; su color, el primero de su paleta.
+// 2.18: las secciones de las notas son propias (se crean aquí), no las de Tareas.
 function seccionesTareas() {
-  const pal = (currentState && currentState.palettes) || {};
-  return ((currentState && currentState.groups) || []).map((g, i) => ({ id: g.id, name: g.name, color: (pal[g.palette] && pal[g.palette].colors[0]) || COLORES_NOTA[(i * 5) % COLORES_NOTA.length] }));
+  return ((currentState && currentState.seccionesNotas) || []).map((s, i) => ({ id: s.id, name: s.name, color: s.color || COLORES_NOTA[(i * 5) % COLORES_NOTA.length] }));
 }
 function seccionDe(id) { return seccionesTareas().find(s => s.id === id) || null; }
 // Las que aún no tienen sitio (vienen de antes del mapa) se colocan en rejilla.
@@ -1795,6 +1795,9 @@ vivo.addEventListener('input', (e) => {
   vivoCursor(el, a, b);
 });
 vivo.addEventListener('paste', (e) => {
+  // 2.18: una imagen en el portapapeles se adjunta a la nota (no se pega como texto).
+  const img = [...((e.clipboardData && e.clipboardData.files) || [])].find(f => /^image\//.test(f.type));
+  if (img) { e.preventDefault(); pegarImagenEnNota(img); return; }
   const el = vivoEl(); if (!el) return;
   e.preventDefault();
   const pegado = (e.clipboardData.getData('text/plain') || '').replace(/\r/g, '');
@@ -1936,6 +1939,24 @@ function calendarioEn(el, inicial, conHora, alElegir) {
     if (ok) ok.onclick = () => { if (!elegido) elegido = new Date(); const d = new Date(elegido); d.setHours(hh, mm, 0, 0); alElegir(d); };
   };
   pintar();
+  // Con la rueda: encima de la hora o los minutos, los cambia (minutos de 5 en 5); encima de los
+  // días, mueve el día elegido; encima del mes, cambia de mes. Arriba = más.
+  el.addEventListener('wheel', (e) => {
+    const paso = e.deltaY < 0 ? 1 : -1;
+    const hora = e.target.closest('.sel-hora'), dias = e.target.closest('.sel-dias'), mes = e.target.closest('.sel-mes');
+    if (!hora && !dias && !mes) return;
+    e.preventDefault();
+    if (hora) {
+      const dos = hora.querySelector('.dos').getBoundingClientRect();
+      if (e.clientX < dos.left) hh = (hh + paso + 24) % 24;
+      else mm = (mm + paso * 5 + 60) % 60;
+    } else if (dias) {
+      const d = elegido ? new Date(elegido) : new Date(); if (elegido) d.setDate(d.getDate() + paso);
+      elegido = d; ver = new Date(d); ver.setDate(1); ver.setHours(0, 0, 0, 0);
+      if (!conHora) { pintar(); return; }
+    } else ver.setMonth(ver.getMonth() + paso);
+    pintar();
+  }, { passive: false });
 }
 // Convierte un botón en campo: tipo 'fechahora' | 'fecha' | 'seccion'.
 function hacerCampo(id, tipo, vacio) {
@@ -2021,6 +2042,13 @@ function listaSel(el, items) {
   });
 }
 const ponerYCerrar = (fn) => () => { fn(); cerrarSelector(); pintarProps(); };
+async // 2.18: la imagen pegada va a «Adjuntos» de la nota que se edita.
+async function pegarImagenEnNota(blob) {
+  if (enCaja) { avisar('En la caja fuerte no se pueden adjuntar imágenes: no irían cifradas'); return; }
+  const r = await archivos('imagen', { datos: new Uint8Array(await blob.arrayBuffer()) });
+  if (r && r.error) { avisar(r.error); return; }
+  if (r && r.archivo) { popArchivos = popArchivos.concat([r.archivo]).slice(0, 31); pintarProps(); avisar('Imagen adjuntada'); }
+}
 async function elegirArchivoPop(rutas) {
   const r = await archivos('preparar', rutas ? { rutas } : {});
   if (r && r.avisos && r.avisos.length) avisar('No se han añadido: ' + r.avisos.join(', '));
@@ -2270,8 +2298,11 @@ function abrirPopSec(id) {
   secId = s ? id : null; secColor = null;
   document.getElementById('popSecTitulo').textContent = s ? 'Sección' : 'Nueva sección';
   document.getElementById('psNombre').value = s ? s.name : '';
-  document.getElementById('psBorrar').style.display = 'none';   // se borran desde Tareas
-  document.getElementById('psColores').innerHTML = '<div style="font-size:12px;color:var(--text2);line-height:1.4">Es una sección de Tareas: su color sale de su paleta (en Tareas, el botón de colores de la sección).</div>';
+  document.getElementById('psBorrar').style.display = s ? '' : 'none';
+  // Color: el suyo, o para una nueva el primero que no use otra sección.
+  const usados = new Set(seccionesTareas().map(x => x.color));
+  secColor = s ? s.color : (COLORES_NOTA.find(c => !usados.has(c)) || COLORES_NOTA[0]);
+  pintarColoresSec();
   document.getElementById('popSecFondo').style.display = 'block';
   document.getElementById('popSec').style.display = 'flex';
   setTimeout(() => document.getElementById('psNombre').focus(), 0);
@@ -2284,8 +2315,8 @@ function cerrarPopSec() { document.getElementById('popSecFondo').style.display =
 function guardarSeccion() {
   const name = document.getElementById('psNombre').value.trim();
   if (!name) return;
-  if (secId) enviar('rename-group', { groupId: secId, name });
-  else enviar('create-group', { name });
+  if (secId) enviar('nota-seccion-editar', { id: secId, name, color: secColor });
+  else enviar('nota-seccion-crear', { name, color: secColor });
   cerrarPopSec();
 }
 document.getElementById('psNombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') guardarSeccion(); });
@@ -2336,6 +2367,16 @@ function pegar() {
   let texto = ''; try { texto = require('electron').clipboard.readText().replace(/\r/g, ''); } catch {}
   const r = mapa.getBoundingClientRect();
   const sitio = ratonMapa || aMapa(r.left + r.width / 2, r.top + r.height / 2);
+  // 2.18: una imagen (captura, copiada de una web…): nota nueva con la imagen donde está el ratón.
+  let imagen = null; try { const ni = require('electron').clipboard.readImage(); if (!ni.isEmpty()) imagen = ni.toPNG(); } catch {}
+  if (imagen && !texto.trim()) {
+    if (enCaja) { avisar('En la caja fuerte no se pueden adjuntar imágenes: no irían cifradas'); return; }
+    archivos('imagen', { datos: new Uint8Array(imagen) }).then(res => {
+      if (res && res.error) { avisar(res.error); return; }
+      if (res && res.archivo) enviar('nota-crear', { texto: '', archivo: res.archivo, seccion: filtroSeccion || null, x: sitio.x - 20, y: sitio.y - 16 });
+    });
+    return;
+  }
   if (portapapelesNotas && texto === portapapelesNotas.texto && portapapelesNotas.notas.length) {
     // Lo copiado aquí: mismas propiedades, colocadas donde está el ratón y en el mismo orden.
     const ns = portapapelesNotas.notas, x0 = Math.min(...ns.map(n => n.x)), y0 = Math.min(...ns.map(n => n.y));
