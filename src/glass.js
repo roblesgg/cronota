@@ -272,7 +272,7 @@ void main() {
   // poco (solo ahí; sobre fondos oscuros no cambia nada).
   if (u_oscurecer > 0.0) {
     float lum = dot(outColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-    outColor.rgb = mix(outColor.rgb, outColor.rgb * 0.38, smoothstep(0.5, 0.92, lum) * u_oscurecer);
+    outColor.rgb = mix(outColor.rgb, outColor.rgb * 0.38, smoothstep(0.3, 0.85, lum) * u_oscurecer);
   }
   float inside = 1.0 - smoothstep(-aa, aa, merged);
   vec4 sombra = vec4(0.0, 0.0, 0.0, ms > 0.0 ? shadow : 0.6 * u_shadowFactor);

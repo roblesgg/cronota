@@ -173,7 +173,7 @@ async function ponerCristal(mio) {
       foto: enVivo ? null : ipcRenderer.invoke('capture-desktop', { propia: true }).catch(() => null),
       margen: 0, sombra: false, sinMarca: true,
       dpr: Math.min(2, window.devicePixelRatio || 1),   // a la resolución de la pantalla: curvas sin dientes
-      tinte: 0.02, desenfoque: 5,                       // casi transparente: apenas tinte y desenfoque
+      tinte: 0.12, desenfoque: 20,                      // translúcido pero legible: lo de detrás se ve, sin que se lea
       refThickness: 40, refDistance: 0.25, refFactor: 2.0,   // el canto dobla el fondo (sin pliegue)
       ondas: 0.8, ondasQuietas: true, oscurecerClaro: 0.85,   // sobre fondo blanco, el cristal se oscurece y se lee                        // y por dentro el fondo ondula muy suave, sin moverse
       radius: 20, roundness: 2, extiende: document.body.classList.contains('abajo') ? null : { top: 80 },   // esquina de cuarto de círculo (90°), no la superelipse   // la forma sigue por encima: arriba, lados rectos
