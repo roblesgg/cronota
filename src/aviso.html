@@ -53,7 +53,13 @@
   /* El icono de Cronota, como hace macOS con el de cada app. */
   .icono { width: 38px; height: 38px; flex-shrink: 0; position: relative; }
   .icono img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
-  .texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; position: relative; }
+  /* Un halo oscuro y difuminado solo detrás del texto (y del reloj): el cristal puede ser muy
+     translúcido y aun así se lee sobre fondos claros. */
+  .texto::before, .reloj::before { content: ''; position: absolute; inset: -6px -16px -6px -14px; z-index: -1; pointer-events: none; border-radius: 999px;
+    background: radial-gradient(closest-side, rgba(0, 0, 0, .42), rgba(0, 0, 0, .22) 55%, transparent); filter: blur(6px); }
+  .texto > *, .reloj { position: relative; }
+  :root[data-scheme="light"] .texto::before, :root[data-scheme="light"] .reloj::before { background: radial-gradient(closest-side, rgba(255, 255, 255, .5), transparent); }
   .que { font-size: 11px; font-weight: 650; color: rgba(255, 250, 246, .55); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .que .punto { width: 7px; height: 7px; border-radius: 50%; background: var(--acento); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acento) 25%, transparent); }
   .que .sep { opacity: .5; }
@@ -173,9 +179,9 @@ async function ponerCristal(mio) {
       foto: enVivo ? null : ipcRenderer.invoke('capture-desktop', { propia: true }).catch(() => null),
       margen: 0, sombra: false, sinMarca: true,
       dpr: Math.min(2, window.devicePixelRatio || 1),   // a la resolución de la pantalla: curvas sin dientes
-      tinte: 0.06, desenfoque: 18,                      // translúcido pero legible: lo de detrás se ve, sin que se lea
+      tinte: 0.03, desenfoque: 14,                      // translúcido pero legible: lo de detrás se ve, sin que se lea
       refThickness: 40, refDistance: 0.25, refFactor: 2.0,   // el canto dobla el fondo (sin pliegue)
-      ondas: 0.8, ondasQuietas: true, oscurecerClaro: 0.7,   // sobre fondo blanco, el cristal se oscurece y se lee                        // y por dentro el fondo ondula muy suave, sin moverse
+      ondas: 0.8, ondasQuietas: true, oscurecerClaro: 0.45,   // sobre fondo blanco, el cristal se oscurece y se lee                        // y por dentro el fondo ondula muy suave, sin moverse
       radius: 20, roundness: 2, extiende: document.body.classList.contains('abajo') ? null : { top: 80 },   // esquina de cuarto de círculo (90°), no la superelipse   // la forma sigue por encima: arriba, lados rectos
     });
   }
