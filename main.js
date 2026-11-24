@@ -4301,6 +4301,7 @@ function checkForUpdates(manual) {
 // la ficha de la Store y se cierra. La tarea en marcha no se para: si vuelves a abrir Cronota en
 // menos de media hora, sigue contando como si nada (ver repararCierreDeGolpe).
 const CATALOGO_STORE = 'https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=9NXSJVW6BXQF&market=ES&languages=es-es';
+const CRONOTA_PFN = 'lvaroRoblesGonzlezDripDev.Cronota_v2tdvvj5ej2c0';   // la familia del paquete de la Store (para volver a abrirla)
 let versionNueva = null;
 function versionDelCatalogo(texto) {
   let mejor = null;
@@ -4319,13 +4320,20 @@ async function buscarVersionNueva() {
     if (!r.ok) return;
     const v = versionDelCatalogo(await r.text());
     if (!v || compararVersiones(v, app.getVersion()) <= 0) return;
-    const yaAvisada = settings.versionNuevaAvisada === v;
     versionNueva = v;
     [settingsWin, dockPanelWin].forEach(w => sendToAllFrames(w, 'version-nueva', v));
-    if (yaAvisada) return;
-    settings.versionNuevaAvisada = v; saveSettings();
-    avisar({ que: 'Actualización', icono: 'flecha', duracion: 20000, titulo: `Cronota ${v} está lista`, sub: 'Se cierra, se actualiza en la Store y tu tarea sigue contando',
-      acciones: [{ a: 'actualizar', label: 'Cerrar y actualizar', clase: 'hecha' }], al: { actualizar: () => cerrarYActualizar() } });
+    // 2.18: el aviso se queda hasta que actualizas o lo pospones (antes se iba solo a los 20 s y no
+    // volvía a salir: si no lo veías, no te enterabas). Pospuesto, vuelve cuando toca.
+    const pos = settings.versionNuevaPospuesta;
+    if (pos && pos.v === v && Date.now() < pos.hasta) return;
+    if (colaAvisos.some(a => a.tipo === 'actualizacion')) return;
+    avisar({ tipo: 'actualizacion', que: 'Actualización', icono: 'flecha', programado: true, titulo: `Cronota ${v} está lista`,
+      sub: 'Se cierra, se actualiza sola y se vuelve a abrir; tu tarea sigue contando',
+      acciones: [{ a: 'actualizar', label: 'Cerrar y actualizar' }, { a: 'posponer', label: '10 min' }],
+      al: {
+        actualizar: () => cerrarYActualizar(),
+        posponer: (p) => { settings.versionNuevaPospuesta = { v, hasta: Date.now() + Math.max(1, Number(p && p.minutos) || 10) * 60000 }; saveSettings(); },
+      } });
   } catch {}
 }
 function cerrarYActualizar() {
@@ -4340,6 +4348,21 @@ function cerrarYActualizar() {
   try { if (tray) { tray.destroy(); tray = null; } } catch {}
   try { BrowserWindow.getAllWindows().forEach(w => { try { w.destroy(); } catch {} }); } catch {}
   const salir = () => { try { app.exit(0); } catch {} };
+  // 2.18: se actualiza sola. Un cmd aparte espera a que Cronota se cierre, actualiza con winget
+  // desde la Store y la vuelve a abrir. Si winget no está o falla, abre la ficha de la Store
+  // (como antes) para darle a «Actualizar» a mano.
+  if (IS_STORE) {
+    try {
+      const abrir = 'shell:AppsFolder\\' + CRONOTA_PFN + '!imputame';
+      const orden = 'timeout /t 3 /nobreak >nul & '
+        + 'winget upgrade --id 9NXSJVW6BXQF --source msstore --silent --accept-package-agreements --accept-source-agreements --disable-interactivity'
+        + ' && start "" "' + abrir + '"'
+        + ' || start "" "ms-windows-store://pdp/?productid=9NXSJVW6BXQF"';
+      require('child_process').spawn('cmd.exe', ['/d', '/s', '/c', '"' + orden + '"'], { detached: true, windowsHide: true, stdio: 'ignore', windowsVerbatimArguments: true }).unref();
+      setTimeout(salir, 200);
+      return;
+    } catch {}
+  }
   let abierta;
   try { abierta = require('electron').shell.openExternal('ms-windows-store://pdp/?productid=9NXSJVW6BXQF'); } catch {}
   Promise.resolve(abierta).catch(() => {}).then(() => setTimeout(salir, 100));
@@ -4537,9 +4560,17 @@ app.whenReady().then(() => {
   setInterval(vigilarRecordatoriosNotas, 20000); setTimeout(vigilarRecordatoriosNotas, 5000);   // 2.16
   if (!settings.avisos110) { if (!settings.widgetScale || Number(settings.widgetScale) === 100) settings.widgetScale = 110; settings.avisos110 = true; saveSettings(); }   // 2.18: avisos al 110 % de serie
   try { if (asegurarSeccionesNotas(notas())) { saveData(); broadcastState(); } } catch {}   // 2.18: secciones propias
+  // 2.18: las secciones de notas de serie (una vez): Pendiente, En proceso y Hecho.
+  if (!settings.seccionesNotasDeSerie) {
+    const hay = new Set(seccionesNotas().map(x => String(x.name).toLowerCase()));
+    [['Pendiente', '#fbbf24'], ['En proceso', '#60a5fa'], ['Hecho', '#34d399']].forEach(([name, color], i) => {
+      if (!hay.has(name.toLowerCase())) seccionesNotas().push({ id: 's' + Date.now().toString(36) + i, name, color });
+    });
+    settings.seccionesNotasDeSerie = true; saveSettings(); saveData(); broadcastState();
+  }
   setTimeout(limpiarArchivosNotas, 15000);
   latir(); setInterval(latir, 60000);
-  setTimeout(buscarVersionNueva, 60000); setInterval(buscarVersionNueva, 4 * 60 * 60 * 1000);   // 2.14.3
+  setTimeout(buscarVersionNueva, 60000); setInterval(buscarVersionNueva, 60 * 60 * 1000);   // 2.14.3; 2.18: cada hora
   startLeaveWatcher();
   startEyeCareTimer();
   arrancarOutlookYLlamadas();
