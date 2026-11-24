@@ -179,6 +179,10 @@ Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
 
 ### Pendientes sueltos
 
+- **Próxima versión · notas** (pedido por Álvaro el 24-11-2026):
+  - Al elegir fecha y hora del recordatorio de una nota (selector propio), que se puedan cambiar con la **rueda del ratón** (día, hora y minutos), como el botón de posponer de los avisos.
+  - **Secciones de notas propias**, independientes de las secciones de Tareas, que se crean desde Notas (en la 2.16 se pasaron a las de Tareas; ahora vuelven a ser propias:  ya existe). Pensar qué pasa con las notas que ya tienen una sección de Tareas (pasarlas a una sección de notas con el mismo nombre y color).
+  - **Pegar imágenes** en las notas (Ctrl+V con una imagen en el portapapeles, en la ventana de la nota o en el mapa) para que se adjunten como archivo, igual que al soltarlas.
 - ~~Próxima versión · fuera la cuenta y el móvil; sincronizar con OneDrive o Google Drive~~ (hecho en la 2.14) (pedido por Álvaro el 18-11-2026):
   - **Quitar** todo lo que sobra: «Sincronizar (móvil)…» de la bandeja, la cuenta y la sincronización con Supabase (`sync.js`, `src/sync.html`, sección Cuenta de Ajustes, `imputa-sync.json`), la app del móvil y sus referencias (README, web, política de privacidad). Los dominios `imputame*.dripdev.dev` y el APK dejan de hacer falta.
   - **Añadir** en Ajustes una sección «Sincronizar» con los iconos de **OneDrive** y **Google Drive**: eliges uno con un clic y ya está, sin cuentas ni contraseñas en Cronota. Cronota busca sola la carpeta de ese servicio en el PC (OneDrive: variables `OneDrive` / `OneDriveCommercial`; Google Drive para escritorio: su unidad, p. ej. «Mi unidad»), crea dentro `Cronota` y guarda ahí una copia de tus datos al momento; el programa de OneDrive o Google Drive la sube a tu nube. En otro PC con el mismo servicio, Cronota la encuentra y ofrece traerla.
