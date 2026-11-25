@@ -179,6 +179,7 @@ Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
 
 ### Pendientes sueltos
 
+- **Notas · varias pizarras** (pedido por Álvaro el 25-11-2026): poder crear pizarras de notas para separar notas distintas. De serie está la **pizarra principal** (la general, la de ahora); luego se añaden las que quieras (con su nombre) y en cada una viven solo sus notas, **con sus propias secciones/categorías**, su forma de ordenar y su vista (zoom y posición). Es lo mismo que Notas ahora, pero separado por pizarras: un selector de pizarra arriba (como la caja fuerte, que ya es otra pizarra aparte), mover una nota a otra pizarra desde el menú redondo, renombrar y borrar pizarras (las notas de una pizarra borrada, ¿a la principal?). Las copias, la sincronización y los avisos de recordatorio, igual para todas.
 - **Tareas · crear subtareas y demás cómodamente** (comentario de una usuaria, apuntado por Álvaro el 25-11-2026): en la pestaña Tareas no se pueden crear subtareas (ni el resto de cosas de una tarea) tan cómodo como en el calendario, donde el menú redondo de un rato tiene «Subtarea → Subtarea nueva…». Llevar a Tareas lo mismo: clic derecho en una tarea → menú redondo con subtarea nueva, renombrar, color, sección, nota fija, archivar, etc.
 - **Próxima versión · notas** (pedido por Álvaro el 24-11-2026):
   - Al elegir fecha y hora del recordatorio de una nota (selector propio), que se puedan cambiar con la **rueda del ratón** (día, hora y minutos), como el botón de posponer de los avisos.
