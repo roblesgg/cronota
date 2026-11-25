@@ -179,6 +179,7 @@ Hecha con tres revisiones a la vez: proceso principal, pantallas y repositorio.
 
 ### Pendientes sueltos
 
+- **Tareas · crear subtareas y demás cómodamente** (comentario de una usuaria, apuntado por Álvaro el 25-11-2026): en la pestaña Tareas no se pueden crear subtareas (ni el resto de cosas de una tarea) tan cómodo como en el calendario, donde el menú redondo de un rato tiene «Subtarea → Subtarea nueva…». Llevar a Tareas lo mismo: clic derecho en una tarea → menú redondo con subtarea nueva, renombrar, color, sección, nota fija, archivar, etc.
 - **Próxima versión · notas** (pedido por Álvaro el 24-11-2026):
   - Al elegir fecha y hora del recordatorio de una nota (selector propio), que se puedan cambiar con la **rueda del ratón** (día, hora y minutos), como el botón de posponer de los avisos.
   - **Secciones de notas propias**, independientes de las secciones de Tareas, que se crean desde Notas (en la 2.16 se pasaron a las de Tareas; ahora vuelven a ser propias; la lista state.seccionesNotas ya existe). Pensar qué pasa con las notas que ya tienen una sección de Tareas (pasarlas a una sección de notas con el mismo nombre y color).
